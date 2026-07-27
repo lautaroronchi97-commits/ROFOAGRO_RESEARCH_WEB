@@ -376,6 +376,20 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
 - [ ] **C22 = V4. Diario (retoque) + medición** — el diario NO se sofistica a propósito; solo
   puede citar evidencia ya verificada del view vigente. Cierra con la medición de consumo real
   de las 4 Routines. Depende de C19.
+- [ ] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (nuevo, 27/07)** — al probar el uploader
+  de BCBA-PAS (A6) Lautaro pasó un export alternativo (`reporte.xlsx`, hoja "Reporte base de
+  datos") con las mismas 27 campañas 2000/01→2026/27 pero desglosadas por **zona** (NOA, NEA,
+  Núcleo Norte/Sur, Centro/S Bs As, SE BA, Cuenca del Salado, etc.), no solo el total país que ya
+  carga `historico_pas_datasets.csv`. **Verificado 27/07**: la columna `Producción(MTn)` de ese
+  archivo son toneladas CRUDAS igual que el CSV (soja 2024/25 = 50.300.000 = 50,3 Mt, maíz 2024/25
+  = 49.000.000 = 49,0 Mt, ambos coinciden con lo publicado) — resuelve la duda de escala que había
+  quedado abierta en `sesiones/2026-07-23-mp2-skill-y-alta-srl.md` sobre el `reporte_1.xlsx`
+  original (ese SÍ seguía sin poder verificarse, nunca trajo un valor >0). Hoy la web solo modela
+  el total nacional; esto habilitaría un panel nuevo (¿qué zona explica una caída de producción:
+  rinde flojo en el Núcleo o menos hectáreas en el NOA?). Alcance a definir cuando se ejecute:
+  tabla nueva (no encaja en `estimaciones_produccion`, que es por país no por zona) + parser XLSX
+  (columnas en OTRO ORDEN que el CSV: Campaña,Zona,Cultivo,... — no es un simple alias) + panel de
+  visualización. Sin prompt escrito todavía.
 
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 
