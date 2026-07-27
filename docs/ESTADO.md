@@ -57,6 +57,35 @@ real.
 
 Detalle: [`sesiones/2026-07-27-a1-login-encendido.md`](sesiones/2026-07-27-a1-login-encendido.md).
 
+**🚨 C18/V0 — LAS 3 ROUTINES DE INFORMES, DIAGNOSTICADAS Y ARREGLADAS (misma sesión, mismo PR
+#83).** Lautaro pasó las alertas reales de Gmail (healthcheck en rojo, "FALLÓ el informe diario —
+401", ingesta line-up en rojo) → destapó el hallazgo del 24/07 ("las 3 Routines disparan y no
+producen nada"). Cadena de 3 causas reales, todas encontradas y arregladas:
+1. **`INFORME_TOKEN` desincronizado** entre el entorno de Claude Code y Vercel Producción → 401 en
+   `/api/informes/datos` y `/api/views/insumos`. Token nuevo generado y cargado en los dos lados,
+   verificado con `curl` real → 200.
+2. **`ingest-lineup` — falso positivo de lunes**: la ventana diaria (hoy+2 días) caía enteramente en
+   fin de semana (Lun+Dom+Sáb) si corría antes de que ISA publicara el lunes. Ventana ampliada a 4
+   días.
+3. **Bug real de producción, regresión del mismo A1**: `/informes/plantilla/{diario,semanal}` (las
+   páginas que Playwright screenshotea) quedaron atrás del gate de `AUTH_ENFORCED` — `src/proxy.ts`
+   solo exceptuaba `/api/informes/` y `/api/views/`. La Routine se llevaba el HTML de `/ingresar` en
+   vez de la placa. Fix en `proxy.ts` (verificado seguro: las plantillas ya validan su propio
+   `INFORME_TOKEN` internamente) + documentado en las skills `informe-diario`/`informe-semanal` el
+   workaround de Playwright detrás del proxy del sandbox (TLS 1.3 rompe con `ERR_CONNECTION_RESET`,
+   hace falta `proxy.server` + forzar TLS 1.2) + pin de `model: claude-opus-5`/`effort: high` (la
+   prosa con la voz de Lautaro la escribe el modelo grande). `view-mercado` no lo necesitaba (sin
+   Playwright, modelo ya fijado a nivel de Routine). **El informe diario del 27/07 se generó y mandó
+   completo, de punta a punta**, como prueba en vivo. Detalle completo (incluida la pista falsa de
+   `add_repo`, que no existe en el entorno headless de las Routines — el acceso real es `git clone`
+   directo por el proxy):
+   [`sesiones/2026-07-27-c18-routines-diagnostico.md`](sesiones/2026-07-27-c18-routines-diagnostico.md).
+
+**Pendiente**: re-disparar informe semanal y view de mercado contra el fix ya en `main` (se
+pausaron cuando apareció el bug de la plantilla, antes de repetirlo 2 veces) · feedback real de
+Lautaro sobre el informe del 27/07 · resto de V0 (key USDA FAS, confirmar si una Routine invoca
+subagentes).
+
 ## Anterior (27/07/2026 — 🧰 13 skills técnicas nuevas de skills.sh)
 
 **🧰 SKILLS TÉCNICAS DE SKILLS.SH — HECHO — rama `claude/project-skills-analysis-r0o67y`,
