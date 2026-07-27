@@ -134,6 +134,35 @@ describe("camiones/williams.ts — parseCamionesUpload (uploader /admin/datos + 
     expect(r.advertencias.length).toBeGreaterThan(0);
   });
 
+  it("detecta formato CRUDO/tidy (Date,Cultivo,Localidad,Puerto,Zona,Cantidad de Camiones), agrupa por zona", () => {
+    // Fixture real: 2 terminales de la misma zona el mismo día (verificado contra el CSV real de
+    // Williams el 27/07/2026) — confirma que suma dentro de la zona, no solo mapea 1:1.
+    const txt =
+      "Date,Cultivo,Localidad,Puerto,Zona,Cantidad de Camiones\n" +
+      "2026-07-01,Total,Alvear,Pta Alvear - Cargill,Rosario y Zona,369.0\n" +
+      "2026-07-01,Total,Arroyo Seco,Arroyo Seco - ADM AGRO,Rosario y Zona,285.0\n" +
+      "2026-07-01,Total,Bahia Blanca,Cargill - Bahía Blanca,Puertos-B.Blanca,359.0\n";
+    const r = parseCamionesUpload(txt);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.formato).toBe("crudo");
+    expect(r.serieDetectada).toBe("TOTAL");
+    expect(r.filas).toContainEqual({ fecha: "2026-07-01", clave: "ROSARIO_ALEDANOS", cantidad: 369 + 285 });
+    expect(r.filas).toContainEqual({ fecha: "2026-07-01", clave: "BAHIA_BLANCA", cantidad: 359 });
+    expect(r.advertencias).toHaveLength(0);
+  });
+
+  it("formato CRUDO con dos cultivos mezclados ('Total' + 'Maiz') → error explícito, no suma a ciegas", () => {
+    const txt =
+      "Date,Cultivo,Localidad,Puerto,Zona,Cantidad de Camiones\n" +
+      "2026-07-01,Total,Alvear,Pta Alvear - Cargill,Rosario y Zona,369.0\n" +
+      "2026-07-01,Maiz,Alvear,Pta Alvear - Cargill,Rosario y Zona,100.0\n";
+    const r = parseCamionesUpload(txt);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toMatch(/mezcla más de un cultivo/i);
+  });
+
   it("formato desconocido → error, sin inventar datos", () => {
     const r = parseCamionesUpload("Date,ColumnaRara\n2020-01-01,5\n");
     expect(r.ok).toBe(false);

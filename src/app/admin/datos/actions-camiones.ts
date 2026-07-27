@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/dal";
 import { createSupabaseServerClient } from "@/lib/auth/server";
 import { parseCamionesUpload } from "@/lib/camiones/williams";
-import { PRODUCTO_SERIE_CLAVES, type ProductoSerie } from "@/lib/camiones/config";
+import { PRODUCTO_SERIE_CLAVES, PRODUCTO_SERIE_DISPLAY, type ProductoSerie } from "@/lib/camiones/config";
 
 /**
  * Server actions del uploader de camiones en puerto (/admin/datos, pestaña Camiones). Mismo
@@ -23,7 +23,7 @@ export type PreviewCamiones = {
   producto: ProductoSerie;
   filas: number;
   filasInvalidas: number;
-  formato: "zonas" | "localidades";
+  formato: "zonas" | "localidades" | "crudo";
   zonasCubiertas: string[];
   desde: string;
   hasta: string;
@@ -56,6 +56,16 @@ async function parsear(formData: FormData) {
   const texto = await archivo.text();
   const r = parseCamionesUpload(texto);
   if (!r.ok) return { error: r.error };
+  // Formato crudo: el propio archivo dice qué cultivo representa (columna "Cultivo") — si no
+  // coincide con la serie elegida en el selector, es señal de haber cargado el archivo
+  // equivocado (o de haber olvidado cambiar el selector). No bloquea (el selector manda, como en
+  // los otros 2 formatos) pero avisa fuerte en la previsualización.
+  if (r.formato === "crudo" && r.serieDetectada && r.serieDetectada !== producto) {
+    r.advertencias.push(
+      `El archivo dice ser la serie "${PRODUCTO_SERIE_DISPLAY[r.serieDetectada]}" pero elegiste ` +
+        `"${PRODUCTO_SERIE_DISPLAY[producto]}" arriba — revisá que sea el archivo correcto antes de confirmar.`,
+    );
+  }
   return { parsed: r, nombre: archivo.name, producto };
 }
 
