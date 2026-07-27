@@ -1,6 +1,6 @@
 # Sesión 2026-07-27 — skills técnicas de skills.sh
 
-- **Rama:** `claude/project-skills-analysis-r0o67y` · **PR:** #_ (base `main`)
+- **Rama:** `claude/project-skills-analysis-r0o67y` · **PR:** #84 (base `main`)
 - **Objetivo pedido por Lautaro:** evaluar 16 skills candidatas de skills.sh (más research
   propio del directorio) y cargar las que sirvan para este proyecto.
 

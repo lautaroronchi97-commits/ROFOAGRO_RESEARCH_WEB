@@ -22,7 +22,7 @@
 ## Ahora (última actualización: 27/07/2026 — 🧰 13 skills técnicas nuevas de skills.sh)
 
 **🧰 SKILLS TÉCNICAS DE SKILLS.SH — HECHO — rama `claude/project-skills-analysis-r0o67y`,
-PR #_.** Lautaro pasó 16 skills candidatas de [skills.sh](https://www.skills.sh/) para
+PR #84.** Lautaro pasó 16 skills candidatas de [skills.sh](https://www.skills.sh/) para
 evaluar; se analizaron a fondo (2 agentes en paralelo: contenido real de cada `SKILL.md` +
 research propio del directorio buscando qué más sirve para este proyecto puntual) y se
 instalaron **13** vía `npx skills add` (quedan en `.agents/skills/<nombre>/` con symlink en
