@@ -342,17 +342,24 @@ MP1-MP4 ya construidas con agentes de research sobre fuentes externas verificada
 Los prompts autocontenidos de cada fase están en **§9 de ese plan**, no acá. Las 4 decisiones
 abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
 
-- [~] **C18 = V0. Verificar el piso** — **EN CURSO 27/07, avance grande.** Diagnosticadas y
-  arregladas 3 causas reales encadenadas: (1) `INFORME_TOKEN` desincronizado entre el entorno de
-  Claude Code y Vercel Producción (401 en silencio); (2) falso positivo de lunes en `ingest-lineup`
-  (ventana de fechas corta); (3) **regresión real del mismo A1**: `/informes/plantilla/*` quedó
-  atrás del gate de `AUTH_ENFORCED`, la Routine se llevaba el HTML de `/ingresar` — fix en
-  `src/proxy.ts` + skills `informe-diario`/`informe-semanal` actualizadas (workaround de Playwright
-  detrás del proxy del sandbox + modelo grande fijado). **El informe diario del 27/07 se generó y
-  mandó completo, de punta a punta**, primera prueba real exitosa. PR #83.
-  **Falta**: re-disparar informe semanal y view de mercado contra el fix ya en `main` · feedback
-  real de Lautaro sobre el informe del 27/07 · cargar la key gratuita de USDA FAS · confirmar si
-  una Routine puede invocar subagentes (precondición del fan-out de V1). Detalle:
+- [x] **C18 = V0. Verificar el piso** — ✅ **hecho 27/07.** Diagnosticadas y arregladas 3 causas
+  reales encadenadas: (1) `INFORME_TOKEN` desincronizado entre el entorno de Claude Code y Vercel
+  Producción (401 en silencio); (2) falso positivo de lunes en `ingest-lineup` (ventana de fechas
+  corta); (3) **regresión real del mismo A1**: `/informes/plantilla/*` quedó atrás del gate de
+  `AUTH_ENFORCED`, la Routine se llevaba el HTML de `/ingresar` — fix en `src/proxy.ts` (mergeado,
+  PR #83) + skills `informe-diario`/`informe-semanal` actualizadas (workaround de Playwright detrás
+  del proxy del sandbox + modelo grande fijado). Confirmado dos veces, en sesiones independientes,
+  que `add_repo`/`register_repo_root` no existen en el entorno headless — el camino real es `git
+  clone` directo; los 3 prompts de las Routines se limpiaron de esa instrucción falsa. **Las 3
+  Routines verificadas de punta a punta el mismo día**: informe diario enviado (27/07), informe
+  semanal enviado (semana 18/07–24/07, "El trigo se lleva la semana"), view de mercado con los 3
+  granos guardados (27/07: soja NEUTRAL, maíz ALCISTA, trigo NEUTRAL).
+  **Queda (menor, no bloquea)**: feedback real de Lautaro sobre el contenido del informe del 27/07 ·
+  cargar la key gratuita de USDA FAS · confirmar si una Routine puede invocar subagentes
+  (precondición del fan-out de V1) · evaluar en una sesión de calibración el aprendizaje que
+  propuso la sesión del view (índice MESA caliente + dirección cerrándose + Chicago corrigiendo en
+  el día → leer neutral, no alcista — una sola observación, no aplicar aún a
+  `references/aprendizajes.md`). Detalle:
   [`sesiones/2026-07-27-c18-routines-diagnostico.md`](../sesiones/2026-07-27-c18-routines-diagnostico.md).
 - [ ] **C19 = V1. View v2 (la bola de nieve)** — migración aditiva de `views_mercado`
   (`relacion_previa`/`view_previo_id`/`invalidadores`/`evidencia_externa`/`nota_lautaro`) +

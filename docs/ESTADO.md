@@ -19,7 +19,7 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 27/07/2026 — 🔐 LOGIN ENCENDIDO: A1 CERRADO, `AUTH_ENFORCED=true` en producción)
+## Ahora (última actualización: 27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
 
 **🔐 A1 — TERMINAR EL LOGIN — ✅ CERRADO — sesión conversacional, sin rama de código.** Lautaro
 confirmó que el **Centro de verificación de Google** ya mostraba "Se verificó la información de
@@ -81,10 +81,21 @@ producen nada"). Cadena de 3 causas reales, todas encontradas y arregladas:
    directo por el proxy):
    [`sesiones/2026-07-27-c18-routines-diagnostico.md`](sesiones/2026-07-27-c18-routines-diagnostico.md).
 
-**Pendiente**: re-disparar informe semanal y view de mercado contra el fix ya en `main` (se
-pausaron cuando apareció el bug de la plantilla, antes de repetirlo 2 veces) · feedback real de
-Lautaro sobre el informe del 27/07 · resto de V0 (key USDA FAS, confirmar si una Routine invoca
-subagentes).
+**Las 3 Routines verificadas de punta a punta en el mismo día, post-fix**: informe diario
+(enviado, 27/07) · informe semanal (enviado, semana 18/07–24/07, "El trigo se lleva la semana") ·
+view de mercado (3 granos guardados, 27/07 — soja bajó de alcista a NEUTRAL por el crush
+cerrándose + Chicago -3% en el día; maíz ALCISTA por gap de cobertura abriéndose; trigo NEUTRAL,
+corto firme pero exportación ya cubrió lo declarado). Confirmado dos veces, en sesiones
+independientes, que **`add_repo`/`register_repo_root` no existen en el entorno headless de las
+Routines** — el camino real es `git clone` directo (hay `GH_TOKEN`/proxy configurado, sin pasos
+extra); los 3 prompts se limpiaron de esa instrucción falsa.
+
+**Pendiente de V0 (no bloquea, menor)**: feedback real de Lautaro sobre el contenido/formato del
+informe del 27/07 · cargar la key gratuita de USDA FAS · confirmar si una Routine invoca
+subagentes (precondición de V1) · evaluar en una sesión de calibración el aprendizaje que propuso
+la sesión del view ("índice MESA caliente + dirección cerrándose + Chicago corrigiendo en el día →
+leer neutral, no alcista" — una sola observación, no aplicar todavía a `references/aprendizajes.md`
+sin más casos).
 
 ## Anterior (27/07/2026 — 🧰 13 skills técnicas nuevas de skills.sh)
 

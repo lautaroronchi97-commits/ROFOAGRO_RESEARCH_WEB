@@ -72,14 +72,45 @@
 - Seguridad del fix de `proxy.ts`: confirmado por `grep` que ambas plantillas llaman `tokenValido()`
   antes de renderizar nada.
 
-## Quedó pendiente / en vuelo
-- **Informe semanal y view de mercado**: no se volvieron a disparar todavía contra el fix ya
-  mergeado (se pausaron cuando apareció el bug de `/informes/plantilla/`, para no repetir el mismo
-  problema 2 veces). Repetir el disparo manual una vez que este PR esté en `main` y deployado.
-- Pedirle a Lautoro feedback real sobre el informe diario del 27/07 (contenido, tono, formato de la
-  placa) — primera vez que lo ve de punta a punta.
-- El resto de C18/V0 sigue abierto: cargar la key gratuita de USDA FAS, confirmar si una Routine
-  puede invocar subagentes (precondición de C19/V1).
+## Cierre — las 3 Routines verificadas de punta a punta (mismo día, post-merge del PR #83)
+Una vez mergeado el fix de `proxy.ts` a `main` y confirmado el deploy en vivo (`curl` a
+`/informes/plantilla/diario` → 200, sin redirect), se dispararon manualmente informe semanal y
+view de mercado (los que habían quedado en pausa):
+- **Informe semanal**: `estado: enviado`, `path_pdf: semanal/2026-07-24.pdf`, mail recibido
+  ("Informe semanal ROFO AGRO — semana 18/07–24/07", título "El trigo se lleva la semana").
+- **View de mercado**: 3 filas nuevas en `views_mercado` (27/07) — soja NEUTRAL (bajó de alcista el
+  21/07: crush "cerrándose" + Chicago -3,01% en el día pese al índice MESA todavía caliente), maíz
+  ALCISTA (gap de cobertura abriéndose, exportación corta), trigo NEUTRAL (corto firme pero
+  exportación ya cubrió lo declarado). Contenido con números trazables a los insumos, cero datos
+  inventados.
+- **Confirmado por segunda vez, en una sesión independiente** (la del view): `add_repo`/
+  `register_repo_root` no existen en el entorno headless — el `git clone` directo (con `GH_TOKEN`/
+  proxy ya configurado) es el camino real, sin pasos extra. Los 3 prompts de las Routines se
+  limpiaron de la instrucción de `add_repo` que se había agregado antes por la pista falsa del
+  1er intento del diario.
+
+## Follow-up en la misma sesión — pie de página 5 del semanal (encontrado por la propia Routine)
+Al re-disparar el informe semanal contra el fix ya en producción, la sesión de la Routine encontró
+otro real: la página 5 (view de mercado) salió en **7 páginas físicas en vez de 5** — con las 3
+tesis completas de `viewsMercado` (contenido real por primera vez, antes era de ejemplo), el
+contenido desborda los 297mm de `.sem-hoja`. Se le preguntó a Lautoro cómo prefería resolverlo
+(recortar tesis / permitir más páginas / dejarlo por ahora) → **eligió permitir las páginas que
+haga falta**. Causa raíz real: el pie de página (`.sem-pie`, `position:absolute; bottom:14mm`)
+queda anclado al fondo de la caja ya crecida, flotando a mitad de contenido en vez de al pie
+verdadero. Fix: nueva clase `.sem-pie-flow` que hace fluir el pie después del contenido, aplicada
+solo a la página 5 (la tapa, página 1, nunca desborda y se dejó igual). Skill actualizada: "al
+menos 5 páginas" en vez de "exactamente 5". **Verificado con Playwright real** (build local +
+el informe semanal ya guardado en la base, id `dcd89f37…`): screenshot confirma el pie en flujo
+normal al final de todo el contenido, sin overlap ni corte.
+
+## Quedó pendiente / en vuelo (menor, no bloquea)
+- Pedirle a Lautoro feedback real sobre el contenido/tono/formato de los 3 informes del 27/07 —
+  primera vez que los ve de punta a punta.
+- Resto de V0: cargar la key gratuita de USDA FAS, confirmar si una Routine puede invocar
+  subagentes (precondición de C19/V1).
+- Evaluar en una sesión de calibración dedicada el aprendizaje que propuso la sesión del view
+  (índice MESA caliente + dirección cerrándose + Chicago corrigiendo en el día → leer neutral, no
+  alcista) — una sola observación, no se aplicó a `references/aprendizajes.md` todavía.
 - A6 (probar `/admin/datos` logueado) sigue en la cola, sin retomar en esta sesión.
 
 ## Trampas descubiertas (para la próxima sesión)
