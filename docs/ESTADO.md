@@ -57,6 +57,34 @@ real.
 
 Detalle: [`sesiones/2026-07-27-a1-login-encendido.md`](sesiones/2026-07-27-a1-login-encendido.md).
 
+## Anterior (27/07/2026 — 🧰 13 skills técnicas nuevas de skills.sh)
+
+**🧰 SKILLS TÉCNICAS DE SKILLS.SH — HECHO — rama `claude/project-skills-analysis-r0o67y`,
+PR #84.** Lautaro pasó 16 skills candidatas de [skills.sh](https://www.skills.sh/) para
+evaluar; se analizaron a fondo (2 agentes en paralelo: contenido real de cada `SKILL.md` +
+research propio del directorio buscando qué más sirve para este proyecto puntual) y se
+instalaron **13** vía `npx skills add` (quedan en `.agents/skills/<nombre>/` con symlink en
+`.claude/skills/<nombre>` + `skills-lock.json` en la raíz — mismo mecanismo que las 4 skills
+propias del proyecto, sin colisión de nombres): `supabase` + `supabase-postgres-best-practices`
+(oficiales de Supabase) · `vercel-react-best-practices` + `vercel-composition-patterns` +
+`web-design-guidelines` (vercel-labs) · `frontend-design` + `webapp-testing` (anthropics) ·
+`grill-with-docs` (mattpocock — elegida sobre `grill-me` del mismo autor por anclar en docs
+existentes, que es la cultura de este repo) · `find-skills` (vercel-labs) ·
+`verification-before-completion` + `systematic-debugging` (obra/superpowers) ·
+`data-quality-frameworks` + `backtesting-frameworks` (wshobson). **Descartadas** (de las 16):
+`vercel-react-native-skills` (mobile, no aplica) · `css-animations` de heygen-com (específica
+de otro producto) · `nextjs-supabase-auth` (repo chico, nuestro login ya está construido a
+medida) · `vercel-react-view-transitions` (requiere React Canary) · `deploy-to-vercel`
+(contradice el protocolo de deploy por PR) · `agent-browser` (redundante con Playwright, que
+ya usamos) · `typescript-advanced-types` (valor marginal, ya en strict) ·
+`improve-codebase-architecture` (se solaparía con la auditoría E1→E7 recién cerrada — queda
+para más adelante si hace falta). **Verificado**: revisado el contenido completo de las 2
+skills con Snyk "Med Risk" (`find-skills`, `web-design-guidelines`) antes de commitear —
+ambas son solo markdown, nada ejecutable · `npm install` (el sandbox no tenía `node_modules`)
+· lint/tsc/build ✅ · 201/201 tests ✅ (sin tocar código, solo se agregan archivos de skills).
+Detalle completo con el veredicto skill por skill:
+[`sesiones/2026-07-27-skills-tecnicas.md`](sesiones/2026-07-27-skills-tecnicas.md).
+
 ## Anterior (24/07/2026 — 📐 PLAN INFORMES V2 mergeado + 🚨 las 3 Routines NO producen nada + 🔍 detector de anomalías al backlog)
 
 **🚨 HALLAZGO AL CERRAR EL PLAN — LAS 3 ROUTINES DISPARAN Y NO PRODUCEN NADA.** Verificado por
