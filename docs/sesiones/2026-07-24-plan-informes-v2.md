@@ -107,6 +107,35 @@
   usuario a mitad de camino y quedó colgado sin avisar (82 min sin actividad en su transcript,
   cero notificación) — se detectó chequeando el timestamp del archivo de salida y se relanzó.
 
+## Continuación (mismo día, post-merge del PR #81)
+
+- **Hallazgo grave al verificar las Routines**: por SQL contra la base real, **`informes_generados`
+  está VACÍA** (la Routine del diario viene disparando desde el 23/07 y nunca generó una placa) y
+  **la Routine del view disparó el 24/07 a las 12:07 UTC sin dejar fila en `views_mercado`** (los
+  únicos 3 views son los del 21/07, hechos a mano en la sesión de MP3). Las 3 fallan **en
+  silencio**, sin mail de error. Confirma que la premisa de V0 era correcta y lo vuelve
+  **urgente y bloqueante**. Registrado como **C18** en el backlog maestro.
+- **Pregunta de Lautaro: "¿se le puede agregar machine learning? ¿tiene sentido?"** Respuesta
+  razonada y honesta: **para generar el view no** — hoy hay 3 filas en `views_mercado` y cero
+  feedback; aun corriendo perfecto un año serían ~156 observaciones (52 semanas × 3 granos) muy
+  autocorrelacionadas, insuficiente para entrenar nada sin sobreajustar; el enfoque LLM +
+  estructura + disciplina del plan v2 es el correcto para ese problema. **Sí tiene sentido más
+  adelante** para problemas puntuales bien planteados sobre los datos de mercado que ya existen
+  (relación físico→precio con 6 años de line-up/DJVE/compras; sesgo sistemático de organismos
+  con 26 campañas), **con el scorecard de V1 como prerrequisito** — sin medición sistemática no
+  hay forma de saber si un modelo le gana a la heurística actual. Se señaló también que lo que ya
+  hacen (percentiles estacionales del índice MESA, P25/P75 en cobertura) **es** estadística bien
+  aplicada al volumen de datos que tienen, y que predecir precio directamente con ML es donde
+  estos proyectos mueren (poca señal, cambios de régimen, backtest engañoso).
+- **De esa charla salió D7 = L7: detector de anomalías en ingestas** (estadística clásica, no ML).
+  Prompt completo en `auditoria/E7-sintesis.md` §6. La observación que lo motiva: los chequeos
+  actuales cubren **frescura** (healthcheck, 17 checks) y **0 filas** (guard anti falso-verde),
+  pero nadie valida que los **valores** que entran sean plausibles contra la historia de su propia
+  serie — por eso pasaron sin detección la semana del 08/07 ÷1000, los 529 valores en 6.4e15, el
+  spike de 49,9 Mt, el typo de BCR en pellets de girasol y la fila del PAS duplicada byte-a-byte.
+- **Backlog maestro actualizado**: **C18-C22** (fases V0→V4 del plan de informes, con sus
+  dependencias) + **D7/L7** (detector) + **Bloque 8** en el registro de decisiones (§7).
+
 ## Quedó pendiente / en vuelo
 
 - Ejecutar **V0** (verificar Routines + primer feedback + cargar la key FAS) y después

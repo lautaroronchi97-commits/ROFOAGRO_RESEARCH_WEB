@@ -19,10 +19,37 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 24/07/2026 — 📐 PLAN INFORMES V2: research multi-agente + view con bola de nieve — plan cerrado, espera OK de Lautaro)
+## Ahora (última actualización: 24/07/2026 — 📐 PLAN INFORMES V2 mergeado + 🚨 las 3 Routines NO producen nada + 🔍 detector de anomalías al backlog)
 
-**📐 PLAN INFORMES V2 — HECHO (solo docs, cero código) — rama
-`claude/informes-skills-alternativas-9fvo9f`, PR #_.** Lautaro pidió llevar los informes
+**🚨 HALLAZGO AL CERRAR EL PLAN — LAS 3 ROUTINES DISPARAN Y NO PRODUCEN NADA.** Verificado por
+SQL contra la base real el 24/07: **`informes_generados` está VACÍA** (el informe diario viene
+disparando desde el 23/07 y nunca generó una sola placa) y la Routine del view **disparó hoy a
+las 9:07 ART sin dejar fila en `views_mercado`** (los únicos 3 views son los del 21/07, hechos a
+mano en la sesión de MP3). Fallan **en silencio**: no hay error visible ni mail de aviso, por eso
+nadie lo notó en 2 días. Esto convierte a **V0 (verificar el piso) en urgente y bloqueante** —
+no tiene sentido construir el pipeline de research encima de un motor que no arranca. Registrado
+como **C18** en el backlog maestro. *(Nota menor: las 3 Routines todavía se llaman "RF AGRO" en
+su nombre — renombrar a ROFO AGRO cuando se toquen.)*
+
+**🔍 DETECTOR DE ANOMALÍAS EN INGESTAS — AL BACKLOG (D7 = L7, prompt completo en E7 §6).** Salió
+de una pregunta de Lautaro ("¿se le puede agregar machine learning? ¿tiene sentido?"). Respuesta
+razonada: para **generar el view NO** (hoy 3 filas en `views_mercado` y cero feedback; aun con un
+año entero serían ~156 observaciones muy correlacionadas — no alcanza para entrenar nada), y el
+enfoque LLM+estructura es el correcto para eso. Sí tiene sentido, **más adelante y con el
+scorecard como prerrequisito**, para problemas puntuales sobre los datos de mercado que ya
+existen (relación físico→precio con 6 años de line-up/DJVE; sesgo sistemático de organismos). Y
+lo que **sí conviene ya** es un detector estadístico (no ML) sobre los valores que entran: hoy se
+chequea **frescura** (healthcheck) y **0 filas** (guard anti falso-verde), pero nadie valida que
+un valor sea plausible contra la historia de su propia serie — por eso pasaron sin detección la
+semana del 08/07 ÷1000, los 529 valores en 6.4e15, el spike de 49,9 Mt, el typo de BCR en pellets
+de girasol y la fila del PAS duplicada byte-a-byte. Seis chequeos (MAD, orden de magnitud,
+monotonía CON alerta en vez de clamp silencioso, identidades contables, duplicado exacto, rangos
+imposibles), umbrales **por tipo de dato** (precios volátiles ≠ acumulados ≠ conteos estacionales)
+y **calibración retroactiva contra los bugs conocidos** antes de instalarlo. Independiente de
+todo lo demás.
+
+**📐 PLAN INFORMES V2 — HECHO Y MERGEADO (solo docs, cero código) — rama
+`claude/informes-skills-alternativas-9fvo9f`, PR #81.** Lautaro pidió llevar los informes
 (diario/semanal/view/interpretaciones) "a otro nivel": Fable orquestando agentes de research
 (web propia + fuentes externas) y un view de mercado **acumulativo** ("bola de nieve": tesis
 previa + lo nuevo de cada semana, con switches por eventos — como piensa un trader) — pero
@@ -53,9 +80,10 @@ hubiera contaminado con el salto de rolleo. + 8 hallazgos menores, todos aplicad
 `[fix auditoría]` en el texto. **Las 4 decisiones de §10 ya contestadas por Lautaro**: nota
 1-5 en el feedback SÍ · semanal se queda en **5 páginas** (lo nuevo entra recortando) · COT
 solo en semanal/view, no en el diario · key gratuita de USDA FAS la registra él antes de V0.
-**Próximo paso: ejecutar V0** (verificar de punta a punta las 3 Routines, que nunca se
-comprobaron; primer feedback real de Lautaro; cargar la key FAS) **y después V1→V4** (prompts
-autocontenidos en §9). Al arrancar, registrar V1-V4 en el backlog maestro (E7 §4). Detalle:
+**V0→V4 ya registradas en el backlog maestro como C18-C22** (E7 §4), junto con el detector como
+D7/L7. **Próximo paso: ejecutar C18/V0** — diagnosticar por qué las 3 Routines no producen nada
+(ver el hallazgo de arriba), primer feedback real de Lautaro en `/granos/view`, cargar la key
+FAS — **y después V1→V4** (prompts autocontenidos en §9 del plan). Detalle:
 [`sesiones/2026-07-24-plan-informes-v2.md`](sesiones/2026-07-24-plan-informes-v2.md).
 ## Anterior (24/07/2026 — 🏷️ REBRANDING RF AGRO → ROFO AGRO, texto + logo real HECHO; solo renames de plataforma EN VUELO)
 
