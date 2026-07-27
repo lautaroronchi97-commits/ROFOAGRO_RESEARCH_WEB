@@ -172,6 +172,68 @@ function mapearCabecera(celdas: string[]): Map<string, number> | null {
 }
 
 // ---------------------------------------------------------------------------
+// Export CRUDO de Agrochat (antes de su propia transformación) — 27/07/2026.
+//
+// El "csv_content" que arma el script fijo de Agrochat sale de la celda de un dataframe, no de
+// un archivo descargable (al copiarlo se pierden los saltos de línea). El dataset de ORIGEN que
+// Agrochat sí exporta como archivo real (columnas Date/Country/Sector/Crop/Harvest/Semanal/Total
+// Comprado/... , en MILES de toneladas, con filas "Total" además de industria/exportador) es un
+// CSV de verdad. Reproduce acá — en TypeScript, no atado al script de Agrochat — la MISMA
+// transformación que ese script fijo (verificado 1:1 contra su código): filtrar sector
+// industria/exportador (soltar "Total"), grano a minúscula, ×1000 a toneladas enteras.
+// ---------------------------------------------------------------------------
+
+const COLUMNAS_CRUDAS = [
+  "date", "sector", "crop", "harvest", "semanal",
+  "total_comprado", "total_precio_hecho", "total_a_fijar", "total_fijado", "saldo_a_fijar",
+] as const;
+
+const SECTOR_CRUDO_A_NOMBRE: Record<string, string> = {
+  "compras de la industria": "Industria",
+  "compras sector exportador": "Exportador",
+};
+
+/** Valida la cabecera del export crudo; devuelve índice por columna, o null si no matchea. */
+function mapearCabeceraCruda(celdas: string[]): Map<string, number> | null {
+  const idx = new Map<string, number>();
+  celdas.forEach((h, i) => {
+    const n = normHeader(h);
+    if ((COLUMNAS_CRUDAS as readonly string[]).includes(n) && !idx.has(n)) idx.set(n, i);
+  });
+  const obligatorias = ["date", "sector", "crop", "harvest"];
+  if (!obligatorias.every((c) => idx.has(c))) return null;
+  if (!idx.has("semanal") && !idx.has("total_comprado")) return null;
+  return idx;
+}
+
+/** Fila cruda (miles de tn, con "Total") → `Cruda` canónica (tn enteras) o null si es fila "Total". */
+function crudaDesdeAgrochatRaw(row: string[], idx: Map<string, number>): Cruda | null {
+  const get = (col: string): string => (row[idx.get(col) ?? -1] ?? "").trim();
+  const nombreSector = SECTOR_CRUDO_A_NOMBRE[get("sector").toLowerCase()];
+  if (!nombreSector) return null; // fila "Total" (o cualquier otro valor no mapeable): se descarta
+  // Trunca como `.astype(int)` de numpy (NO redondea): reproduce bit a bit los mismos artefactos
+  // de punto flotante que el script de Agrochat (ej. 516.8*1000 = 516799,9999999994 en ambos
+  // lenguajes, IEEE754 — Python trunca a 516799; redondear acá daría 516800 y desalinearía este
+  // camino del de "csv_content" ya transformado por Agrochat, que es la referencia de verdad).
+  const milesATn = (s: string): string => {
+    const n = num(s);
+    return n == null ? "" : String(Math.trunc(n * 1000));
+  };
+  return {
+    fecha: get("date"),
+    grano: get("crop").toLowerCase(),
+    sector: nombreSector,
+    campana: get("harvest"),
+    compras_semanales: milesATn(get("semanal")),
+    total_comprado_acumulado: milesATn(get("total_comprado")),
+    precio_hecho: milesATn(get("total_precio_hecho")),
+    a_fijar: milesATn(get("total_a_fijar")),
+    fijado: milesATn(get("total_fijado")),
+    saldo_a_fijar: milesATn(get("saldo_a_fijar")),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // CSV (tolera BOM, CRLF y campos entre comillas)
 // ---------------------------------------------------------------------------
 
@@ -342,7 +404,8 @@ function parseTablaXLSX(buf: Buffer): { error?: string; celdas?: string[][]; num
 // ---------------------------------------------------------------------------
 
 const ERROR_FORMATO =
-  `No reconozco el formato del archivo. Exportá de Agrochat como CSV con esta cabecera: ${CABECERA_ESPERADA}`;
+  `No reconozco el formato del archivo. Exportá de Agrochat como CSV con esta cabecera: ${CABECERA_ESPERADA}` +
+  ` — o subí directamente el dataset crudo (Date,Country,Sector,Crop,Harvest,Semanal,Total Comprado,…).`;
 
 export function parseAgrochat(datos: Uint8Array, nombre: string): ParseResultado {
   if (datos.byteLength === 0) return { ok: false, error: "El archivo está vacío." };
@@ -376,28 +439,43 @@ export function parseAgrochat(datos: Uint8Array, nombre: string): ParseResultado
   const cabecera = celdas[0];
   if (!cabecera) return { ok: false, error: ERROR_FORMATO };
   const idx = mapearCabecera(cabecera);
-  if (!idx) return { ok: false, error: ERROR_FORMATO };
+  const idxCrudo = idx ? null : mapearCabeceraCruda(cabecera);
+  if (!idx && !idxCrudo) return { ok: false, error: ERROR_FORMATO };
 
-  const iFecha = idx.get("fecha")!;
-  const iCampana = idx.get("campana")!;
   const crudas: Cruda[] = [];
   let fechasSerial = 0;
-  for (let f = 1; f < celdas.length; f++) {
-    const row = celdas[f] ?? []; // f<celdas.length por el for → siempre existe; `[]` solo para el tipo
-    const r: Cruda = {};
-    for (const [col, i] of idx) r[col] = (row[i] ?? "").trim();
 
-    // Fechas de Excel como serial numérico (epoch 1899-12-30) → ISO.
-    if (numericas.has(`${f},${iFecha}`)) {
-      // "fecha" siempre quedó seteada en el loop de arriba (es obligatoria en mapearCabecera).
-      const iso = serialExcelAISO(Number((r["fecha"] ?? "").replace(",", ".")));
-      if (iso) { r["fecha"] = iso; fechasSerial++; }
+  if (idxCrudo) {
+    // Export CRUDO de Agrochat (Date/Country/Sector/Crop/Harvest/..., miles de tn, con "Total").
+    for (let f = 1; f < celdas.length; f++) {
+      const row = celdas[f] ?? [];
+      const cr = crudaDesdeAgrochatRaw(row, idxCrudo);
+      if (cr) crudas.push(cr); // fila "Total": se descarta silenciosamente (no es un dato propio)
     }
-    // Campaña que Excel convirtió a número/fecha (p. ej. "19/20" → serial): no es recuperable.
-    if (numericas.has(`${f},${iCampana}`) && !campaniaLarga(r["campana"])) r["campana"] = "";
-    crudas.push(r);
+    advertencias.push(
+      "Detecté el export crudo de Agrochat (antes de su transformación interna): se filtraron las filas \"Total\" y se convirtieron los valores de miles de toneladas a toneladas enteras automáticamente.",
+    );
+  } else {
+    const idxCanon = idx!;
+    const iFecha = idxCanon.get("fecha")!;
+    const iCampana = idxCanon.get("campana")!;
+    for (let f = 1; f < celdas.length; f++) {
+      const row = celdas[f] ?? []; // f<celdas.length por el for → siempre existe; `[]` solo para el tipo
+      const r: Cruda = {};
+      for (const [col, i] of idxCanon) r[col] = (row[i] ?? "").trim();
+
+      // Fechas de Excel como serial numérico (epoch 1899-12-30) → ISO.
+      if (numericas.has(`${f},${iFecha}`)) {
+        // "fecha" siempre quedó seteada en el loop de arriba (es obligatoria en mapearCabecera).
+        const iso = serialExcelAISO(Number((r["fecha"] ?? "").replace(",", ".")));
+        if (iso) { r["fecha"] = iso; fechasSerial++; }
+      }
+      // Campaña que Excel convirtió a número/fecha (p. ej. "19/20" → serial): no es recuperable.
+      if (numericas.has(`${f},${iCampana}`) && !campaniaLarga(r["campana"])) r["campana"] = "";
+      crudas.push(r);
+    }
+    if (fechasSerial > 0) advertencias.push(`${fechasSerial} fechas venían como serial de Excel y se convirtieron.`);
   }
-  if (fechasSerial > 0) advertencias.push(`${fechasSerial} fechas venían como serial de Excel y se convirtieron.`);
 
   // Transformar + dedup por clave (queda la primera aparición, como el cargador mjs).
   const filas: FilaCompra[] = [];

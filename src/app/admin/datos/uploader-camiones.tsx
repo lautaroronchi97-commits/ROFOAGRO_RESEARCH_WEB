@@ -56,9 +56,11 @@ export function UploaderCamiones() {
         />
       </label>
       <p className="admin-sub" style={{ margin: "8px 0 12px" }}>
-        Cabecera esperada: <code>Date,Darsenas y Bs As,Puertos de Necochea,Puertos-B.Blanca,Rosario y Zona</code>{" "}
-        (fecha tipo &quot;ene 2, 2018&quot;), o el formato de 33 columnas por localidad (deriva solo Rosario y
-        aledaños + Bahía Blanca). Cantidad de <b>camiones</b>, no toneladas.
+        Acepta 3 formatos: el <b>crudo/tidy</b> de Williams (<code>Date,Cultivo,Localidad,Puerto,Zona,Cantidad de Camiones</code>,
+        una fila por terminal/día — el más confiable, la Zona ya viene explícita) · el de{" "}
+        <b>zonas</b> (<code>Date,Darsenas y Bs As,Puertos de Necochea,Puertos-B.Blanca,Rosario y Zona</code>,
+        fecha tipo &quot;ene 2, 2018&quot;) · o el de 33 columnas por <b>localidad</b> (deriva solo Rosario
+        y aledaños + Bahía Blanca). Cantidad de <b>camiones</b>, no toneladas.
       </p>
 
       <div className="admin-card-acciones">

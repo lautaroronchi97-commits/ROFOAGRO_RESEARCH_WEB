@@ -103,6 +103,89 @@ export const ZONA_COLUMNA_WILLIAMS: Record<string, ZonaCamiones> = {
 export type FilaZonaWilliams = { fecha: string; clave: ZonaCamiones; cantidad: number };
 export type FilaTotalWilliams = { fecha: string; cantidad: number };
 
+/**
+ * "Cultivo" del export tidy de Williams → misma "serie" que ya usa el resto del módulo (no se
+ * importa `ProductoSerie` de `./config` a propósito — mismo criterio que `ZonaCamiones`: este
+ * archivo es self-contained para poder correr con Node plano; el union es estructuralmente
+ * idéntico, TS lo acepta sin import en el caller).
+ */
+export type SerieCultivo = "TOTAL" | "SBS" | "MAIZE" | "WHEAT" | "BARLEY" | "SORGHUM" | "SFSEED";
+
+const CULTIVO_A_SERIE: Record<string, SerieCultivo> = {
+  total: "TOTAL",
+  soja: "SBS",
+  "maiz": "MAIZE",
+  "maíz": "MAIZE",
+  trigo: "WHEAT",
+  cebada: "BARLEY",
+  sorgo: "SORGHUM",
+  girasol: "SFSEED",
+};
+
+/** "2026-07-01" (ISO, como trae el export tidy) o "ene 2, 2018" (formato del export de zonas). */
+function fechaFlexWilliams(raw: string): string | null {
+  const t = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  return fechaWilliams(t);
+}
+
+export type ParseCrudoResultado = {
+  filas: FilaZonaWilliams[];
+  cultivos: string[]; // valores distintos de "Cultivo" hallados en el archivo, tal cual vienen
+  serieDetectada: SerieCultivo | null; // solo si hay UN cultivo y es mapeable
+  filasInvalidas: number;
+};
+
+/**
+ * Parsea el export TIDY/crudo de Williams — una fila por TERMINAL/día (columnas Date, Cultivo,
+ * Localidad, Puerto, Zona, Cantidad de Camiones) — verificado en vivo 27/07/2026. Es el más
+ * confiable de los 3 formatos: la ZONA SAGyP ya viene explícita en el propio dato (no hay que
+ * mapear localidad → zona a mano, a diferencia del formato de 33 columnas). Agrupa sumando
+ * camiones por (fecha, zona).
+ *
+ * Si el archivo mezcla más de un "Cultivo" (ej. filas "Total" conviviendo con filas "Maíz"), NO
+ * se puede sumar a ciegas — "Total" ya incluye el grano puntual, sumarlos duplicaría camiones.
+ * En ese caso `filas` queda vacío y `cultivos` lista lo encontrado, para que el caller decida (el
+ * uploader lo bloquea con un error explícito en vez de cargar un número inflado en silencio).
+ */
+export function parseCrudoWilliams(text: string): ParseCrudoResultado {
+  const { header, rows } = parseCsv(text);
+  const iFecha = header.indexOf("Date");
+  const iCultivo = header.indexOf("Cultivo");
+  const iZona = header.indexOf("Zona");
+  const iCantidad = header.indexOf("Cantidad de Camiones");
+
+  const cultivos = new Set<string>();
+  let filasInvalidas = 0;
+  const acumulado = new Map<string, number>(); // "fecha|clave" -> suma de camiones
+
+  for (const row of rows) {
+    const fecha = fechaFlexWilliams(row[iFecha] ?? "");
+    const clave = ZONA_COLUMNA_WILLIAMS[(row[iZona] ?? "").trim()];
+    if (!fecha || !clave) { filasInvalidas++; continue; }
+    if (iCultivo >= 0) {
+      const c = (row[iCultivo] ?? "").trim();
+      if (c) cultivos.add(c);
+    }
+    const k = `${fecha}|${clave}`;
+    acumulado.set(k, (acumulado.get(k) ?? 0) + numCamion(row[iCantidad]));
+  }
+
+  const cultivosOrdenados = [...cultivos].sort();
+  const serieDetectada =
+    cultivosOrdenados.length === 1 ? (CULTIVO_A_SERIE[cultivosOrdenados[0]!.toLowerCase()] ?? null) : null;
+
+  if (cultivosOrdenados.length > 1) {
+    return { filas: [], cultivos: cultivosOrdenados, serieDetectada: null, filasInvalidas };
+  }
+
+  const filas: FilaZonaWilliams[] = [...acumulado.entries()].map(([k, cantidad]) => {
+    const [fecha, clave] = k.split("|") as [string, ZonaCamiones];
+    return { fecha, clave, cantidad };
+  });
+  return { filas, cultivos: cultivosOrdenados, serieDetectada, filasInvalidas };
+}
+
 /** Parsea el CSV de zonas Williams → filas por (fecha, zona) + el total del día (suma de las 4). */
 export function parseZonasWilliams(text: string): {
   filas: FilaZonaWilliams[];
@@ -204,10 +287,13 @@ export function crossCheckLocalidades(
 export type ParseUploadOk = {
   ok: true;
   filas: FilaZonaWilliams[];
-  formato: "zonas" | "localidades";
+  formato: "zonas" | "localidades" | "crudo";
   zonasCubiertas: ZonaCamiones[];
   filasInvalidas: number;
   advertencias: string[];
+  /** Solo para formato "crudo": la serie que el propio archivo dice representar (columna
+   * "Cultivo"), para cruzarla contra la serie elegida en el selector del uploader. */
+  serieDetectada?: SerieCultivo | null;
 };
 export type ParseUploadErr = { ok: false; error: string };
 
@@ -215,13 +301,16 @@ export type ParseUploadErr = { ok: false; error: string };
  * Parser ÚNICO del uploader manual de /admin/datos (pestaña Camiones) Y del loader de backfill
  * `scripts/cargar-camiones-williams.mjs` — reusan esta misma función (decisión 23/07: "no
  * dupliques el parser"). Detecta el formato por el header (Lautoro puede exportar de Agrochat
- * cualquiera de los dos formatos de Williams Entregas):
+ * cualquiera de los tres formatos de Williams Entregas):
  *  - **zonas** (4 columnas: Darsenas y Bs As / Puertos de Necochea / Puertos-B.Blanca / Rosario y
  *    Zona) → las 4 zonas completas, vía `parseZonasWilliams`.
  *  - **localidades** (33 columnas por localidad) → SOLO se puede derivar Gran Rosario (7
  *    localidades con match claro en zonas.ts) y Bahía Blanca (columna directa); Dársena y Necochea
  *    NO tienen mapeo de localidad hoy, así que esas 2 zonas quedan sin dato ese día (se avisa en
  *    `advertencias`, no se inventa un valor).
+ *  - **crudo/tidy** (Date, Cultivo, Localidad, Puerto, Zona, Cantidad de Camiones — una fila por
+ *    terminal/día) → el más confiable de los tres, la Zona SAGyP ya viene explícita en el propio
+ *    dato (27/07/2026). Vía `parseCrudoWilliams`.
  */
 export function parseCamionesUpload(text: string): ParseUploadOk | ParseUploadErr {
   const { header, rows } = parseCsv(text);
@@ -269,11 +358,39 @@ export function parseCamionesUpload(text: string): ParseUploadOk | ParseUploadEr
     };
   }
 
+  const esCrudo =
+    header.includes("Zona") && header.includes("Cantidad de Camiones") && header.includes("Date");
+  if (esCrudo) {
+    const { filas, cultivos, serieDetectada, filasInvalidas } = parseCrudoWilliams(text);
+    if (cultivos.length > 1) {
+      return {
+        ok: false,
+        error:
+          `El archivo mezcla más de un cultivo (${cultivos.join(", ")}) — sumarlos todos duplicaría ` +
+          `camiones si "Total" convive con un grano puntual. Pedile a Agrochat el export filtrado a UN ` +
+          `solo cultivo por archivo (o el rango de fechas donde solo haya uno).`,
+      };
+    }
+    if (filas.length === 0) {
+      return { ok: false, error: "No se pudo parsear ninguna fila del formato crudo (¿cambió el CSV?)." };
+    }
+    return {
+      ok: true,
+      filas,
+      formato: "crudo",
+      zonasCubiertas: [...new Set(filas.map((f) => f.clave))],
+      filasInvalidas,
+      advertencias: [],
+      serieDetectada,
+    };
+  }
+
   return {
     ok: false,
     error:
       "No reconozco el formato del CSV (esperaba las columnas de ZONAS de Williams Entregas — " +
       "Darsenas y Bs As / Puertos de Necochea / Puertos-B.Blanca / Rosario y Zona — o las de " +
-      "LOCALIDADES — San Lorenzo / Rosario / Bahia Blanca / …).",
+      "LOCALIDADES — San Lorenzo / Rosario / Bahia Blanca / … — o el formato crudo/tidy — Date, " +
+      "Cultivo, Localidad, Puerto, Zona, Cantidad de Camiones).",
   };
 }
