@@ -205,8 +205,13 @@ const browser = await chromium.launch({
 Contra `http://localhost:3000` (la web local del fallback del Paso 1) no hace
 falta nada de esto: es loopback, no pasa por el proxy.
 
-Confirmá que el PDF tenga 5 páginas (`/Count 5`) antes de seguir — si tiene
-menos, algo se cortó mal en el CSS de impresión, no sigas sin revisar.
+Confirmá que el PDF tenga **al menos 5** páginas (`/Count`) antes de seguir — si tiene menos,
+algo se cortó mal en el CSS de impresión, no sigas sin revisar. Si tiene MÁS de 5 no es un error:
+la página 5 (view de mercado) muestra las 3 tesis completas de `viewsMercado`, y cuando son
+largas se derraman a una 6ª+ hoja a propósito (decisión de Lautoro, 27/07/2026) — el pie de esa
+página fluye después del contenido en vez de quedar anclado, así que no queda flotando a mitad de
+hoja. Revisá igual el PDF a ojo si el conteo es MUY alto (7+) — ahí sí puede ser una señal real de
+que algo no está renderizando bien.
 
 ## Paso 6 — Subir el PDF al bucket privado
 

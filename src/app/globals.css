@@ -958,6 +958,11 @@ a.estim-inf:hover { color:var(--gold-text); }
 .sem-texto { font-size:14px; line-height:1.6; color:var(--ink-2); margin:0 0 4px; white-space:pre-wrap; }
 .sem-pie { position:absolute; bottom:14mm; left:14mm; right:14mm; font-size:10px; color:var(--ink-3);
   border-top:1px solid var(--line); padding-top:8px; }
+/* La página 5 (view de mercado) puede derramarse a más de una hoja física cuando los 3
+   granos traen tesis largas — un pie `position:absolute` anclado al fondo de esa caja termina
+   flotando a mitad de contenido en vez de al pie real. En esa página el pie fluye después del
+   contenido en vez de anclarse (27/07/2026, primera vez que se probó con views reales). */
+.sem-pie-flow { position:static; margin-top:24px; }
 
 /* VariacionBarras (informe semanal MP2): barras horizontales centradas en 0%. */
 .vb-wrap { display:flex; flex-direction:column; gap:6px; padding:10px 4px; }

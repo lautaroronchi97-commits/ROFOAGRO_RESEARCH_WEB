@@ -297,7 +297,7 @@ export default async function PlantillaSemanalPage({
           )}
         </div>
         {prosa.cierre && <p className="sem-texto">{prosa.cierre}</p>}
-        <p className="sem-pie">
+        <p className="sem-pie sem-pie-flow">
           Research informativo de ROFO AGRO, no constituye recomendación de inversión. Datos de
           fuentes públicas y de mercado, sujetos a revisión.
         </p>
