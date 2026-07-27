@@ -10,7 +10,7 @@
  *   chequea el resultado (la función hace el upsert idempotente en la base).
  *
  * Modos:
- *   node scripts/ingest-lineup.mjs                    → hoy + 2 días previos (ART) — cron diario
+ *   node scripts/ingest-lineup.mjs                    → hoy + 3 días previos (ART) — cron diario
  *   node scripts/ingest-lineup.mjs --from A --to B    → backfill de un rango (una fecha por request)
  *   node scripts/ingest-lineup.mjs --date YYYY-MM-DD  → una sola fecha
  *
@@ -85,7 +85,12 @@ async function main() {
   const diario = !date && !from;
   if (date) fechas = [date];
   else if (from) fechas = rango(from, to || isoDiasAtrasART(0));
-  else fechas = [isoDiasAtrasART(0), isoDiasAtrasART(1), isoDiasAtrasART(2)];
+  // 4 fechas (no 3): un run de lunes a la mañana, antes de que ISA publique el
+  // día, cae en una ventana Lun(sin publicar)+Dom+Sáb enteramente vacía por
+  // calendario — no por bloqueo — y el guard de abajo la marca falso positivo
+  // (visto en vivo el 27/07). Con 4 días la ventana de un lunes SIEMPRE alcanza
+  // al viernes anterior (que si tiene line-up publicado).
+  else fechas = [isoDiasAtrasART(0), isoDiasAtrasART(1), isoDiasAtrasART(2), isoDiasAtrasART(3)];
 
   console.log(`Ingesta line-up (${diario ? "diario" : "backfill"}): ${fechas.length} fecha(s) [${fechas[0]} → ${fechas[fechas.length - 1]}]`);
 
@@ -100,7 +105,7 @@ async function main() {
   // Guard anti "falso verde": en modo diario la ventana entera vacía es sospechosa
   // (bloqueo de IP / cambio de estructura), no un feriado suelto → falla ruidoso.
   if (diario && total === 0) {
-    console.error("ERROR: 0 filas de line-up en la ventana diaria (hoy + 2 días). No se da por bueno (probable bloqueo/estructura).");
+    console.error("ERROR: 0 filas de line-up en la ventana diaria (hoy + 3 días). No se da por bueno (probable bloqueo/estructura).");
     process.exit(1);
   }
   // L6 (Anexo A camino 19): el mismo guard faltaba en backfill (--from/--to) — un rango de

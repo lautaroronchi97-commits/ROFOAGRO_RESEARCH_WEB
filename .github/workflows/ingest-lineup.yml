@@ -5,9 +5,12 @@ name: Ingesta line-up buques (ISA → Supabase)
 # São Paulo — IP que ISA acepta; los runners de GitHub Actions están bloqueados).
 # Este workflow solo la dispara vía scripts/ingest-lineup.mjs.
 # Dos corridas: 10:00 y 22:00 ART. El script es idempotente (upsert por la clave
-# lógica de la fila), así que re-correr es inocuo. Ventana diaria = hoy + 2 días
+# lógica de la fila), así que re-correr es inocuo. Ventana diaria = hoy + 3 días
 # previos → si un día no salió a la mañana, lo agarra la corrida de la noche o la
-# del día siguiente. Los `schedule` de GitHub Actions corren desde la rama default.
+# del día siguiente. La ventana es de 4 (no 3) para que un lunes a la mañana,
+# antes de que ISA publique, siempre alcance al viernes anterior — con 3 caía
+# Lun+Dom+Sáb, un falso positivo de "0 filas" sin ser un bloqueo real (27/07).
+# Los `schedule` de GitHub Actions corren desde la rama default.
 
 # El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
 permissions:

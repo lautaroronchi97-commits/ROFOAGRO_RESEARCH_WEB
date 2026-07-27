@@ -178,12 +178,12 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
 
 ### A. Pasos manuales de Lautaro (no son sesiones — son clics/respuestas; destraban lo demás)
 
-- [ ] **A1. Terminar Parte C del login**: publicar la app de Google a producción (retomar la pantalla
-  de "verificación de marca" con captura completa) → checklist de encendido (`GUIA_LOGIN_SETUP.md`
-  Parte C): Mauro admin → aprobar clientes → `AUTH_ENFORCED=true` + Redeploy → validación 5 min.
-  **En curso 24/07**: el dominio propio se está validando por Vercel (paso previo a la verificación
-  de marca de Google) — sigue sin encender, pero ya no está frenado en la conversación de
-  dominio/marca/SRL del 23/07.
+- [x] **A1. Terminar Parte C del login** — ✅ hecha 27/07: verificación de marca de Google OK →
+  app publicada a producción → `AUTH_ENFORCED=true` en Vercel + Redeploy. De paso, bug real
+  encontrado y arreglado (config de Supabase, no código): Site URL/Redirect URLs de Supabase Auth
+  seguían con las URLs viejas de antes del dominio propio, el login con Google caía en
+  `localhost:3000`. Confirmado funcionando de punta a punta con `rofoagro.com.ar`. Mauro sigue sin
+  registrarse (no bloquea). `sesiones/2026-07-27-a1-login-encendido.md`.
 - [x] **A2. Crear la Routine semanal MP3** — ✅ hecha 23/07 (cron `0 12 * * 5`, modelo asignado a
   mano por Lautaro desde la app). El primer disparo real cae el viernes siguiente, sin verificar
   todavía de punta a punta. `sesiones/2026-07-23-mp2-skill-y-alta-srl.md`.
@@ -342,14 +342,18 @@ MP1-MP4 ya construidas con agentes de research sobre fuentes externas verificada
 Los prompts autocontenidos de cada fase están en **§9 de ese plan**, no acá. Las 4 decisiones
 abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
 
-- [ ] **C18 = V0. Verificar el piso** — 🚨 **URGENTE, bloquea a las otras 4.** Al mergear el plan
-  se verificó por SQL que **las 3 Routines disparan y no producen nada**: `informes_generados`
-  está VACÍA (el diario nunca generó una placa, pese a venir disparando) y la Routine del view
-  disparó el 24/07 a las 9:07 ART sin dejar fila en `views_mercado` (los únicos 3 views son los
-  del 21/07, hechos a mano en la sesión de MP3). Fallan en silencio, sin mail de error. V0 =
-  diagnosticar y arreglar las 3 de punta a punta + primer feedback real de Lautaro + cargar la
-  key gratuita de USDA FAS + confirmar si una Routine puede invocar subagentes (precondición del
-  fan-out de V1). Prompt: `PLAN_INFORMES_V2.md` §9.
+- [~] **C18 = V0. Verificar el piso** — **EN CURSO 27/07, avance grande.** Diagnosticadas y
+  arregladas 3 causas reales encadenadas: (1) `INFORME_TOKEN` desincronizado entre el entorno de
+  Claude Code y Vercel Producción (401 en silencio); (2) falso positivo de lunes en `ingest-lineup`
+  (ventana de fechas corta); (3) **regresión real del mismo A1**: `/informes/plantilla/*` quedó
+  atrás del gate de `AUTH_ENFORCED`, la Routine se llevaba el HTML de `/ingresar` — fix en
+  `src/proxy.ts` + skills `informe-diario`/`informe-semanal` actualizadas (workaround de Playwright
+  detrás del proxy del sandbox + modelo grande fijado). **El informe diario del 27/07 se generó y
+  mandó completo, de punta a punta**, primera prueba real exitosa. PR #83.
+  **Falta**: re-disparar informe semanal y view de mercado contra el fix ya en `main` · feedback
+  real de Lautaro sobre el informe del 27/07 · cargar la key gratuita de USDA FAS · confirmar si
+  una Routine puede invocar subagentes (precondición del fan-out de V1). Detalle:
+  [`sesiones/2026-07-27-c18-routines-diagnostico.md`](../sesiones/2026-07-27-c18-routines-diagnostico.md).
 - [ ] **C19 = V1. View v2 (la bola de nieve)** — migración aditiva de `views_mercado`
   (`relacion_previa`/`view_previo_id`/`invalidadores`/`evidencia_externa`/`nota_lautaro`) +
   skill con pipeline F0-F6 (blind-first, invalidadores inmutables, 4 lentes de research con
