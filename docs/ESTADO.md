@@ -19,7 +19,45 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 24/07/2026 — 📐 PLAN INFORMES V2 mergeado + 🚨 las 3 Routines NO producen nada + 🔍 detector de anomalías al backlog)
+## Ahora (última actualización: 27/07/2026 — 🔐 LOGIN ENCENDIDO: A1 CERRADO, `AUTH_ENFORCED=true` en producción)
+
+**🔐 A1 — TERMINAR EL LOGIN — ✅ CERRADO — sesión conversacional, sin rama de código.** Lautaro
+confirmó que el **Centro de verificación de Google** ya mostraba "Se verificó la información de
+tu marca" (efecto del rebranding + dominio del 24/07) → publicó la app de Google a producción
+(*Publish App*, sin necesitar revisión manual — scopes básicos email/perfil) → prendió
+**`AUTH_ENFORCED=true`** en Vercel (scope Production) + Redeploy. **Chequeo por SQL antes de
+prender** (`profiles`): solo su cuenta existía (`admin`/`aprobado`), 0 empresas, 0 pendientes →
+sin riesgo de bloquear a nadie. **Verificado**: incógnito a `rofoagro.com.ar` → aparece
+`/bienvenida` (login cerrado, como se esperaba).
+
+**🐛 Bug real encontrado y arreglado en el mismo momento (sin código, config de Supabase):** el
+login con Google devolvía a `http://localhost:3000/?code=...` (`ERR_CONNECTION_REFUSED`) — NO era
+el navegador esta vez (a diferencia del incidente del 24/07 en `sesiones/2026-07-24-a6-prueba-en-
+vivo-dea-fix.md`). Causa raíz: `google-button.tsx` pide volver a `<dominio-real>/auth/callback`,
+pero Supabase valida ese destino contra su lista blanca de **Redirect URLs**, que seguía con las
+URLs viejas (`rofoagro-research-web.vercel.app` + `localhost:3000`) — nunca se agregó
+`rofoagro.com.ar` al conectar el dominio el 24/07. Al no matchear, Supabase descarta el
+`redirectTo` pedido y cae al **Site URL** por defecto, que había quedado en `http://localhost:3000`
+desde el setup inicial (de ahí el `/?code=...` en la raíz, sin `/auth/callback`). **Fix**: Supabase
+→ *Authentication → URL Configuration* → Site URL a `https://rofoagro.com.ar` + agregado
+`https://rofoagro.com.ar/auth/callback` y `https://rofoagro.com.ar/**` a Redirect URLs (sin borrar
+las viejas). Confirmado por Lautaro: login con Google funciona de punta a punta con el dominio
+real.
+
+**Pendiente para consolidar (no bloquea, próxima sesión con tiempo):**
+- Que **Mauro se registre** y Lautaro lo promueva a admin desde `/admin → Usuarios` (hoy 0/0
+  cuentas además de la de Lautaro).
+- **A6** sigue abierto: con el login ya andando de punta a punta, es el momento de terminar de
+  probar `/admin/datos` — quedan Agrochat, Williams camiones, BCBA-PAS, compras BCRA manual, pago
+  final LECAP, y confirmar el fix de DEA (ver detalle en `auditoria/E7-sintesis.md` §4 bloque A).
+- Login prendido = **C18/V0 pasa a ser lo más urgente del backlog** (las 3 Routines de informes
+  siguen sin producir nada — ver la entrada de abajo del 24/07).
+- Renames de plataforma que quedaron pendientes del rebranding (repo de GitHub, proyecto Vercel,
+  remitente Resend) — no bloquean nada, ver `sesiones/2026-07-24-rebrand-rofo-agro.md`.
+
+Detalle: [`sesiones/2026-07-27-a1-login-encendido.md`](sesiones/2026-07-27-a1-login-encendido.md).
+
+## Anterior (24/07/2026 — 📐 PLAN INFORMES V2 mergeado + 🚨 las 3 Routines NO producen nada + 🔍 detector de anomalías al backlog)
 
 **🚨 HALLAZGO AL CERRAR EL PLAN — LAS 3 ROUTINES DISPARAN Y NO PRODUCEN NADA.** Verificado por
 SQL contra la base real el 24/07: **`informes_generados` está VACÍA** (el informe diario viene

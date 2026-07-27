@@ -178,12 +178,12 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
 
 ### A. Pasos manuales de Lautaro (no son sesiones — son clics/respuestas; destraban lo demás)
 
-- [ ] **A1. Terminar Parte C del login**: publicar la app de Google a producción (retomar la pantalla
-  de "verificación de marca" con captura completa) → checklist de encendido (`GUIA_LOGIN_SETUP.md`
-  Parte C): Mauro admin → aprobar clientes → `AUTH_ENFORCED=true` + Redeploy → validación 5 min.
-  **En curso 24/07**: el dominio propio se está validando por Vercel (paso previo a la verificación
-  de marca de Google) — sigue sin encender, pero ya no está frenado en la conversación de
-  dominio/marca/SRL del 23/07.
+- [x] **A1. Terminar Parte C del login** — ✅ hecha 27/07: verificación de marca de Google OK →
+  app publicada a producción → `AUTH_ENFORCED=true` en Vercel + Redeploy. De paso, bug real
+  encontrado y arreglado (config de Supabase, no código): Site URL/Redirect URLs de Supabase Auth
+  seguían con las URLs viejas de antes del dominio propio, el login con Google caía en
+  `localhost:3000`. Confirmado funcionando de punta a punta con `rofoagro.com.ar`. Mauro sigue sin
+  registrarse (no bloquea). `sesiones/2026-07-27-a1-login-encendido.md`.
 - [x] **A2. Crear la Routine semanal MP3** — ✅ hecha 23/07 (cron `0 12 * * 5`, modelo asignado a
   mano por Lautaro desde la app). El primer disparo real cae el viernes siguiente, sin verificar
   todavía de punta a punta. `sesiones/2026-07-23-mp2-skill-y-alta-srl.md`.
