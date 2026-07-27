@@ -3,35 +3,29 @@
 import { useState } from "react";
 
 /**
- * Prompt canónico para pedirle a Agrochat el export semanal de comercialización en el
- * formato EXACTO que espera el uploader (tabla `compras`). El punto crítico son las
- * UNIDADES: el reporte "Última Semana" de Agrochat sale en MILES de toneladas
- * (ej. trigo 16238,9) y la base guarda toneladas enteras (16238900) → si se sube tal
- * cual, la semana entra ÷1000 y corrompe el acumulado. Este prompt fuerza toneladas
- * enteras. Lautaro lo copia cada semana cambiando solo la fecha.
+ * Prompt para pedirle a Agrochat el dataset de comercialización CRUDO (de origen, sin su propia
+ * transformación) — 27/07/2026. Se descartó pedir el formato ya transformado ("Última Semana",
+ * cabecera propia): ese resultado sale de la celda de un dataframe, no de un archivo descargable,
+ * y al copiarlo se pierden los saltos de línea. El dataset crudo (Date/Country/Sector/Crop/
+ * Harvest/Semanal/Total Comprado/…, en miles de toneladas, con filas "Total") SÍ se descarga como
+ * CSV real — el uploader (parseAgrochat) lo reconoce solo y aplica la conversión (filtra "Total",
+ * grano a minúscula, ×1000 a toneladas enteras). Lautaro lo copia cada vez cambiando el rango.
  */
 
-// La fecha va en su propia línea, marcada, para cambiarla sin tocar el resto.
-const PROMPT = `Necesito la serie de comercialización de granos de SIO Granos para una semana puntual, en formato CSV, para cargar en un sistema. Seguí EXACTAMENTE estas reglas:
+// El rango va en su propia línea, marcado, para cambiarlo sin tocar el resto.
+const PROMPT = `Necesito el dataset de comercialización de granos de SIO Granos en su formato de ORIGEN, sin resumir ni transformar, para cargar en un sistema. Seguí EXACTAMENTE estas reglas:
 
-SEMANA: 08/07/2026   (cambiar SOLO esta fecha, formato DD/MM/AAAA)
+RANGO: DESDE 01/07/2026 HASTA 15/07/2026   (cambiar SOLO este rango, formato DD/MM/AAAA — podés pedir varias semanas juntas)
 
 FORMATO DE SALIDA
-- Devolvé únicamente el CSV, sin ningún texto antes ni después y sin comillas ni bloques de código.
+- Devolvé el resultado como un ARCHIVO CSV DESCARGABLE (no como texto pegado en el chat ni como tabla para copiar): necesito poder bajarlo tal cual y subirlo a un sistema.
+- NO apliques ningún resumen, filtro ni transformación: quiero las filas tal cual están en el dataset de origen, INCLUIDAS las filas de sector "Total".
 - Primera línea = esta cabecera EXACTA (con estos nombres y en este orden):
-fecha,grano,sector,campaña,compras_semanales,total_comprado_acumulado,precio_hecho,a_fijar,fijado,saldo_a_fijar
-- Una fila por cada combinación de grano × sector × campaña con actividad esa semana.
+Date,Country,Sector,Crop,Harvest,Semanal,Total Comprado,Total Precio Hecho,Total a Fijar,Total Fijado,Saldo a Fijar
+- Una fila por cada fecha × sector (industria/exportador/total) × cultivo × campaña con actividad en el rango pedido.
 
-COLUMNAS
-- fecha: la semana pedida, en DD/MM/AAAA, igual en todas las filas.
-- grano: uno de estos, en minúscula → trigo, maíz, sorgo, cebada cervecera, cebada forrajera, soja, girasol.
-- sector: Exportador o Industria.
-- campaña: formato AA/AA (por ejemplo 25/26). Incluí todas las campañas vigentes (la que se está liquidando y la nueva).
-- compras_semanales = comprado en la semana. total_comprado_acumulado = acumulado de la campaña. Más precio_hecho, a_fijar, fijado, saldo_a_fijar.
-
-UNIDADES (MUY IMPORTANTE)
-- TODOS los volúmenes en TONELADAS ENTERAS. Ejemplo correcto: 16238900. Ejemplo INCORRECTO: 16238,9 o 16.238,9.
-- NADA en miles de toneladas. Sin separador de miles, sin símbolos, sin texto. Decimal con punto (o entero), nunca coma.`;
+UNIDADES
+- Los valores numéricos en las unidades ORIGINALES del dataset (miles de toneladas) — NO los conviertas vos a toneladas enteras ni los redondees, eso lo hace el sistema al cargarlos.`;
 
 export function PromptAgrochat() {
   const [copiado, setCopiado] = useState(false);
@@ -49,21 +43,13 @@ export function PromptAgrochat() {
   return (
     <details className="admin-card" style={{ marginBottom: 16 }}>
       <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-        📋 Prompt para pedirle el export a Agrochat (copiá y cambiá la fecha)
+        📋 Prompt para pedirle el dataset a Agrochat (copiá y cambiá el rango)
       </summary>
       <p className="admin-sub" style={{ margin: "10px 0" }}>
-        Agrochat exporta la <b>Última Semana</b> en <b>miles</b> de toneladas; la base usa toneladas
-        enteras. Este prompt le pide el dato en el formato correcto (toneladas enteras). Copialo,
-        cambiá <b>solo la fecha</b> de la línea <code>SEMANA:</code>, pegalo en Agrochat y subí el CSV
-        que devuelva.
-      </p>
-      <p className="admin-sub" style={{ margin: "10px 0" }}>
-        Si Agrochat te devuelve el resultado como texto pegado en el chat (sin poder descargarlo
-        como archivo), no hace falta reconstruirlo a mano: pedile en cambio el <b>dataset crudo</b>{" "}
-        (columnas <code>Date, Country, Sector, Crop, Harvest, Semanal, Total Comprado, …</code>, en
-        miles de toneladas, con filas &quot;Total&quot;) como CSV descargable y subí ESE archivo tal
-        cual — el uploader de abajo lo detecta solo y hace la conversión (filtra &quot;Total&quot;,
-        ×1000 a toneladas enteras).
+        Copiá este prompt, cambiá <b>solo el rango</b> de la línea <code>RANGO:</code>, pegalo en
+        Agrochat y subí el CSV descargable que te devuelva (el dataset de origen, sin transformar) —
+        el uploader de abajo lo detecta solo y hace la conversión (filtra las filas &quot;Total&quot;,
+        pasa el grano a minúscula, ×1000 a toneladas enteras).
       </p>
       <div className="admin-card-acciones" style={{ marginBottom: 8 }}>
         <button type="button" className="admin-btn admin-btn-ok" onClick={copiar}>
@@ -73,7 +59,7 @@ export function PromptAgrochat() {
       <textarea
         className="admin-input"
         readOnly
-        rows={22}
+        rows={14}
         value={PROMPT}
         style={{ width: "100%", fontFamily: "var(--font-mono, monospace)", fontSize: "0.82rem", whiteSpace: "pre" }}
         onFocus={(e) => e.currentTarget.select()}
