@@ -47,9 +47,14 @@ real.
 **Pendiente para consolidar (no bloquea, próxima sesión con tiempo):**
 - ~~Que Mauro se registre y se lo promueva a admin~~ → **✅ HECHO (27/07)**: verificado por SQL,
   `f.maurotam@gmail.com` ya está `rol=admin`/`estado=aprobado` en `profiles`.
-- **A6** sigue abierto: con el login ya andando de punta a punta, es el momento de terminar de
-  probar `/admin/datos` — quedan Agrochat, Williams camiones, BCBA-PAS, compras BCRA manual, pago
-  final LECAP, y confirmar el fix de DEA (ver detalle en `auditoria/E7-sintesis.md` §4 bloque A).
+- **A6** en curso: ~~confirmar el fix de DEA~~ → **✅ HECHO (27/07)**, con Lautaro en vivo. Subió
+  el CSV real (~11 MB) desde `datosestimaciones.magyp.gob.ar`, previsualizó y confirmó — 24 filas
+  cargadas/actualizadas, vintage `2026-07-27` (antes clavado en `2026-07-13`, 14 días viejo).
+  Verificado por SQL: fila fresca en `estimaciones_produccion` con `fecha_publicacion=2026-07-27`.
+  El fix del parseo-en-el-navegador (24/07) funciona de punta a punta — **healthcheck de DEA
+  debería volver a verde**. Quedan del checklist: historial editable de "Datos del día" (probar
+  editar un día viejo + confirmar el bloqueo 🔒), Agrochat, Williams camiones, BCBA-PAS, compras
+  BCRA manual, pago final LECAP (ver detalle en `auditoria/E7-sintesis.md` §4 bloque A).
 - Login prendido = **C18/V0 pasa a ser lo más urgente del backlog** (las 3 Routines de informes
   siguen sin producir nada — ver la entrada de abajo del 24/07).
 - ~~Renames de plataforma~~ → **✅ HECHOS (27/07), a mano por Lautaro, sin acción de código
