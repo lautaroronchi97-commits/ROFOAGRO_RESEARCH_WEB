@@ -57,6 +57,14 @@ export function PromptAgrochat() {
         cambiá <b>solo la fecha</b> de la línea <code>SEMANA:</code>, pegalo en Agrochat y subí el CSV
         que devuelva.
       </p>
+      <p className="admin-sub" style={{ margin: "10px 0" }}>
+        Si Agrochat te devuelve el resultado como texto pegado en el chat (sin poder descargarlo
+        como archivo), no hace falta reconstruirlo a mano: pedile en cambio el <b>dataset crudo</b>{" "}
+        (columnas <code>Date, Country, Sector, Crop, Harvest, Semanal, Total Comprado, …</code>, en
+        miles de toneladas, con filas &quot;Total&quot;) como CSV descargable y subí ESE archivo tal
+        cual — el uploader de abajo lo detecta solo y hace la conversión (filtra &quot;Total&quot;,
+        ×1000 a toneladas enteras).
+      </p>
       <div className="admin-card-acciones" style={{ marginBottom: 8 }}>
         <button type="button" className="admin-btn admin-btn-ok" onClick={copiar}>
           {copiado ? "✓ Copiado" : "Copiar prompt"}

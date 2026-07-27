@@ -52,8 +52,12 @@ export function Uploader() {
         />
       </label>
       <p className="admin-sub" style={{ margin: "8px 0 12px" }}>
-        Cabecera esperada: <code>fecha,grano,sector,campaña,compras_semanales,total_comprado_acumulado,precio_hecho,a_fijar,fijado,saldo_a_fijar</code>{" "}
-        (fechas DD/MM/AAAA, toneladas sin separador de miles, sector Exportador/Industria). Máximo 15 MB.
+        Acepta dos formatos: la cabecera propia{" "}
+        <code>fecha,grano,sector,campaña,compras_semanales,total_comprado_acumulado,precio_hecho,a_fijar,fijado,saldo_a_fijar</code>{" "}
+        (DD/MM/AAAA, toneladas enteras, sector Exportador/Industria) — o directamente el export{" "}
+        <b>crudo</b> de Agrochat (<code>Date,Country,Sector,Crop,Harvest,Semanal,Total Comprado,…</code>,
+        en miles de toneladas, con filas &quot;Total&quot;): la web detecta cuál es y convierte sola
+        (filtra &quot;Total&quot;, pasa el grano a minúscula, ×1000 a toneladas enteras). Máximo 15 MB.
       </p>
 
       <div className="admin-card-acciones">

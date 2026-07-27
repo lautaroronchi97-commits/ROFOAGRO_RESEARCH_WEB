@@ -123,4 +123,46 @@ describe("compras/parse-agrochat.ts", () => {
     const r = parseAgrochat(grande, "test.csv");
     expect(r.ok).toBe(false);
   });
+
+  describe("export CRUDO de Agrochat (Date/Country/Sector/Crop/Harvest, miles de tn, con 'Total')", () => {
+    // Fixture real: fila de cebada cervecera exportador 24/25 del 01/07/2026 (verificado contra
+    // el csv_content ya transformado por Agrochat el 27/07/2026). Trae el caso de punto flotante
+    // 516.8*1000 = 516799,9999999994 en IEEE754 — Python trunca con `.astype(int)`, no redondea.
+    const crudoTxt = [
+      "Date,Country,Sector,Crop,Harvest,Semanal,Total Comprado,Total Precio Hecho,Total a Fijar,Total Fijado,Saldo a Fijar",
+      "2026-07-01,Argentina,Compras de la industria,Cebada Cervecera,24/25,0.2,1372.7,690.5,682.2,681.9,0.3",
+      "2026-07-01,Argentina,Compras sector exportador,Cebada Cervecera,24/25,0.0,1131.9,516.8,516.8,615.0,0.0",
+      "2026-07-01,Argentina,Total,Cebada Cervecera,24/25,0.2,2504.6,1207.3,1199.0,1296.9,0.3",
+    ].join("\n");
+
+    it("filtra la fila 'Total', mapea sector/grano y convierte miles -> tn enteras (truncado, no redondeo)", () => {
+      const r = parseAgrochat(new TextEncoder().encode(crudoTxt), "data_2.csv");
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      expect(r.totalCrudas).toBe(2); // "Total" descartada antes de contar
+      expect(r.filas).toHaveLength(2);
+      const exportador = r.filas.find((f) => f.sector === "EXPORTACION")!;
+      expect(exportador).toMatchObject({
+        fecha: "2026-07-01",
+        grano_raw: "cebada cervecera",
+        codigo_interno: "MALT",
+        campana: "2024/25",
+        sector: "EXPORTACION",
+        toneladas: 1131900,
+        precio_hecho_tn: 516799, // NO 516800: reproduce el truncado de Agrochat, no redondeo
+        fijado_tn: 615000,
+      });
+      const industria = r.filas.find((f) => f.sector === "INDUSTRIA")!;
+      expect(industria.toneladas).toBe(1372700);
+      expect(r.advertencias[0]).toMatch(/export crudo de Agrochat/);
+    });
+
+    it("una fila con Sector no mapeable (ni Industria/Exportador/Total conocido) se descarta sin romper el resto", () => {
+      const conSectorRaro = crudoTxt + "\n2026-07-01,Argentina,Otro sector raro,Cebada Cervecera,24/25,1.0,10.0,,,, ";
+      const r = parseAgrochat(new TextEncoder().encode(conSectorRaro), "data_2.csv");
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      expect(r.filas).toHaveLength(2); // la fila rara no suma ni rompe nada
+    });
+  });
 });
