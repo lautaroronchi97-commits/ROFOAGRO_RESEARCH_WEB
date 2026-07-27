@@ -15,10 +15,18 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname;
   const esAdmin = path === "/admin" || path.startsWith("/admin/");
 
-  // E5 #5: los endpoints con auth PROPIA por token (los consumen las Routines de informes,
+  // E5 #5: las rutas con auth PROPIA por token (las consumen las Routines de informes,
   // que fetchean sin cookies) no pasan por el gate de sesión — con el flag prendido el
   // redirect a /ingresar les llegaba ANTES de que su token corriera y mataba MP1/MP3.
-  if (path.startsWith("/api/views/") || path.startsWith("/api/informes/")) {
+  // `/informes/plantilla/` son las placas que screenshotea Playwright con un page.goto
+  // pelado (sin sesión): validan el mismo INFORME_TOKEN por searchParam dentro de la
+  // página, así que también tienen que saltear el gate. Sin esto la Routine diaria
+  // se lleva el HTML de /ingresar en vez de la placa (27/07/2026).
+  if (
+    path.startsWith("/api/views/") ||
+    path.startsWith("/api/informes/") ||
+    path.startsWith("/informes/plantilla/")
+  ) {
     return NextResponse.next();
   }
 

@@ -6,6 +6,11 @@ description: >-
   de la rueda de Lautaro + prosa con su voz), guardarla, mandarla por mail y
   dejarla en /informes. Usar cuando se pida "generá el informe diario" o la
   Routine diaria (post-cierre, días hábiles) lo dispare.
+# El informe sale con la firma de Lautaro: la prosa la tiene que escribir el
+# modelo grande, con tiempo para pensar el título y el color del día. Esto pisa
+# el modelo de la sesión (y el del selector de la Routine) solo para este turno.
+model: claude-opus-5
+effort: high
 ---
 
 # Informe diario — procedimiento
@@ -71,6 +76,12 @@ Si la URL de producción no responde (la ruta recién deployada), levantá la we
 local: `NODE_USE_ENV_PROXY=1 npm run build && npm run start` y usá
 `http://localhost:3000`.
 
+Síntoma a reconocer: si en vez del JSON (o de la placa, en el paso 4) te vuelve
+el HTML de `/ingresar`, es el gate de auth de `src/proxy.ts` comiéndose la ruta
+— tiene que estar en la lista de excepciones junto a `/api/informes/` y
+`/informes/plantilla/`. Es bug de código, no falta de permisos: avisalo en el
+cierre además de usar la web local para destrabar el informe del día.
+
 ## Paso 2 — Redactar la prosa
 
 Con el JSON del paso 1, armá:
@@ -128,13 +139,32 @@ npm install playwright-core --no-save   # no está en package.json a propósito
 
 ```js
 import { chromium } from "playwright-core";
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
-// NO correr "playwright install": el chromium ya está en esa ruta.
+const browser = await chromium.launch({
+  executablePath: "/opt/pw-browsers/chromium",
+  // NO correr "playwright install": el chromium ya está en esa ruta.
+  args: ["--no-sandbox"],
+});
 const page = await browser.newPage({ viewport: { width: 1080, height: 1000 } });
 await page.goto(`${INFORME_BASE_URL}/informes/plantilla/diario?fecha=${fecha}&token=${INFORME_TOKEN}`, { waitUntil: "networkidle" });
 await page.screenshot({ path: `informe-${fecha}.png`, fullPage: true });
 await browser.close();
 ```
+
+**Si corrés detrás del proxy del sandbox** (Claude Code on the web: hay `HTTPS_PROXY`
+seteado): Chromium NO lo toma solo, y con TLS 1.3 el handshake muere contra el
+proxy que re-termina TLS (`ERR_CONNECTION_RESET`, siempre, no es intermitente).
+Hace falta pasarle el proxy Y bajar el máximo de TLS:
+
+```js
+const browser = await chromium.launch({
+  executablePath: "/opt/pw-browsers/chromium",
+  proxy: { server: process.env.HTTPS_PROXY },        // ej. http://127.0.0.1:43009
+  args: ["--no-sandbox", "--ssl-version-max=tls1.2"],
+});
+```
+
+Contra `http://localhost:3000` (la web local del fallback del Paso 1) no hace
+falta nada de esto: es loopback, no pasa por el proxy.
 
 ## Paso 5 — Subir el PNG al bucket privado
 
