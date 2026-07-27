@@ -66,8 +66,19 @@ real.
     cargadas/actualizadas, 1 campaña descartada por venir idéntica a la anterior — comportamiento
     esperado). De paso, Lautaro pasó un export alternativo con desglose por zona agroecológica →
     anotado como ítem nuevo del backlog (**C23**, `auditoria/E7-sintesis.md` §4).
-  - Quedan: historial editable de "Datos del día" (probar editar un día viejo + confirmar el
-    bloqueo 🔒 — nunca se llegó a probar), **compras BCRA manual**, **pago final LECAP**.
+  - ~~Compras BCRA (carga manual)~~ → **✅ HECHO**: Lautaro cargó 22/23/24-07 (345/45/25 M USD)
+    desde la web, verificado por SQL.
+  - ~~Pago final LECAP~~ → **✅ HECHO**: 12 especies cargadas (8 letras S + 4 BONCAPs T) desde la
+    tabla de BYMA, verificado por SQL contra `lecap_pago_final`. Los BONCAPs quedan guardados pero
+    sin efecto visible en `/dolar` todavía (`getLecaps` solo lee precio en vivo de las letras S —
+    pendiente menor, no bloquea).
+  - **A6 QUEDA CERRADO** salvo un ítem chico sin probar: el historial editable de "Datos del día"
+    (editar un día viejo + confirmar el bloqueo 🔒) — nunca llegó a probarse en esta sesión ni en
+    la del 24/07, pero es el único de los 7 sin confirmar.
+  - Pedido nuevo de Lautoro al cerrar: **C24** anotado en el backlog (`auditoria/E7-sintesis.md`
+    §4) — carga diaria manual de camiones vía la cuenta de X de Agroentregas, mismo patrón que la
+    carga manual de compras BCRA, para tapar el hueco hasta que llegue el archivo real de Williams
+    (que la pisa sola, mismo upsert de siempre).
 - Login prendido = **C18/V0 pasa a ser lo más urgente del backlog** (las 3 Routines de informes
   siguen sin producir nada — ver la entrada de abajo del 24/07).
 - ~~Renames de plataforma~~ → **✅ HECHOS (27/07), a mano por Lautaro, sin acción de código
