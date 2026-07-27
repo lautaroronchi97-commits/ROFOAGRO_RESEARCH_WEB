@@ -89,6 +89,20 @@ view de mercado (los que habían quedado en pausa):
   limpiaron de la instrucción de `add_repo` que se había agregado antes por la pista falsa del
   1er intento del diario.
 
+## Follow-up en la misma sesión — pie de página 5 del semanal (encontrado por la propia Routine)
+Al re-disparar el informe semanal contra el fix ya en producción, la sesión de la Routine encontró
+otro real: la página 5 (view de mercado) salió en **7 páginas físicas en vez de 5** — con las 3
+tesis completas de `viewsMercado` (contenido real por primera vez, antes era de ejemplo), el
+contenido desborda los 297mm de `.sem-hoja`. Se le preguntó a Lautoro cómo prefería resolverlo
+(recortar tesis / permitir más páginas / dejarlo por ahora) → **eligió permitir las páginas que
+haga falta**. Causa raíz real: el pie de página (`.sem-pie`, `position:absolute; bottom:14mm`)
+queda anclado al fondo de la caja ya crecida, flotando a mitad de contenido en vez de al pie
+verdadero. Fix: nueva clase `.sem-pie-flow` que hace fluir el pie después del contenido, aplicada
+solo a la página 5 (la tapa, página 1, nunca desborda y se dejó igual). Skill actualizada: "al
+menos 5 páginas" en vez de "exactamente 5". **Verificado con Playwright real** (build local +
+el informe semanal ya guardado en la base, id `dcd89f37…`): screenshot confirma el pie en flujo
+normal al final de todo el contenido, sin overlap ni corte.
+
 ## Quedó pendiente / en vuelo (menor, no bloquea)
 - Pedirle a Lautoro feedback real sobre el contenido/tono/formato de los 3 informes del 27/07 —
   primera vez que los ve de punta a punta.
