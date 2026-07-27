@@ -335,6 +335,37 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
 - [x] ~~**C17. Gráficos intradía**~~ → **DESCARTADO 24/07** (cae con C12: consumía la tabla
   `snapshots` que C12 iba a crear, sin C12 no tiene insumo). Ver §5.
 
+**C18–C22 — INFORMES V2 (research multi-agente + bola de nieve).** Bloque nuevo del 24/07, plan
+propio en **[`PLAN_INFORMES_V2.md`](../PLAN_INFORMES_V2.md)** (PR #81, mergeado): nutre las 4 piezas
+MP1-MP4 ya construidas con agentes de research sobre fuentes externas verificadas + un view
+**acumulativo** (tesis previa + lo nuevo de cada semana, con switch cuando un evento la invalida).
+Los prompts autocontenidos de cada fase están en **§9 de ese plan**, no acá. Las 4 decisiones
+abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
+
+- [ ] **C18 = V0. Verificar el piso** — 🚨 **URGENTE, bloquea a las otras 4.** Al mergear el plan
+  se verificó por SQL que **las 3 Routines disparan y no producen nada**: `informes_generados`
+  está VACÍA (el diario nunca generó una placa, pese a venir disparando) y la Routine del view
+  disparó el 24/07 a las 9:07 ART sin dejar fila en `views_mercado` (los únicos 3 views son los
+  del 21/07, hechos a mano en la sesión de MP3). Fallan en silencio, sin mail de error. V0 =
+  diagnosticar y arreglar las 3 de punta a punta + primer feedback real de Lautaro + cargar la
+  key gratuita de USDA FAS + confirmar si una Routine puede invocar subagentes (precondición del
+  fan-out de V1). Prompt: `PLAN_INFORMES_V2.md` §9.
+- [ ] **C19 = V1. View v2 (la bola de nieve)** — migración aditiva de `views_mercado`
+  (`relacion_previa`/`view_previo_id`/`invalidadores`/`evidencia_externa`/`nota_lautaro`) +
+  skill con pipeline F0-F6 (blind-first, invalidadores inmutables, 4 lentes de research con
+  pasaporte, agente rojo, verificación mecánica) + `views-scorecard.ts` + UI. Depende de C18.
+- [ ] **C20 = V2. Interpretaciones v2 (expectativa vs dato)** — el salto de calidad más concreto:
+  pasa de "el USDA recortó X vs el mes pasado" a "el mercado esperaba A, salió B → sorpresa" +
+  "cuánto ya estaba en el precio". Incluye el **fix crítico del disparo de BCBA-PAS** (hoy filtra
+  por `fecha_publicacion` y nunca matchearía el día real en que Lautaro sube el informe).
+  Paralela a C19.
+- [ ] **C21 = V3. Semanal v2** — sección "El mundo esta semana" (COT, condición de cultivos EEUU,
+  Brasil, clima) DENTRO de las 5 páginas + agenda con expectativas + integración de switch y
+  scorecard. Depende de C19.
+- [ ] **C22 = V4. Diario (retoque) + medición** — el diario NO se sofistica a propósito; solo
+  puede citar evidencia ya verificada del view vigente. Cierra con la medición de consumo real
+  de las 4 Routines. Depende de C19.
+
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
@@ -377,6 +408,17 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
   barras — forzar una sola métrica habría cambiado comportamiento real). Verificado con Playwright
   real (datos reales, claro/oscuro, desktop/mobile, hover) sin diferencia visual.
   `sesiones/2026-07-24-l6-l3-l2-lotes-tecnicos.md`.
+- [ ] **D7 = L7. Detector de anomalías en ingestas** — NUEVO 24/07 (surgió al conversar con
+  Lautaro sobre si tenía sentido meter machine learning al proyecto; conclusión: para el view
+  no —sin muestras etiquetadas—, pero un detector estadístico sobre los datos que entran sí, y
+  es lo de mejor retorno). Hoy los chequeos existentes cubren **frescura** (healthcheck, 17
+  checks), **0 filas** (guard anti falso-verde) y **un** chequeo de unidades en el uploader de
+  compras — nadie valida que los VALORES que entran sean plausibles contra su propia historia.
+  Todos estos bugs reales pasaron sin ser detectados por el sistema: la semana del 08/07 cargada
+  ÷1000 (export de Agrochat en miles de tn), los 529 valores en 6.4e15 del bug de `num()`, el
+  spike de 49,9 Mt en compras, el typo de BCR en pellets de girasol que corría el índice de
+  columnas, la fila de trigo 2025/26 duplicada byte-a-byte de 2024/25 en el PAS. **Independiente
+  de todo lo demás** (no depende de A1, ni del login, ni de PLAN_INFORMES_V2). Prompt: §6 L7.
 
 ### Dependencias explícitas (grafo corto)
 
@@ -392,6 +434,10 @@ D6 (L2) ──→ conviene antes de C7 (chart nuevo del USD semanal)
 D2 (L4) 🔒 valores de Lautaro;  C13 hecho (PR #75) · C14 sin prioridad (pendiente) · C15 hecho
 (PR #76) · C16 cayó, descartado (§5)
 noindex→index: ✅ YA RESUELTO (E3/E4) — la dependencia que citaba PLAN_BACKLOG quedó caída
+
+C18 (V0, Routines rotas) ──→ C19 (V1) ──→ C21 (V3) y C22 (V4)
+                        └──→ C20 (V2, paralela a C19)
+D7 (L7 anomalías) — INDEPENDIENTE de todo: no depende de A1, del login ni de los informes
 ```
 
 ### Orden decidido (tras los 3 bloques de decisiones del 22/07 — ver §7)
@@ -597,6 +643,70 @@ seed 2026 actual (diff vacío) ANTES de agregarle 2027; (4) dispatches de smoke-
 como paso post-merge; (5) lint/tsc/build/test verdes. PR draft base main; doc de sesión + tachar D3.
 ```
 
+### L7 — Detector de anomalías en ingestas (nuevo, 24/07)
+
+```text
+Ejecutá el lote L7 del backlog maestro (docs/auditoria/E7-sintesis.md §4 D7; leé antes ESTADO.md).
+Rama claude/lote-l7-anomalias desde main.
+
+PROBLEMA: los chequeos actuales cubren frescura (healthcheck-frescura.mjs, 17 checks) y "0 filas"
+(guard anti falso-verde), pero NADIE valida que los VALORES que entran sean plausibles contra la
+historia de su propia serie. Bugs reales que pasaron sin detección: semana del 08/07 cargada ÷1000
+(export de Agrochat en miles de tn), 529 valores en 6.4e15 (bug de num() con floats), spike de
+49,9 Mt en compras, typo de BCR en pellets de girasol que corría el índice de columnas, fila de
+trigo 2025/26 duplicada byte-a-byte de 2024/25 en el PAS.
+
+ALCANCE:
+1) LIB PURA `src/lib/anomalias.ts` (mismo patrón que parse-dea.ts / capacidad-modelo.ts: sin
+   server-only, testeable, importable desde los .mjs — Node 22 importa .ts directo, ya se hace en
+   cargar-compras.mjs e ingest-noticias.mjs). Chequeos, cada uno atado a un bug real de arriba:
+   a) SALTO VS HISTORIA: |x − mediana| / MAD sobre las últimas N obs de ESA serie. Mediana y MAD,
+      NO promedio/desvío estándar (un solo outlier los destruye — por eso el 6.4e15 no se veía).
+   b) ORDEN DE MAGNITUD: ratio contra la mediana ≈ 1000, 1/1000, 100, 1/100 → error de unidad, no
+      dato raro. Casi sin falsos positivos. Agarra el ÷1000 de Agrochat.
+   c) MONOTONÍA CON ALERTA: un acumulado no puede bajar. HOY la matview lo clampea EN SILENCIO —
+      ese silencio es lo que dejó pasar el ÷1000 días enteros. El clamp se mantiene (para que el
+      panel no muestre disparates) pero además AVISA.
+   d) IDENTIDADES CONTABLES: total = suma de partes; zona = producto = total (ya verificado a mano
+      en camiones); área × rinde ≈ producción. Si una identidad se rompe no es noticia de mercado,
+      es un parser leyendo mal (typo de BCR).
+   e) DUPLICADO EXACTO: fila nueva idéntica columna por columna a otro período (trigo PAS).
+   f) RANGOS FÍSICAMENTE IMPOSIBLES: rinde soja >10 tn/ha, precio negativo, producción > récord
+      histórico × 1,5. Límites duros por campo.
+2) CONFIG POR SERIE (tabla TS/JSON, patrón de noticias-reglas.json) con UMBRALES POR TIPO DE DATO,
+   NO uno global — es lo que decide si el detector se usa o se ignora:
+   · precios diarios: genuinamente volátiles (un WASDE mueve Chicago 5%) → umbral generoso, solo
+     agarra errores groseros de unidad; · series acumuladas (compras, DJVE): casi monótonas →
+   umbral estricto + monotonía dura; · estimaciones de producción: se mueven poco entre vintages →
+   estricto; · conteos (camiones, buques): fuertemente estacionales → comparar contra el mismo
+   período de años anteriores, NO contra el promedio anual (reusar la lógica de percentiles
+   estacionales que ya existe en estacional.ts).
+3) CABLEADO, con severidad distinta por origen:
+   · INGESTAS AUTOMÁTICAS (crons): corre DESPUÉS del upsert y AVISA por mail (infra ya existe:
+     scripts/alerta-mail.mjs). NO bloquea — bloquear por falso positivo pierde el dato del día y el
+     cron no reintenta.
+   · UPLOADERS MANUALES (/admin/datos): corre en la previsualización y BLOQUEA con casilla
+     "forzar" — ahí Lautaro está mirando la pantalla y puede confirmar. Es exactamente el patrón
+     del guard de unidades que ya tiene el uploader de compras: EXTENDERLO, no duplicarlo.
+
+CALIBRACIÓN (el paso que hace o rompe este lote — no saltearlo): correr el detector RETROACTIVO
+sobre todo el histórico de cada tabla y medir DOS cosas, ambas en el doc de sesión:
+(1) ¿agarra los bugs conocidos? (la semana ÷1000 está documentada en ESTADO.md con sus 30 filas;
+    el spike de 49,9 Mt y los valores >1e9 también) — si no los agarra, el umbral está flojo;
+(2) ¿cuántas alertas por mes hubiera tirado sobre datos SANOS? Si son más de 1-2/mes, los umbrales
+    están demasiado estrictos: se aflojan hasta llegar ahí. Un detector que grita se ignora, y un
+    detector ignorado es peor que no tenerlo.
+
+FUERA DE ALCANCE (a propósito): tabla nueva, cron nuevo, UI nueva, y cualquier modelo de machine
+learning — con chequeos univariados por serie se cubre el 90% a una fracción de la complejidad
+(conversación con Lautaro del 24/07). Si más adelante hace falta, se evalúa aparte.
+
+CRITERIOS DE ACEPTACIÓN: (1) tests con fixtures de los bugs REALES (no sintéticos: la semana ÷1000,
+el typo de girasol, la fila duplicada del PAS); (2) tabla de calibración en el doc de sesión con
+las dos métricas de arriba; (3) un dry-run de cada cableado forzando el fallo; (4) lint/tsc/build/
+test verdes. PR draft base main; doc de sesión + tachar D7.
+```
+
 ---
 
 ## 7. Registro de decisiones de Lautaro (post-síntesis)
@@ -689,6 +799,16 @@ ahora que MP1 ya mergeó.
 **A6 sigue en curso**: 1/7 secciones confirmadas (Datos del día), el fix de DEA sin confirmar, 5
 secciones sin probar todavía. PR #77 mergeado (docs + historial + fix de DEA). Checklist completo
 de qué falta y cómo probar cada fuente: `ESTADO.md` «Ahora» del 24/07 (esta sesión).
+
+### Bloque 8 — informes v2 + detector de anomalías (24/07/2026)
+
+| Qué se decidió | Resultado | Efecto en el backlog |
+|---|---|---|
+| Llevar los informes "a otro nivel" con agentes de research + view acumulativo | Plan cerrado y auditado: `PLAN_INFORMES_V2.md` (PR #81, mergeado) | **C18-C22** nuevas (V0→V4); prompts en §9 de ese plan |
+| Las 4 preguntas abiertas del plan (§10) | Nota 1-5 en el feedback **SÍ** · semanal se queda en **5 páginas** · COT solo en semanal/view, **no** en el diario · la key gratuita de USDA FAS la registra Lautaro antes de V0 | Incorporadas al plan antes de mergear; queda abierta solo la del modelo de la Routine (Opus hoy, Fable cuando esté disponible) |
+| Verificación de las Routines al cerrar el plan | 🚨 **Las 3 disparan y no producen nada** (`informes_generados` vacía; el view del 24/07 no existe) — fallan en silencio, sin mail de error | **C18 (V0) pasa a urgente** y bloquea a las otras 4 |
+| ¿Tiene sentido meter machine learning? | Para generar el view **no** (3 filas en `views_mercado`, cero feedback; aun con un año serían ~156 obs. muy correlacionadas). Sí para problemas puntuales sobre los datos de mercado, **más adelante**, y con el scorecard como prerrequisito de medición | Nada se agenda de ML por ahora; se retoma con 3-4 meses de scorecard real |
+| De esa charla salió lo que sí conviene ya | **Detector de anomalías en ingestas** (estadística clásica, no ML): valida que los VALORES que entran sean plausibles contra su propia historia — hoy solo se chequea frescura y "0 filas" | **D7 = L7** nueva, prompt completo en §6. Independiente de todo lo demás |
 
 ---
 
