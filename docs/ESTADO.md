@@ -19,10 +19,53 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 28/07/2026 — 🎨 REDISEÑO PREMIUM FRONT/UI/UX — código HECHO, PR en draft esperando feedback de Lautaro)
+## Ahora (última actualización: 28/07/2026 — 📐 V3 (semanal v2) + V4 (diario, retoque) HECHOS)
+
+**📐 V3/V4 de `PLAN_INFORMES_V2.md` §9 (C21/C22 del backlog maestro) — HECHOS — rama
+`claude/v3-v4-informes-e7sfwf`, PR #91.** Cierra el plan de informes v2 (V0→V4 completo) tras
+V1/V2 (C19/C20, PR #89) mergeados el mismo día.
+
+**V3 — informe semanal v2**: sección nueva **"El mundo esta semana"** en la página 3 del PDF
+(dólar/Chicago) — Paso 1b nuevo de la skill: research acotado (1-2 subagentes, mismas fuentes/
+disciplina que la lente 1/2 de `view-mercado` — CFTC COT, Crop Progress, Brasil, clima solo si
+movió precio — con pasaporte verificado, degrada honesto a "sin lectura externa esta semana"
+si nada verifica). `getViewMercadoVigentePorGrano()` ahora trae `relacion_previa` (dispara
+bullet automático del resumen ejecutivo si algún grano hizo SWITCH esta semana) y
+`evidencia_externa`. `getScorecardResumen()` nueva (reusa 1:1 `calcularScorecard` de
+`views-scorecard.ts`, cero fórmula nueva) para la regla "scorecard mencionado 1 vez por mes".
+**Recorte de layout para no pasar de la página 3**: prop `sinTabla` en `DolarOficialChart`
+(omite el `ChartTabla` redundante bajo el gráfico, dato completo sigue en `/dolar`) — medido
+con datos reales, la página 3 con la sección nueva quedó exacta en 297mm, ni un pixel de
+sobra. **Hallazgo al verificar**: el PDF semanal da `/Count 7`, no 5 — pero medido con
+Playwright (altura real de cada hoja) y comparado contra el informe YA ENVIADO el 24/07
+(mismo código de esta sesión, datos de antes de V3), el excedente es 100% de la página 5
+(tesis largas de V1, `white-space:pre-wrap` sin límite) — **preexistente, no una regresión de
+V3** (la página 3 quedó exacta en 1122px en los dos casos). Documentado como posible
+calibración futura de `view-mercado`, fuera del alcance del prompt V3.
+
+**V4 — informe diario (retoque)**: el diario ahora recibe `viewsMercado` (con su
+`evidencia_externa` ya verificada) en el JSON de insumos — la skill dice explícito que puede
+citarla en el `comentario` si es relevante al día, cero fetch nuevo, sigue sin multi-agente
+(su valor es salir siempre, rápido). **Medición de consumo real de las 4 Routines (2do punto
+de V4): no se pudo completar** — esa telemetría no es visible desde este entorno de código
+(vive del lado de la cuenta de Lautoro); queda pendiente real para la próxima vez que él
+tenga esos números a mano, o para una sesión que corra como la propia Routine.
+
+**Verificado**: lint/tsc/vitest (224/224, sin tests nuevos — se reusan libs ya testeadas) ✅ ·
+build ✅ · corrida en seco real del PDF semanal con Playwright (borrador de prueba insertado y
+BORRADO al terminar, cero residuo en `informes_generados`) · `scorecard`/`viewsMercado` con
+datos reales de Supabase cotejados a mano (los 3 granos en `nMedidos:0`, correcto — ningún
+view real tiene todavía 28 días de historia) · diario y semanal responden 200 sin romper nada.
+
+**Pendiente para la próxima sesión**: mostrarle a Lautoro la primera corrida real del semanal
+(recorte del `ChartTabla` + sección nueva) y la medición de consumo de V4 cuando esté
+disponible. El resto de los pendientes menores de C18-C20 sigue igual (ver la entrada de abajo).
+Detalle completo: [`sesiones/2026-07-28-v3-v4-informes.md`](sesiones/2026-07-28-v3-v4-informes.md).
+
+## Anterior (28/07/2026 — 🎨 REDISEÑO PREMIUM FRONT/UI/UX, mergeado)
 
 **🎨 REDISEÑO PREMIUM FRONT/UI/UX — rama `claude/premium-frontend-design-s3wmcs`, PR #88
-(draft).** Pedido explícito de Lautaro: llevar el front a nivel "premium, >10K USD" — misma
+(mergeado).** Pedido explícito de Lautaro: llevar el front a nivel "premium, >10K USD" — misma
 paleta y logos, tipografías propias (nada de Inter/Roboto), motion medio, "que no parezca IA
 genérica". **Fase de diseño primero, sin código**: 3 direcciones maquetadas con datos reales
 (A «Sala de operaciones» dark/Fraunces · B «Research de banca privada» claro/Newsreader · C

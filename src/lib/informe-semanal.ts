@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
-import { sbSelect } from "./supabase";
+import { sbSelect, sbSelectAll } from "./supabase";
 import { diasEntre } from "./dates";
+import { GRANOS_VIEW, parseEvidenciaExterna, type EvidenciaExterna, type GranoView } from "./views-mercado";
+import { calcularScorecard, type Scorecard } from "./views-scorecard";
 
 /**
  * Insumos SEMANALES para el informe semanal (MP2 de docs/PLAN_INFORMES.md): variación de
@@ -239,25 +241,89 @@ export type ViewMercadoResumen = {
   tesis_md: string;
   invalidacion: string;
   fecha: string;
+  /** V3/V4 (PLAN_INFORMES_V2.md §6.3/§6.4): CONFIRMA/AJUSTA/SWITCH/CUMPLIDA vs el view anterior
+   *  — null si es la primera tesis de ese grano ("inicial") o si el campo no vino seteado. */
+  relacion_previa: string | null;
+  /** Pasaportes (URL+fecha+cita) ya verificados en F5 de `view-mercado` — el diario (V4) los
+   *  puede citar como contexto sin research nuevo; el semanal (V3) los usa en "El mundo esta
+   *  semana" si `viewsMercado` trae algo fresco que el research propio de esta semana no cubrió. */
+  evidencia_externa: EvidenciaExterna[];
 };
 
 /**
- * View de mercado vigente por grano (MP3), leído con `sbSelect` (prefiere la service key en
+ * View de mercado vigente por grano (MP3/V1), leído con `sbSelect` (prefiere la service key en
  * producción, que bypasa el RLS `is_admin()` de `views_mercado`) en vez de `getViewsMercado()`
  * (que usa la sesión SSR del usuario — no existe en este contexto de route handler con token).
  */
 export const getViewMercadoVigentePorGrano = cache(async (): Promise<ViewMercadoResumen[]> => {
   const res = await sbSelect(
-    "views_mercado?select=grano,direccion,confianza,horizonte,tesis_md,invalidacion,fecha&order=fecha.desc",
+    "views_mercado?select=grano,direccion,confianza,horizonte,tesis_md,invalidacion,fecha,relacion_previa,evidencia_externa&order=fecha.desc",
     0,
   );
   if (!res.ok || !Array.isArray(res.data)) return [];
   const vistos = new Set<string>();
   const out: ViewMercadoResumen[] = [];
-  for (const r of res.data as ViewMercadoResumen[]) {
-    if (vistos.has(r.grano)) continue;
-    vistos.add(r.grano);
-    out.push(r);
+  for (const r of res.data as Record<string, unknown>[]) {
+    const grano = String(r.grano ?? "");
+    if (!grano || vistos.has(grano)) continue;
+    vistos.add(grano);
+    out.push({
+      grano,
+      direccion: r.direccion as ViewMercadoResumen["direccion"],
+      confianza: Number(r.confianza),
+      horizonte: String(r.horizonte ?? ""),
+      tesis_md: String(r.tesis_md ?? ""),
+      invalidacion: String(r.invalidacion ?? ""),
+      fecha: String(r.fecha ?? ""),
+      relacion_previa: typeof r.relacion_previa === "string" ? r.relacion_previa : null,
+      evidencia_externa: parseEvidenciaExterna(r.evidencia_externa),
+    });
   }
   return out;
+});
+
+/**
+ * Resumen del scorecard (hit-rate/racha a 4 semanas por grano) para el informe semanal (V3,
+ * §6.3 de PLAN_INFORMES_V2.md: se menciona 1 vez por mes, transparencia estilo "what we got
+ * wrong"). Reusa `calcularScorecard` — la misma lib pura que ya usa `/granos/view`, cero fórmula
+ * nueva. `views_mercado` se lee con `sbSelectAll` (prefiere la service key, bypasa el RLS
+ * `is_admin()`), mismo criterio que `getViewMercadoVigentePorGrano` de acá arriba.
+ */
+export const getScorecardResumen = cache(async (): Promise<Scorecard["porGrano"]> => {
+  const vacio: Scorecard["porGrano"] = {
+    soja: { grano: "soja", nMedidos: 0, hitRate: null, brier: null, racha: null },
+    maiz: { grano: "maiz", nMedidos: 0, hitRate: null, brier: null, racha: null },
+    trigo: { grano: "trigo", nMedidos: 0, hitRate: null, brier: null, racha: null },
+  };
+  const [viewsRes, cierresRes] = await Promise.all([
+    sbSelectAll("views_mercado?select=id,grano,fecha,direccion,confianza&order=fecha.asc", 3600),
+    sbSelectAll(
+      "futuros_cierres?select=underlying,posicion,fecha,settlement&underlying=in.(SOJ,MAI,TRI)&order=fecha.asc",
+      3600,
+    ),
+  ]);
+  if (!viewsRes.ok || !Array.isArray(viewsRes.data)) return vacio;
+
+  const views = (viewsRes.data as Record<string, unknown>[])
+    .filter((r) => GRANOS_VIEW.includes(String(r.grano) as GranoView))
+    .map((r) => ({
+      id: String(r.id ?? ""),
+      grano: String(r.grano) as GranoView,
+      fecha: String(r.fecha ?? ""),
+      direccion: r.direccion as "alcista" | "bajista" | "neutral",
+      confianza: Number(r.confianza),
+    }));
+  if (views.length === 0) return vacio;
+
+  type CierreRaw = { underlying: string; posicion: string; fecha: string; settlement: number | string };
+  const cierres = cierresRes.ok && Array.isArray(cierresRes.data)
+    ? (cierresRes.data as CierreRaw[]).map((r) => ({
+        underlying: r.underlying,
+        posicion: r.posicion,
+        fecha: r.fecha,
+        settlement: Number(r.settlement),
+      }))
+    : [];
+
+  return calcularScorecard(views, cierres).porGrano;
 });

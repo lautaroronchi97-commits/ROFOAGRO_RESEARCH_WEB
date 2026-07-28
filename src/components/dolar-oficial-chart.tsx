@@ -27,8 +27,14 @@ export type PuntoDolar = { fecha: string; valor: number };
  * `UST$T` de MAE que usa el resto de la web para "oficial mayorista" — ese spot no tiene
  * historial en ningún lado (ver `src/lib/informe-semanal.ts`). Trae el spread bancario
  * implícito; se muestra igual, con la fuente aclarada, por decisión de Lautaro (23/07).
+ *
+ * `sinTabla` (V3, PLAN_INFORMES_V2.md §6.3): la plantilla del informe semanal la usa para
+ * omitir el `ChartTabla` de acá abajo — es el recorte elegido en la página de dólar/Chicago
+ * para hacerle lugar a "El mundo esta semana" sin pasar de 5 páginas (la tabla es una
+ * relectura del mismo gráfico; el dato completo sigue disponible en vivo en `/dolar`). Default
+ * `false`: `/dolar` (la página en vivo) no pasa la prop y queda exactamente como estaba.
  */
-export function DolarOficialChart({ serie }: { serie: PuntoDolar[] }) {
+export function DolarOficialChart({ serie, sinTabla = false }: { serie: PuntoDolar[]; sinTabla?: boolean }) {
   const [hi, setHi] = useState<number | null>(null);
 
   if (serie.length < 2) {
@@ -128,7 +134,9 @@ export function DolarOficialChart({ serie }: { serie: PuntoDolar[] }) {
           </span>
         </div>
       </div>
-      <ChartTabla columnas={columnas} filas={filas} nota="BCRA A3500 (Comunicación 3500) — no es el spot UST$T de MAE que usa el resto de la web para el oficial mayorista; se usa acá por ser la única fuente con historial diario real." />
+      {!sinTabla && (
+        <ChartTabla columnas={columnas} filas={filas} nota="BCRA A3500 (Comunicación 3500) — no es el spot UST$T de MAE que usa el resto de la web para el oficial mayorista; se usa acá por ser la única fuente con historial diario real." />
+      )}
     </>
   );
 }

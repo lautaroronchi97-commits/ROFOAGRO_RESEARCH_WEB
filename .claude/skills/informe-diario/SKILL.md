@@ -5,7 +5,9 @@ description: >-
   generar la placa PNG vertical de research diario (datos automáticos + color
   de la rueda de Lautaro + prosa con su voz), guardarla, mandarla por mail y
   dejarla en /informes. Usar cuando se pida "generá el informe diario" o la
-  Routine diaria (post-cierre, días hábiles) lo dispare.
+  Routine diaria (post-cierre, días hábiles) lo dispare. Sigue sin
+  multi-agente a propósito (V4 de docs/PLAN_INFORMES_V2.md §6.4): su valor es
+  salir siempre, rápido.
 # El informe sale con la firma de Lautaro: la prosa la tiene que escribir el
 # modelo grande, con tiempo para pensar el título y el color del día. Esto pisa
 # el modelo de la sesión (y el del selector de la Routine) solo para este turno.
@@ -63,7 +65,9 @@ esos informes — normalmente vacío hasta que MP4 exista, no es un error) y
 `bcra` (compras netas del BCRA del día en M USD — carga MANUAL de Lautaro en
 `/admin/datos`; `null` si no cargó nada ese día. P3 de `PLAN_BACKLOG.md` va a
 sumar la ingesta automática a la misma tabla más adelante — hasta entonces,
-solo hay dato si Lautaro lo cargó).
+solo hay dato si Lautaro lo cargó) y `viewsMercado` (V4: el view direccional
+vigente por grano — V1, viernes — con su `evidencia_externa` YA verificada en
+esa corrida; ver Paso 2).
 
 La plantilla (paso 4) YA renderiza el volumen por grano, el `bcra` del día y
 una sección "Informe del día" con `informesHoy`/`interpretaciones` solas — no
@@ -108,6 +112,17 @@ color trae un precio o volumen que `cierres`/`pizarra` no tiene (ej. sorgo,
 "contractual"), usalo igual. Si el color y el dato automático difieren (pizarra
 estimada de la mesa vs cierre oficial CAC), mostrá los dos — no "corrijas" uno
 con el otro, son lecturas distintas del mismo día.
+
+**Contexto del view vigente (V4, opcional — NO es una sección fija)**: si
+`viewsMercado` trae, para algún grano, un dato de `evidencia_externa` que
+siga siendo relevante HOY (ej. "fondos vendidos récord" de la corrida del
+viernes), podés citarlo en el `comentario` como contexto — es un dato ya
+verificado en F5 de `view-mercado` (cero fetch nuevo, cero research propio
+del diario). Nunca reinterpretes el view ni le sumes una lectura nueva: solo
+citás lo que ya está guardado, y solo si aporta al día de hoy — la mayoría de
+los días no hay nada que agregar acá, y está bien que no lo haya (R4/R5 de
+`PLAN_INFORMES_V2.md`: el diario NO se sofistica, su valor es salir siempre,
+en minutos).
 
 Regla dura de `voz-lautaro`: **ni un número inventado**. Todo dato sale del
 JSON del paso 1 o del `color` cargado por Lautaro.

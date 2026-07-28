@@ -351,12 +351,23 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   GEA/DEA/CONAB/PAS degradan a consenso implícito. **Fix crítico del disparo de BCBA-PAS**
   hecho: `construirCambios` expone `actualizadoEn`, el filtro ya no depende solo de
   `fecha_publicacion`. Mismo detalle de sesión que C19.
-- [ ] **C21 = V3. Semanal v2** — sección "El mundo esta semana" (COT, condición de cultivos EEUU,
-  Brasil, clima) DENTRO de las 5 páginas + agenda con expectativas + integración de switch y
-  scorecard. Depende de C19.
-- [ ] **C22 = V4. Diario (retoque) + medición** — el diario NO se sofistica a propósito; solo
-  puede citar evidencia ya verificada del view vigente. Cierra con la medición de consumo real
-  de las 4 Routines. Depende de C19.
+- [x] **C21 = V3. Semanal v2** — ✅ **hecho 28/07**, rama `claude/v3-v4-informes-e7sfwf`, PR #_.
+  Sección "El mundo esta semana" (research acotado, mismas fuentes que la lente 1/2 de
+  `view-mercado`, pasaporte verificado) en la página de dólar/Chicago, sin sumar hoja (recorte:
+  `ChartTabla` redundante bajo `DolarOficialChart` omitido en el PDF, `/dolar` en vivo intacto) +
+  `relacion_previa`/`evidencia_externa` sumados a `getViewMercadoVigentePorGrano()` (bullet
+  automático si algún grano hizo SWITCH) + `getScorecardResumen()` (hit-rate/racha 1 vez por mes,
+  reusa `calcularScorecard` sin fórmula nueva) + agenda con expectativas en el cierre. Medido con
+  datos reales que la página 3 quedó exacta en 297mm; el `/Count 7` del PDF es 100% atribuible a
+  la página 5 (tesis largas de V1), preexistente y confirmado NO ser una regresión de V3 (mismo
+  `/Count` con el informe YA enviado el 24/07). Detalle:
+  [`sesiones/2026-07-28-v3-v4-informes.md`](../sesiones/2026-07-28-v3-v4-informes.md).
+- [x] **C22 = V4. Diario (retoque) + medición** — ✅ **hecho 28/07 (parcial)**, mismo PR. El diario
+  ahora recibe `viewsMercado` (con `evidencia_externa` ya verificada) y la skill dice explícito
+  que la puede citar de contexto sin research propio ni multi-agente. **La medición de consumo
+  real de las 4 Routines NO se pudo completar**: esa telemetría no es visible desde este entorno
+  de código (vive del lado de la cuenta de Lautoro) — queda pendiente real, no bloqueante.
+  Mismo detalle de sesión que C21.
 - [ ] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (nuevo, 27/07)** — al probar el uploader
   de BCBA-PAS (A6) Lautaro pasó un export alternativo (`reporte.xlsx`, hoja "Reporte base de
   datos") con las mismas 27 campañas 2000/01→2026/27 pero desglosadas por **zona** (NOA, NEA,

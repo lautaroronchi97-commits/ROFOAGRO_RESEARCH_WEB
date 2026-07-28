@@ -1,11 +1,13 @@
 ---
 name: informe-semanal
 description: >-
-  Procedimiento del informe semanal de ROFO AGRO (MP2 de docs/PLAN_INFORMES.md):
-  generar el PDF A4 de 5 páginas tipo research de ALyC (la semana en números +
-  gráficos + interpretación larga con la voz de Lautaro), guardarlo, mandarlo
-  por mail y dejarlo en /informes. Usar cuando se pida "generá el informe
-  semanal" o la Routine semanal (viernes post-cierre) lo dispare.
+  Procedimiento del informe semanal de ROFO AGRO (MP2 de docs/PLAN_INFORMES.md,
+  ampliado por V3 de docs/PLAN_INFORMES_V2.md §6.3): generar el PDF A4 de 5
+  páginas tipo research de ALyC (la semana en números + gráficos + un research
+  externo acotado de "el mundo esta semana" + interpretación larga con la voz
+  de Lautaro), guardarlo, mandarlo por mail y dejarlo en /informes. Usar cuando
+  se pida "generá el informe semanal" o la Routine semanal (viernes
+  post-cierre) lo dispare.
 # El informe sale con la firma de Lautaro: la prosa la tiene que escribir el
 # modelo grande, con tiempo para pensar el criterio de qué destacar (Paso 2).
 # Esto pisa el modelo de la sesión (y el del selector de la Routine) solo para
@@ -62,7 +64,8 @@ calendario", usa la fecha real más cercana a 7 días antes) y:
 | `variacionChicago` | Δ% semanal de CBOT (USD/tn), 2 posiciones por grano | `/granos` (monitor) |
 | `variacionPizarra` | Δ% semanal de la pizarra CAC-BCR (USD/tn) por grano | `/granos` |
 | `variacionDolarOficial` | Δ% semanal del oficial **BCRA A3500** (no el spot UST$T de MAE — ese no tiene historial) + `serie` para el gráfico | `/dolar` |
-| `viewsMercado` | El view vigente por grano (MP3, si ya corrió esta semana): dirección/confianza/tesis | `/granos/view` |
+| `viewsMercado` | El view vigente por grano (V1, si ya corrió esta semana): dirección/confianza/tesis + **`relacion_previa`** (`inicial`/`confirma`/`ajusta`/`switch`/`cumplida` — la bola de nieve) | `/granos/view` |
+| `scorecard` | Hit-rate/racha a 4 semanas por grano (`ResumenGrano`: `nMedidos`/`hitRate`/`brier`/`racha`) — se menciona 1 vez por mes, ver Paso 2 regla 5 | `/granos/view` |
 | `negociado` | Venta semanal SIO por producto/campaña/sector, Δ vs semana previa, acumulado, % priceado | `/comercio/negociado` |
 | `embarques` | Cumplimiento del mes en curso (declarado DJVE vs embarcado line-up) por producto | `/comercio/embarques` |
 | `empresas` | Gap de cobertura foto-forward 60d por producto (declarado vs originado) | `/comercio/empresas` |
@@ -82,6 +85,39 @@ el HTML de `/ingresar`, es el gate de auth de `src/proxy.ts` comiéndose la
 ruta — tiene que estar en la lista de excepciones junto a `/api/informes/` y
 `/informes/plantilla/`. Es bug de código, no falta de permisos: avisalo en el
 cierre además de usar la web local para destrabar el informe de la semana.
+
+## Paso 1b — "El mundo esta semana" (research acotado, V3)
+
+Sección nueva (§6.3 de `PLAN_INFORMES_V2.md`) que suma contexto externo a la semana, con las
+MISMAS reglas de disciplina que `view-mercado` (F1/F5 de esa skill — no las reinventes):
+presupuesto fijo, pasaporte obligatorio, degradación honesta si no hay nada verificable.
+**Nunca camino crítico**: si esta sección sale vacía, el PDF sale igual (P7).
+
+Lanzá **1-2 subagentes de solo lectura** (tool Agent/Task), con presupuesto ~10-15 tool
+calls cada uno, salida JSON por hallazgo `{tema, dato, fuente_url, fecha_pub, cita_textual}`:
+
+1. **Chicago/fondos**: posicionamiento de fondos (CFTC COT desagregado — Socrata
+   `publicreporting.cftc.gov/resource/72hh-3qpy.json`, managed money neto + Δ semanal +
+   percentil histórico, sin key) y, si estamos en temporada, USDA Crop Progress (ESMIS
+   `usda.library.cornell.edu/api/v1/...CropProg?latest=true`) — mismas fuentes que la lente 1
+   de `view-mercado`, no las reinventes.
+2. **Sudamérica/clima**: Brasil en UNA línea (Canal Rural RSS, complementa CONAB propio — los
+   números de producción siempre de `informesSemana`, esto es solo color) + clima **SOLO si
+   movió precio** esta semana (SMN/NOAA CPC).
+
+Verificá cada pasaporte antes de usarlo (la URL responde, la cita aparece — mismo criterio F5
+de `view-mercado`): lo que no verifica, se cae. Con los hallazgos que sobrevivieron, armá
+**3-4 bullets máximo** (`prosa.mundo_bullets`, Paso 3) — la salida NO crece con el research
+(R3/P4 de `PLAN_INFORMES_V2.md`): mejor 2 bullets con dato firme que 4 flojos. Si ningún
+hallazgo verifica, `mundo_bullets` queda vacío y la plantilla ya sabe mostrar "sin lectura
+externa esta semana" — no fuerces contenido.
+
+**Decisión de layout (V3, a confirmar con Lautaro en la primera corrida real)**: para que esta
+sección entre en la página 3 (dólar/Chicago) sin pasar de 5 páginas, la plantilla omite ahí el
+`ChartTabla` bajo el gráfico de dólar oficial (prop `sinTabla` de `DolarOficialChart` — la
+tabla es una relectura del mismo gráfico, el dato completo sigue en vivo en `/dolar`). Es la
+única página que se toca; si en la práctica sigue sin entrar, mostrale el layout real a
+Lautaro antes de recortar algo más (nunca en silencio).
 
 ## Paso 2 — Qué destacar cada semana (el criterio)
 
@@ -104,13 +140,24 @@ Reglas de prioridad, en este orden:
    `variacionDolarOficial`, TODOS juntos en un solo ranking) — se explica el
    número y, si se puede, el porqué (cruzando con noticias/informesSemana de
    esa misma semana).
-3. **Cambios de régimen, no solo de nivel**: si `viewsMercado` cambió de
-   dirección respecto al que se citó la semana pasada (comparalo si tenés el
-   informe anterior a mano; si no, mencioná la dirección vigente igual), o si
-   `negociado`/`embarques`/`empresas` muestran un salto grande (ej. % priceado
-   se movió fuerte, el ratio de cobertura cruzó de <1 a >1 o viceversa) — eso
-   pesa MÁS que un movimiento de precio grande sin cambio de fondo.
-4. **Todo lo demás es contexto**, no protagonista: se menciona en el cuerpo de
+3. **Cambios de régimen, no solo de nivel**: si `negociado`/`embarques`/
+   `empresas` muestran un salto grande (ej. % priceado se movió fuerte, el
+   ratio de cobertura cruzó de <1 a >1 o viceversa) — eso pesa MÁS que un
+   movimiento de precio grande sin cambio de fondo.
+4. **SWITCH del view = candidato automático (V3)**: si algún grano de
+   `viewsMercado` trae `relacion_previa === "switch"` esta semana, ES bullet
+   del resumen ejecutivo SIEMPRE — no compite con el ranking de arriba, se
+   agrega igual (la bola de nieve cambiando de tesis es, por definición,
+   noticia). Citá el gatillo que la skill `view-mercado` dejó en `tesis_md`/
+   `invalidacion`, no lo reinterpretes. `ajusta`/`confirma`/`cumplida` NO
+   fuerzan bullet — entran por el ranking normal si pesan.
+5. **Scorecard, 1 vez por mes**: si `fecha` cae en los primeros 7 días del mes
+   calendario, sumá al `cierre` una mención del scorecard del mes anterior —
+   hit-rate y racha de `scorecard`, citados literal (nunca redondeados a "casi
+   siempre acertamos"), grano por grano si `nMedidos > 0`. Es transparencia
+   estilo "what we got wrong", no autopromoción: si el hit-rate es bajo, se
+   dice igual. El resto del mes no se menciona (no compite por espacio).
+6. **Todo lo demás es contexto**, no protagonista: se menciona en el cuerpo de
    cada página (granos/dólar/comex) aunque no haya sido lo más grande, porque
    la plantilla ya muestra la tabla/gráfico completo — la prosa no repite
    números que el lector ya ve en la tabla, los interpreta.
@@ -138,11 +185,23 @@ Con el JSON y el criterio del Paso 2, armá el objeto `prosa`:
   el spot que usa el resto de la web, SOLO la primera vez que la aclaración no
   esté ya impresa en la plantilla — si la plantilla ya lo dice, no lo repitas)
   + Chicago.
+- **mundo_bullets** (V3, array de 0-4 strings): el resultado del Paso 1b, uno
+  por hallazgo verificado, CON la fuente citada dentro del mismo string (ej.
+  "Fondos vendidos en maíz en niveles extremos —percentil 12 de los últimos 3
+  años (CFTC COT, corte 22/07)— posicionamiento que puede revertir con
+  cualquier sorpresa climática."). Array vacío si el research no verificó
+  nada — la plantilla ya muestra el mensaje de degradación, no lo escribas vos.
 - **comex_texto**: 1 párrafo, cumplimiento de embarques + gap de cobertura +
   qué dice sobre el apetito de la exportación esta semana.
 - **cierre**: párrafo final con la nota humilde característica + qué mirar la
   semana próxima (cruzá con `agenda` — si hay un informe agendado que puede
-  mover el precio, nombralo).
+  mover el precio, nombralo; **agenda con expectativas (V3)**: si el Paso 1b
+  encontró una expectativa pre-report verificada para ESE informe agendado —
+  mismo mecanismo DTN/Pro Farmer que usa `view-mercado` F1 lente 4/Paso 9 de
+  `informe-diario`, con pasaporte — sumala acá, ej. "el mercado espera un
+  ajuste chico en área sembrada según DTN (corte 24/07)"; si no la encontró,
+  mencioná el evento igual, sin expectativa) + la mención de scorecard de la
+  regla 5 del Paso 2 cuando corresponda.
 
 Si `viewsMercado` trae algo, la plantilla YA lo muestra íntegro en la página
 5 (dirección + tesis completa) — no lo repitas en `cierre`, como mucho
@@ -157,7 +216,7 @@ headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY},
 body: [{ "tipo": "semanal", "fecha": "YYYY-MM-DD", "titulo": "<titulo>",
          "prosa": { "titulo": "<titulo>", "resumen_ejecutivo": [...],
                      "granos_texto": "...", "dolar_texto": "...",
-                     "comex_texto": "...", "cierre": "..." },
+                     "mundo_bullets": [...], "comex_texto": "...", "cierre": "..." },
          "estado": "borrador" }]
 ```
 
@@ -253,12 +312,13 @@ Recién ahí la fila aparece en `/informes` (RLS: anon solo ve
 ## Paso 9 — Cierre
 
 Resumen final: título de la semana, los 4-6 bullets del resumen ejecutivo,
-qué insumo degradó (si alguno — ej. "sin view de mercado esta semana, MP3 no
-corrió"), y si el mail salió. Si algo falló a mitad de camino, decilo fuerte
-— nunca en silencio. Si en esta corrida ajustaste el criterio del Paso 2 por
-feedback de Lautaro, dejalo escrito en el resumen para que quede como
-histórico de la decisión (y considerá editar esta misma sección del SKILL con
-su corrección).
+qué insumo degradó (si alguno — ej. "sin view de mercado esta semana, V1 no
+corrió", "sin lectura externa esta semana, Paso 1b no verificó nada"), cuántos
+tool calls usó el research del Paso 1b (línea de base de consumo, R5) y si el
+mail salió. Si algo falló a mitad de camino, decilo fuerte — nunca en
+silencio. Si en esta corrida ajustaste el criterio del Paso 2 por feedback de
+Lautaro, dejalo escrito en el resumen para que quede como histórico de la
+decisión (y considerá editar esta misma sección del SKILL con su corrección).
 
 ## Modo de prueba
 
