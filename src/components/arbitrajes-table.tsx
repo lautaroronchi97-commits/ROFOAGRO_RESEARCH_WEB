@@ -9,6 +9,8 @@ import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
 import { ArbitrajesEditable, type ArbGranoClient } from "./arbitrajes-editable";
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 /**
  * Referencia de la 1ª columna (pedido de Lautaro, 07/2026):
  *   - Fuera de rueda → el último AJUSTE (settlement de cierre).
@@ -52,6 +54,17 @@ export async function ArbitrajesTable() {
       // no operó hoy igual muestra su último precio operado. Solo queda "—" si A3
       // no tiene último operado. Fuera de rueda: el ajuste.
       const ref = modoOperado ? last : r.ajuste;
+      // Var: en rueda se recalcula EN VIVO contra el WS (último operado − ajuste
+      // anterior), como pidió Lautoro — no alcanza con el `change` de CEM, que
+      // solo se actualiza una vez por día cuando sale el cierre oficial. Antes de
+      // la 1ª operación del día (last == null) queda en blanco, no se muestra el
+      // dato de ayer disfrazado de hoy. Fuera de rueda (o sin A3 en vivo) sí vale
+      // el `change` de CEM: en ese momento ES el oficial del último cierre.
+      const variacion = modoOperado
+        ? last != null && r.ajuste != null
+          ? round2(last - r.ajuste)
+          : null
+        : r.variacion;
       return [
         {
           pos: r.pos,
@@ -60,9 +73,7 @@ export async function ArbitrajesTable() {
           // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
           // mueve ahora del último operado arrastrado de la rueda anterior).
           vivo: modoOperado && operoHoy && last != null,
-          // Variación nominal del AJUSTE vs el cierre previo (US$) — siempre relativa
-          // al ajuste, no al último operado en vivo (ese ya tiene su propio spread).
-          variacion: r.variacion,
+          variacion,
           dias: r.dias,
           volume: volumeDelDia,
           bid: p?.bid ?? null,
