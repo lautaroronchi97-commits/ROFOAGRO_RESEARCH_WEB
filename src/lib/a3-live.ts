@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import WebSocket from "ws";
-import { a3Configured, getA3Token, getA3InstrumentsBySegment } from "./a3";
+import { a3Configured, getA3Token, invalidateA3Token, getA3InstrumentsBySegment } from "./a3";
 import { getPases } from "./pases-cierres";
 import { getCierresGranos } from "./futuros";
 import { ruedaAgroAbierta } from "./rueda";
@@ -128,6 +128,11 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
       if (respondidos < symbols.length) {
         console.error(`[a3-live] WS ${symbols.length - respondidos}/${symbols.length} símbolos sin snapshot`);
       }
+      // Snapshot totalmente vacío con un WS que sí abrió: el token cacheado puede
+      // estar muerto (A3 lo invalida si alguien vuelve a loguearse en otro lado,
+      // sin avisar por este canal). Se descarta para que la PRÓXIMA regeneración
+      // pida uno nuevo, en vez de quedar pegado hasta el vencimiento del caché (~23h).
+      if (respondidos === 0) invalidateA3Token();
       resolve({
         puntas,
         estado,

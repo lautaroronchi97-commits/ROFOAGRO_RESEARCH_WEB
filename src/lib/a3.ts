@@ -17,6 +17,19 @@ export function a3Configured(): boolean {
 // El token dura 24h; lo cacheamos en memoria del server (~23h).
 let cachedToken: { token: string; ts: number } | null = null;
 
+/**
+ * Fuerza a pedir un token nuevo en la próxima llamada a `getA3Token`. A3
+ * invalida el token del lado del servidor si alguien vuelve a loguearse con
+ * las mismas credenciales en otro lado (app/eTrader) — el WebSocket de
+ * a3-live.ts no recibe ningún error explícito en ese caso, solo se queda sin
+ * snapshots. Sin este invalidado manual, el caché (~23h) mantendría el token
+ * muerto hasta su vencimiento natural aunque el problema de origen ya se haya
+ * resuelto.
+ */
+export function invalidateA3Token(): void {
+  cachedToken = null;
+}
+
 export async function getA3Token(): Promise<string | null> {
   if (!a3Configured()) return null;
   if (cachedToken && Date.now() - cachedToken.ts < 23 * 3600 * 1000) return cachedToken.token;
