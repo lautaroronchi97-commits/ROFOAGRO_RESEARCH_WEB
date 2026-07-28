@@ -148,22 +148,17 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
 
     try {
       ws = new WebSocket(WS_URL, { headers: { "X-Auth-Token": token } });
-    } catch (e) {
-      console.error(`[a3-live] WS no se pudo instanciar: ${e instanceof Error ? e.message : String(e)}`);
+    } catch {
       return finish();
     }
 
-    // DIAGNÓSTICO TEMPORAL (troubleshooting 28/07): el feed viene sin snapshots hace
-    // horas con token fresco, así que el corte no es de auth — hace falta ver en qué
-    // punto se cae la conexión (nunca abre / abre pero sin mensajes / mensajes con un
-    // shape distinto al esperado). Loguea como mucho una vez por tipo por conexión.
-    let openLogged = false;
+    // Si A3 rechaza la suscripción (ej. algún símbolo del batch ya no existe del
+    // lado suyo) responde con {status:"ERROR", description:"..."} en vez de un "Md"
+    // — se loguea entero (una vez por conexión) para no quedar a ciegas la próxima
+    // vez que pase algo así, en vez de agotar el timeout en silencio.
     let unknownTypeLogged = false;
-    let msgCount = 0;
 
     ws.on("open", () => {
-      openLogged = true;
-      console.error(`[a3-live] WS abierto, suscribiendo ${symbols.length} símbolos`);
       // Un solo mensaje suscribe TODOS los instrumentos; Primary responde con el
       // snapshot actual de cada uno (evita el 429 de pedir de a un símbolo por REST).
       ws?.send(
@@ -178,22 +173,16 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
     });
 
     ws.on("message", (data: WebSocket.RawData) => {
-      msgCount++;
       let msg: Record<string, unknown>;
       try {
         msg = JSON.parse(data.toString()) as Record<string, unknown>;
       } catch {
-        if (!unknownTypeLogged) {
-          unknownTypeLogged = true;
-          console.error(`[a3-live] WS mensaje no-JSON: ${data.toString().slice(0, 200)}`);
-        }
         return;
       }
       if (msg.type !== "Md") {
         if (!unknownTypeLogged) {
           unknownTypeLogged = true;
-          const full = JSON.stringify(msg);
-          console.error(`[a3-live] WS mensaje con type inesperado (${full.length} chars, keys=${Object.keys(msg).join(",")}): ${full}`);
+          console.error(`[a3-live] WS respuesta inesperada: ${JSON.stringify(msg)}`);
         }
         return;
       }
@@ -205,15 +194,8 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
       }
     });
 
-    ws.on("error", (err: Error) => {
-      console.error(`[a3-live] WS error: ${err.message}`);
-      finish();
-    });
-    ws.on("close", (code: number, reason: Buffer) => {
-      if (!openLogged) console.error(`[a3-live] WS cerró sin llegar a abrir (code=${code})`);
-      else if (msgCount === 0) console.error(`[a3-live] WS cerró sin ningún mensaje (code=${code} reason=${reason.toString().slice(0, 100)})`);
-      finish();
-    });
+    ws.on("error", () => finish());
+    ws.on("close", () => finish());
   });
 }
 
@@ -237,10 +219,24 @@ export const getPasesLive = cache(async (): Promise<LiveResult> => {
 /** Puntas de los FUTUROS outright que muestra el panel Arbitrajes. */
 export const getFuturosLive = cache(async (): Promise<LiveResult> => {
   if (!a3Configured()) return SIN_CONFIG;
-  const { granos } = await getCierresGranos();
-  const symbols = granos.flatMap((g) =>
+  const [{ granos }, instrumentos] = await Promise.all([
+    getCierresGranos(),
+    getA3InstrumentsBySegment("DDA"),
+  ]);
+  const candidatos = granos.flatMap((g) =>
     g.posiciones.filter((p) => p.venc > 0).map((p) => p.symbol),
   );
+  // Mismo filtro que getPasesLive: `getCierresGranos` marca "vivo" con granularidad
+  // de MES (útil para la tabla de ajustes), así que a fin de mes puede incluir un
+  // símbolo cuyo vencimiento real ya pasó (ej. JUL26 vence el 24, sigue "vivo" hasta
+  // el 31). A3 valida la suscripción del WS en bloque: un solo símbolo inexistente
+  // rechaza el pedido ENTERO ("Product X don't exist"), dejando sin puntas a los
+  // demás. Se filtra contra la lista real de instrumentos de A3 antes de suscribir.
+  let symbols = candidatos;
+  if (instrumentos.length > 0) {
+    const set = new Set(instrumentos);
+    symbols = candidatos.filter((s) => set.has(s));
+  }
   return fetchPuntas(symbols);
 });
 
