@@ -455,17 +455,14 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   barras — forzar una sola métrica habría cambiado comportamiento real). Verificado con Playwright
   real (datos reales, claro/oscuro, desktop/mobile, hover) sin diferencia visual.
   `sesiones/2026-07-24-l6-l3-l2-lotes-tecnicos.md`.
-- [ ] **D7 = L7. Detector de anomalías en ingestas** — NUEVO 24/07 (surgió al conversar con
-  Lautaro sobre si tenía sentido meter machine learning al proyecto; conclusión: para el view
-  no —sin muestras etiquetadas—, pero un detector estadístico sobre los datos que entran sí, y
-  es lo de mejor retorno). Hoy los chequeos existentes cubren **frescura** (healthcheck, 17
-  checks), **0 filas** (guard anti falso-verde) y **un** chequeo de unidades en el uploader de
-  compras — nadie valida que los VALORES que entran sean plausibles contra su propia historia.
-  Todos estos bugs reales pasaron sin ser detectados por el sistema: la semana del 08/07 cargada
-  ÷1000 (export de Agrochat en miles de tn), los 529 valores en 6.4e15 del bug de `num()`, el
-  spike de 49,9 Mt en compras, el typo de BCR en pellets de girasol que corría el índice de
-  columnas, la fila de trigo 2025/26 duplicada byte-a-byte de 2024/25 en el PAS. **Independiente
-  de todo lo demás** (no depende de A1, ni del login, ni de PLAN_INFORMES_V2). Prompt: §6 L7.
+- [x] **D7 = L7. Detector de anomalías en ingestas** — ✅ hecho 28/07/2026. `src/lib/anomalias.ts`
+  (mediana+MAD, salto/magnitud/monotonía/identidad/duplicado/rango) + `anomalias-series.ts`
+  (catálogo de 9 series, calibradas contra la base real) + `scripts/chequeo-anomalias.mjs` (barrido
+  diario, cron 20:50 ART) + guard en la previsualización de los uploaders manuales de compras/
+  camiones (bloquea, con "forzar"). Calibración retroactiva: 2,08 alertas/mes sobre ~100 meses de
+  histórico, cada categoría auditada a mano. Los 5 bugs reales del prompt verificados (4/5 con
+  fixture real; el typo de BCR en pellets de girasol queda fuera de alcance — ya tiene su propia
+  defensa en `capacidad-bcr-parse.ts`, PR #76). `sesiones/2026-07-28-d7-detector-anomalias.md`.
 
 ### Dependencias explícitas (grafo corto)
 
@@ -499,6 +496,9 @@ puertos), C10 (P6), C11 (P7, mejor con login), C12 (P8), y C13–C16 cuando est�
 
 *(Nota 24/07: D3/L6, D5/L3 y D6/L2 — los 3 lotes técnicos que quedaban de este grupo — ya están
 HECHOS, ver §4. Esta sección "Orden decidido" queda como registro histórico del 22/07, sin reescribir.)*
+
+*(Nota 28/07: D7/L7 — nuevo el 24/07, sumado al grafo de arriba como "independiente de todo" —
+también ya está HECHO, ver §4.)*
 
 ## 5. Rechazados y descartados (para que NO reaparezcan)
 

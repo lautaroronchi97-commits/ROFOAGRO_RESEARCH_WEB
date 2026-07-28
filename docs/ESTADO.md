@@ -19,7 +19,49 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 28/07/2026 — 🚚 C24: camiones de Agroentregas, AUTOMÁTICO)
+## Ahora (última actualización: 28/07/2026 — 🔍 D7 = L7 detector de anomalías en ingestas HECHO)
+
+**🔍 D7 = L7 — DETECTOR DE ANOMALÍAS EN INGESTAS — HECHO — rama `claude/d7-development-t7alj4`,
+PR #_.** Único ítem del backlog maestro sin dependencias que quedaba pendiente
+(`docs/auditoria/E7-sintesis.md` §4 D7, prompt en §6 L7). Hasta ahora se chequeaba **frescura**
+(healthcheck, 17 checks) y **0 filas** (guard anti falso-verde), pero nadie validaba que los
+VALORES que entran fueran plausibles contra la historia de su propia serie.
+
+**`src/lib/anomalias.ts`** (motor puro, testeado): mediana + MAD normalizado (nunca promedio/
+desvío — un solo outlier de 15 órdenes de magnitud los destruye) con 6 chequeos — salto vs
+historia (z-score robusto, con piso absoluto `minDelta` por serie), orden de magnitud (×1000/÷1000,
+agarra el bug de Agrochat en miles de toneladas), monotonía con alerta (un acumulado no puede
+bajar — rompe el silencio del clamp de `compras_avance_hist`), identidades contables (total = suma
+de partes / partes ≤ total), duplicado exacto (fila idéntica a otro período) y rango físicamente
+imposible. **`src/lib/anomalias-series.ts`**: catálogo de 9 series calibradas contra la base real
+(no a ojo). **`scripts/chequeo-anomalias.mjs`** + **`.github/workflows/chequeo-anomalias.yml`**:
+barrido diario (20:50 ART, después del healthcheck), avisa por mail sin bloquear (`alerta-mail.mjs`
+extendido con `--detalle-archivo`). **Uploaders manuales** (`/admin/datos`): compras/Agrochat
+BLOQUEA en la previsualización si una fila no cierra su identidad contable o supera un máximo
+físico (extiende el guard de unidades ya existente, mismo checkbox "forzar"); camiones avisa
+(rango físico — la identidad cruzada zona=producto=total la corre el barrido diario, no el
+uploader, porque Lautaro sube un grano a la vez).
+
+**Calibración retroactiva real** (todo el histórico, 2015-2026): 208 anomalías / ~100 meses =
+2,08/mes — cada categoría auditada a mano: son los 2 bugs reales ya conocidos (spike 49,9 Mt en
+compras, girasol 1,38 Mt), 3 bugs de origen de BCR ya documentados en otras sesiones (área ×100,
+2 rindes fuera de rango), desvíos estructurales de DEA-sorgo (área sembrada≠cosechada, no bug) y
+**un hallazgo nuevo para mostrarle a Lautoro**: cebada cervecera 2025/26 viene con +13-14% de
+brecha sostenida entre el acumulado y la suma de sus partes desde abril 2026. Los 5 bugs reales
+del prompt verificados uno por uno (4/5 con test y fixture real; el typo de BCR en pellets de
+girasol pertenece a `capacidad-bcr-parse.ts`, que ya tiene su propia defensa dedicada —
+`contarColumnas()`, PR #76 — fuera del alcance de este detector que opera sobre tablas con
+historia). **Trampa real encontrada**: la paginación de PostgREST con `order=fecha.asc` solo
+repite/saltea filas cuando hay muchas filas por fecha (medido: 42.636 "puntos" sobre una tabla de
+10.668 filas) — el `order` necesita desempatar con TODAS las columnas de la clave.
+
+**Verificado**: lint/tsc/build ✅ · 246/246 tests (22 nuevos, con fixtures reales sacadas de la
+base por SQL, no sintéticas) · dry-run de los 2 cableados (barrido + uploader) forzando el fallo.
+**Sin verificar**: el primer disparo real del cron (post-merge) y el uploader en navegador real
+(sin sesión admin en este sandbox). Detalle completo:
+[`sesiones/2026-07-28-d7-detector-anomalias.md`](sesiones/2026-07-28-d7-detector-anomalias.md).
+
+## Anterior (28/07/2026 — 🚚 C24: camiones de Agroentregas, AUTOMÁTICO)
 
 **🚚 C24 — CAMIONES DE AGROENTREGAS (por planta y EMPRESA) — HECHO — rama
 `claude/plan-desarrollo-auditoria-matsqn`, PR #_.** Lautaro lo eligió tras descartar C14

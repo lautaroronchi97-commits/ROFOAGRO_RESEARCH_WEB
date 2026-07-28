@@ -8,6 +8,7 @@
  *
  * Uso (desde el workflow):
  *   node scripts/alerta-mail.mjs --workflow "Nombre" --run "https://github.com/.../runs/123"
+ *   node scripts/alerta-mail.mjs --workflow "Nombre" --run "..." --detalle-archivo /tmp/x.txt
  *
  * Entorno:
  *   RESEND_API_KEY  (secret de Actions — la carga Lautaro; sin la key el step avisa y sale 0
@@ -15,6 +16,8 @@
  *   RESEND_FROM     (opcional; default onboarding@resend.dev, el sender de prueba de Resend)
  *   ALERTA_EMAIL    (opcional; default lautaroronchi97@gmail.com — decisión Duda #3, 22/07/2026)
  */
+
+import { readFileSync } from "node:fs";
 
 const KEY = process.env.RESEND_API_KEY;
 const FROM = process.env.RESEND_FROM || "onboarding@resend.dev";
@@ -28,6 +31,17 @@ function arg(name, def) {
 async function main() {
   const workflow = arg("workflow", "workflow");
   const run = arg("run", "");
+  // Opcional: texto plano (ej. el resumen de scripts/chequeo-anomalias.mjs --salida) para no
+  // obligar a Lautaro a abrir el log de Actions a leer qué anomalía disparó el rojo.
+  const detalleArchivo = arg("detalle-archivo");
+  let detalle = "";
+  if (detalleArchivo) {
+    try {
+      detalle = `\n${readFileSync(detalleArchivo, "utf8").slice(0, 4000)}\n`;
+    } catch {
+      // el archivo puede no existir si el script falló antes de escribirlo — no es fatal
+    }
+  }
   if (!KEY) {
     console.log("::warning::alerta-mail: falta el secret RESEND_API_KEY — no se mandó el aviso (cargalo en Settings → Secrets → Actions).");
     return;
@@ -40,7 +54,7 @@ async function main() {
       to: [TO],
       subject: `🔴 ${workflow} en ROJO`,
       text:
-        `El workflow "${workflow}" acaba de fallar.\n\n` +
+        `El workflow "${workflow}" acaba de fallar.\n${detalle}\n` +
         `Log del run: ${run}\n\n` +
         `Guía rápida: docs/auditoria/E5-infra.md (Anexo B) tiene el mapa de fallas conocidas por workflow.`,
     }),

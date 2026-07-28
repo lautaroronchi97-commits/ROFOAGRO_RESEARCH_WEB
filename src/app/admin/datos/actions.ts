@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/dal";
 import { createSupabaseServerClient } from "@/lib/auth/server";
 import { parseAgrochat, claveFila, type ParseOk } from "@/lib/compras/parse-agrochat";
+import { chequearIdentidad, type Anomalia } from "@/lib/anomalias";
+import { SERIES, IDENTIDADES } from "@/lib/anomalias-series";
 
 /**
  * Server actions del uploader de la serie de comercialización (/admin/datos).
@@ -157,6 +159,42 @@ async function guardUnidades(
   return { bloquear, mensaje };
 }
 
+/**
+ * Detector de anomalías del archivo (D7/L7, `docs/auditoria/E7-sintesis.md` §4): dos chequeos
+ * genéricos de `src/lib/anomalias.ts` que el guard de arriba no cubre — ese guard SOLO agarra el
+ * ÷1000 comparando contra la semana previa; esto agarra, fila por fila, sin necesitar historia:
+ *   · IDENTIDAD: precio hecho + fijado + saldo a fijar deben sumar el acumulado de esa fila (el
+ *     typo de BCR en pellets de girasol y el spike de 49,9 Mt eran justamente esto: una columna
+ *     que no cierra contra las demás);
+ *   · RANGO: el acumulado no puede superar el máximo físicamente posible de una campaña.
+ * Mismo patrón que `guardUnidades`: bloquea salvo "forzar", Lautaro está mirando la pantalla.
+ */
+function chequearAnomaliasArchivo(parsed: ParseOk): Anomalia[] {
+  const out: Anomalia[] = [];
+  for (const f of parsed.filas) {
+    if (f.precio_hecho_tn != null && f.fijado_tn != null && f.saldo_a_fijar_tn != null) {
+      const a = chequearIdentidad({
+        serie: `${f.grano_raw} · ${f.sector} · ${f.campana}`,
+        fecha: f.fecha,
+        total: f.toneladas,
+        partes: [f.precio_hecho_tn, f.fijado_tn, f.saldo_a_fijar_tn],
+        ...IDENTIDADES.compras,
+        unidad: "t",
+      });
+      if (a) out.push(a);
+    }
+    const { rango, unidad } = SERIES.compras_acumulado;
+    if (f.toneladas != null && rango?.max != null && f.toneladas > rango.max) {
+      out.push({
+        tipo: "rango", serie: `${f.grano_raw} · ${f.sector} · ${f.campana}`, fecha: f.fecha,
+        severidad: "alta", valor: f.toneladas, referencia: rango.max,
+        mensaje: `${f.grano_raw} ${f.sector} ${f.campana}: ${Math.round(f.toneladas).toLocaleString("es-AR")} ${unidad} supera el máximo físicamente posible de una campaña.`,
+      });
+    }
+  }
+  return out;
+}
+
 export async function procesarCarga(_state: DatosState, formData: FormData): Promise<DatosState> {
   await requireAdmin();
 
@@ -178,6 +216,7 @@ export async function procesarCarga(_state: DatosState, formData: FormData): Pro
   if (paso !== "confirm") {
     const existentes = await contarExistentes(parsed, desde, hasta);
     const guard = await guardUnidades(parsed, desde);
+    const anomalias = chequearAnomaliasArchivo(parsed);
     const granos = [...new Set(parsed.filas.map((f) => f.grano_raw))].sort();
     const campanas = [...new Set(parsed.filas.map((f) => f.campana))].sort();
     return {
@@ -205,6 +244,7 @@ export async function procesarCarga(_state: DatosState, formData: FormData): Pro
           ...parsed.advertencias,
           ...(existentes == null ? ["No pude consultar la base para contar claves existentes."] : []),
           ...(guard.mensaje ? [guard.bloquear ? `🚫 ${guard.mensaje} La carga quedará BLOQUEADA salvo que marques "forzar".` : guard.mensaje] : []),
+          ...(anomalias.length ? [`🚫 Detector de anomalías (D7): ${anomalias.length} fila(s) no cierran contra su propia identidad contable o superan un máximo físico. La carga quedará BLOQUEADA salvo que marques "forzar". Ejemplos → ${anomalias.slice(0, 3).map((a) => a.mensaje).join(" · ")}`] : []),
         ],
       },
     };
@@ -219,6 +259,12 @@ export async function procesarCarga(_state: DatosState, formData: FormData): Pro
     const guard = await guardUnidades(parsed, desde);
     if (guard.bloquear) {
       return { error: `${guard.mensaje} No se cargó nada. Si estás seguro de que el dato es correcto, marcá "forzar" y confirmá de nuevo.` };
+    }
+    const anomalias = chequearAnomaliasArchivo(parsed);
+    if (anomalias.length > 0) {
+      return {
+        error: `Detector de anomalías (D7): ${anomalias.length} fila(s) no cierran contra su propia identidad contable o superan un máximo físico. No se cargó nada. Ejemplos → ${anomalias.slice(0, 3).map((a) => a.mensaje).join(" · ")}. Si estás seguro de que el dato es correcto, marcá "forzar" y confirmá de nuevo.`,
+      };
     }
   }
 
