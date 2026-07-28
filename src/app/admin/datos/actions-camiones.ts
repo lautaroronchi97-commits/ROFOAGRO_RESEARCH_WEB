@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { createSupabaseServerClient } from "@/lib/auth/server";
 import { parseCamionesUpload } from "@/lib/camiones/williams";
 import { PRODUCTO_SERIE_CLAVES, PRODUCTO_SERIE_DISPLAY, type ProductoSerie } from "@/lib/camiones/config";
+import { SERIES } from "@/lib/anomalias-series";
 
 /**
  * Server actions del uploader de camiones en puerto (/admin/datos, pestaña Camiones). Mismo
@@ -87,6 +88,23 @@ export async function procesarCargaCamiones(_state: DatosCamionesState, formData
   const paso = String(formData.get("paso") ?? "preview");
 
   if (paso !== "confirm") {
+    // Rango físico (D7/L7): un máximo imposible en una sola fila delata un parseo/copiado erróneo
+    // antes de tocar la base. La identidad cruzada zona=producto=total (que sí necesita ver TODOS
+    // los productos del mismo día) queda para el barrido diario `chequeo-anomalias.mjs` — acá
+    // Lautaro sube un grano a la vez y no hay con qué compararla en el momento.
+    const max = SERIES.camiones_conteo.rango?.max;
+    const fueraDeRango = max != null ? parsed.filas.filter((f) => f.cantidad > max) : [];
+    const advertencias = [
+      ...parsed.advertencias,
+      ...(fueraDeRango.length
+        ? [
+            `Detector de anomalías (D7): ${fueraDeRango.length} fila(s) superan el máximo físico (${max!.toLocaleString("es-AR")} camiones/día) — revisá antes de confirmar. Ejemplos → ${fueraDeRango
+              .slice(0, 3)
+              .map((f) => `${f.fecha} ${f.clave}: ${f.cantidad.toLocaleString("es-AR")}`)
+              .join(" · ")}`,
+          ]
+        : []),
+    ];
     return {
       preview: {
         archivo: nombre,
@@ -97,7 +115,7 @@ export async function procesarCargaCamiones(_state: DatosCamionesState, formData
         zonasCubiertas: parsed.zonasCubiertas,
         desde,
         hasta,
-        advertencias: parsed.advertencias,
+        advertencias,
         muestra: parsed.filas.slice(0, 8).map((f) => ({ fecha: f.fecha, zona: f.clave, cantidad: f.cantidad })),
       },
     };

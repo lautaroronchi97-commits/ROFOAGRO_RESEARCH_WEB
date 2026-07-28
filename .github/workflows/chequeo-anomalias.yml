@@ -1,0 +1,51 @@
+name: Chequeo de anomalías en ingestas (D7/L7)
+
+# Complementa a healthcheck-frescura.mjs: aquel pregunta "¿la tabla se atrasó?", éste "¿lo que
+# entró en los últimos días es plausible contra la historia de su propia serie?" (mediana/MAD,
+# orden de magnitud, monotonía, identidades contables, duplicado exacto — src/lib/anomalias.ts,
+# docs/auditoria/E7-sintesis.md §4 D7). Corre DESPUÉS de todas las ingestas del día y AVISA por
+# mail si hay algo de severidad alta; no bloquea nada (bloquear por un falso positivo perdería el
+# dato del día y ninguno de estos crons reintenta solo).
+# Los `schedule` de GitHub Actions corren desde la rama default del repo.
+
+# El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "50 23 * * *" # 20:50 ART, justo después del healthcheck de frescura (20:45 ART)
+  workflow_dispatch:
+    inputs:
+      calibrar:
+        description: "Barrer TODO el histórico e imprimir alertas/mes (no falla el job, solo diagnóstico)."
+        type: boolean
+        default: false
+
+jobs:
+  chequeo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+      - name: Chequeo
+        id: chequeo
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.calibrar }}" = "true" ]; then
+            node scripts/chequeo-anomalias.mjs --calibrar
+          else
+            # 4 días (no 1-2): mismo margen que ingest-lineup para que un fin de semana + feriado
+            # no deje una ventana vacía y el chequeo se salte una carga real sin querer.
+            node scripts/chequeo-anomalias.mjs --dias 4 --salida /tmp/anomalias.txt
+          fi
+      - name: Avisar por mail si hay anomalías de severidad ALTA (E5 #7)
+        if: failure() && github.event.inputs.calibrar != 'true'
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/alerta-mail.mjs --workflow "${{ github.workflow }}" --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --detalle-archivo /tmp/anomalias.txt
