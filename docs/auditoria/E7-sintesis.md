@@ -403,15 +403,17 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   [`negocio/10_fuente_camiones_agroentregas.md`](../negocio/10_fuente_camiones_agroentregas.md);
   detalle: [`sesiones/2026-07-28-c24-camiones-agroentregas.md`](../sesiones/2026-07-28-c24-camiones-agroentregas.md).
 
-- [ ] **C25. Biblioteca + menú lateral (sidebar) (nuevo, 28/07)** — pedido explícito de Lautaro:
-  sacar la nav de la parte superior y pasar a un **menú desplegable fijo al costado izquierdo**,
-  con la web reorganizada como **biblioteca** (grupos desplegables → cada reporte con su ítem y su
-  **página propia**: `/granos/arbitrajes`, `/dolar/futuro`, etc., reusando los componentes tal
-  cual). Las 4 decisiones estructurales YA cerradas con él por AskUserQuestion (página propia por
-  reporte · se mantienen los 8 grupos/claves de permisos · header mínimo + cinta · solo-mesa
-  mezclados en su grupo con 🔒). **Plan y prompt autocontenido en
-  [`PLAN_SIDEBAR.md`](../PLAN_SIDEBAR.md)** (§5). Build con patrón claro → Sonnet; cargar la skill
-  `ui-ux-pro-max` antes de tocar UI (pedido explícito).
+- [x] **C25. Biblioteca + menú lateral (sidebar) — ✅ HECHO 28/07, PR #_.** Registro único
+  `src/lib/biblioteca.ts` (espejo de `SECCIONES_META`) + 15 páginas nuevas cáscara-fina
+  (`/granos/{arbitrajes,pases,caja,capacidad,monitor}`, `/dolar/{futuro,oficial,linked,implicitas,
+  sinteticos,cambiario}`, `/comercio/djve`, `/produccion/{calendario,estimaciones}`) + índices
+  (`/granos`, `/dolar`, `/produccion` a hub-grid; `/comercio` suma DJVE) + `src/components/sidebar.tsx`
+  (biblioteca real: varios grupos abiertos a la vez, no acordeón; fijo en desktop, drawer con foco
+  atrapado en mobile) + `SiteHeader` mínimo (perdió `NavLinks`, que murió). **Hallazgo real durante
+  la verificación**: meter la cinta en el layout compartido (como sugería el árbol del plan) rompía
+  la guarda "cero cambios de render" — arrastraba páginas de mesa 100% estáticas a revalidar cada
+  ~30-60s (medido con build real, comparado contra `main`); la cinta se dejó donde ya estaba (home).
+  Detalle: [`sesiones/2026-07-28-c25-biblioteca-sidebar.md`](../sesiones/2026-07-28-c25-biblioteca-sidebar.md).
 
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 

@@ -2,40 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getCalc } from "@/lib/calculadoras";
-
-// Etiquetas legibles por sección (primer segmento de la ruta).
-const LABELS: Record<string, string> = {
-  granos: "Granos",
-  dolar: "Dólar y tasas",
-  comercio: "Comercio exterior",
-  calculadoras: "Calculadoras",
-  graficos: "Gráficos",
-  produccion: "Producción",
-  noticias: "Noticias",
-};
-
-// Subpáginas de Comercio exterior (análisis de mesa).
-const COMERCIO_LABELS: Record<string, string> = {
-  puertos: "Puertos · Line-up",
-  empresas: "Empresas exportadoras",
-  senal: "Señal física → precio",
-  embarques: "Mesa de embarque",
-  temperatura: "Calor de mercadería",
-  negociado: "Negociado por producto",
-};
-
-function labelFor(segment: string, prev: string[]): string {
-  // Subpágina de calculadoras → nombre de la calculadora.
-  if (prev[prev.length - 1] === "calculadoras") return getCalc(segment)?.nombre ?? segment;
-  if (prev[prev.length - 1] === "comercio") return COMERCIO_LABELS[segment] ?? segment;
-  return LABELS[segment] ?? segment;
-}
+import { labelDeHref } from "@/lib/biblioteca";
 
 /**
  * Migas de pan (Inicio › Sección › Subpágina). Client component: usa
  * `usePathname()` (el layout no re-renderiza al navegar). No aparece en el
- * Inicio. El último tramo no es link (es la página actual).
+ * Inicio. El último tramo no es link (es la página actual). Las etiquetas salen
+ * del registro único de la biblioteca (`src/lib/biblioteca.ts`) — nada duplicado
+ * a mano acá (C25).
  */
 export function Breadcrumbs() {
   const pathname = usePathname();
@@ -44,11 +18,10 @@ export function Breadcrumbs() {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 0) return null;
 
-  const crumbs = segments.map((seg, i) => ({
-    label: labelFor(seg, segments.slice(0, i)),
-    href: "/" + segments.slice(0, i + 1).join("/"),
-    last: i === segments.length - 1,
-  }));
+  const crumbs = segments.map((seg, i) => {
+    const href = "/" + segments.slice(0, i + 1).join("/");
+    return { label: labelDeHref(href) ?? seg, href, last: i === segments.length - 1 };
+  });
 
   return (
     <nav className="crumbs" aria-label="Migas de pan">

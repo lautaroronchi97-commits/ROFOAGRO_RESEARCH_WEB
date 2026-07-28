@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DjvePanel } from "@/components/djve-panel";
 import { requireSeccion } from "@/lib/auth/dal";
 import { authConfigured } from "@/lib/auth/env";
 import { getPerfil } from "@/lib/auth/dal";
@@ -15,6 +14,7 @@ export const metadata: Metadata = {
 
 // Datos públicos (como la DJVE, decisión de Lautoro 22/07): visibles siempre, sin gate de admin.
 const PUBLICO = [
+  { href: "/comercio/djve", nombre: "DJVE", desc: "Declaraciones juradas de venta al exterior, por producto." },
   { href: "/comercio/camiones", nombre: "Camiones en puerto", desc: "Entrada diaria de camiones a puertos, fábricas y molinos, por zona y producto (Williams Entregas)." },
 ];
 
@@ -62,8 +62,6 @@ export default async function ComercioPage() {
               ))}
             </nav>
           )}
-
-          <DjvePanel />
         </div>
       </main>
     </>

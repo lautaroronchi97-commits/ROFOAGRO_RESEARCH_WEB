@@ -19,7 +19,45 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 28/07/2026 — 🔍 D7 = L7 detector de anomalías en ingestas HECHO)
+## Ahora (última actualización: 28/07/2026 — 🗂️ C25: biblioteca + menú lateral, HECHO)
+
+**🗂️ C25 — BIBLIOTECA + MENÚ LATERAL (SIDEBAR) — HECHO, ejecutando el prompt de
+`PLAN_SIDEBAR.md` §5 — rama `claude/c25-biblioteca-sidebar-hzrmsf`, PR #_.** La nav superior de 8
+links se fue; toda la navegación vive ahora en un **menú lateral fijo** (desktop) / **drawer**
+(mobile) — biblioteca real: varios grupos pueden estar abiertos a la vez (sin acordeón
+excluyente), el de la ruta activa siempre expandido, lo que el usuario abrió a mano persiste en
+`localStorage`. **Registro único `src/lib/biblioteca.ts`** (espejo 1:1 de `SECCIONES_META`, que
+no se tocó) alimenta la sidebar, los índices de grupo y los breadcrumbs — nada duplicado a mano.
+**15 páginas nuevas** (cáscaras finas: `requireSeccion` + `PageHead` + el componente existente
+tal cual, cero fórmula/dato tocado): `/granos/{arbitrajes,pases,caja,capacidad,monitor}` ·
+`/dolar/{futuro,oficial,linked,implicitas,sinteticos,cambiario}` · `/comercio/djve` ·
+`/produccion/{calendario,estimaciones}` (reemplaza las pestañas de `ProduccionTabs`, borrado).
+**4 índices a hub-grid** (`/granos`, `/dolar`, `/produccion` — antes componían todos los paneles;
+`/comercio` suma la tarjeta DJVE). `NavLinks` murió (sin más importadores, borrado);
+`SiteHeader` quedó mínimo (logo · hamburguesa mobile · rueda · tema · sesión).
+
+**Hallazgo real durante la verificación (no en el plan original)**: meter la cinta en el layout
+compartido — como sugería el árbol del plan ("arriba quedan solo logo, cinta…") — arrastraba
+**todas** las páginas a revalidar cada ~30-60s, incluidas las de mesa 100% estáticas hoy
+(`/comercio/puertos`, `/granos/view`), medido comparando un build real contra `main` línea por
+línea. Violaba la guarda dura "con el flag apagado, cero cambios de render, solo de navegación" →
+la cinta se dejó donde ya estaba (la home), la sidebar cubre la navegación que era el pedido real.
+De paso se encontró y arregló un bug real de breadcrumbs (Gráficos: "Período" pisaba la etiqueta
+"Gráficos" en el mapa href→label, por compartir pathname con "Campañas" sin query).
+
+**Verificado**: lint/tsc/vitest (224/224, sin libs tocadas) ✅ · build (60 rutas, todas 200) ✅ ·
+**revalidate comparado contra `main` build a build** — toda ruta preexistente sin recomponer
+mantiene idéntico revalidate/expire; las únicas diferencias son las esperadas de partir páginas
+compuestas en índice+detalle (menos regeneración, no más) · Playwright real (datos de Supabase del
+entorno, claro/oscuro con el toggle real —`next-themes` acá no sigue `prefers-color-scheme`—,
+desktop 1280 + mobile 390): 24 rutas públicas 200 con datos reales, sidebar (expandir/colapsar con
+persistencia, activo, drawer con foco atrapado), breadcrumbs, cero scroll horizontal, cero
+errores de consola nuevos · bypass temporal (`esAdmin=true` a mano, revertido) confirmó los 6
+ítems 🔒 de Comercio + View de mesa + el grupo Admin completo, y que `/granos/view` sigue
+redirigiendo sin sesión (la protección real no cambió, solo qué se lista). Detalle:
+[`sesiones/2026-07-28-c25-biblioteca-sidebar.md`](sesiones/2026-07-28-c25-biblioteca-sidebar.md).
+
+## Anterior (28/07/2026 — 🔍 D7 = L7 detector de anomalías en ingestas HECHO)
 
 **🔍 D7 = L7 — DETECTOR DE ANOMALÍAS EN INGESTAS — HECHO — rama `claude/d7-development-t7alj4`,
 PR #_.** Único ítem del backlog maestro sin dependencias que quedaba pendiente
