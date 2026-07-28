@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-import { DolarFuturoPanel } from "@/components/dolar-futuro-panel";
-import { DolarLinkedPanel } from "@/components/dolar-linked-panel";
-import { ImplicitasPanel } from "@/components/implicitas-panel";
-import { SinteticosPanel } from "@/components/sinteticos-panel";
-import { PanelCambiario } from "@/components/panel-cambiario";
-import { DolarOficialPanel } from "@/components/dolar-oficial-panel";
+import Link from "next/link";
+import { BIBLIOTECA } from "@/lib/biblioteca";
 import { requireSeccion } from "@/lib/auth/dal";
 import { PageHead } from "@/components/page-head";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Dólar y tasas · ROFO AGRO",
@@ -16,21 +12,24 @@ export const metadata: Metadata = {
     "Dólar futuro, dólar linked, tasas implícitas, sintéticos y el panel cambiario del día.",
 };
 
+const ITEMS = BIBLIOTECA.find((g) => g.key === "dolar")!.items;
+
 export default async function DolarPage() {
   await requireSeccion("dolar");
   return (
-    <>
-      <main className="wrap">
-        <div className="col">
-          <PageHead kicker="MAE · MEP · futuros · LECAPs" title="Dólar y tasas" lede="Dólar futuro y linked, tasas implícitas, sintéticos y el panel cambiario." />
-          <DolarFuturoPanel />
-          <DolarOficialPanel />
-          <DolarLinkedPanel />
-          <ImplicitasPanel />
-          <SinteticosPanel />
-          <PanelCambiario />
-        </div>
-      </main>
-    </>
+    <main className="wrap">
+      <div className="col">
+        <PageHead kicker="MAE · MEP · futuros · LECAPs" title="Dólar y tasas" lede="Dólar futuro y linked, tasas implícitas, sintéticos y el panel cambiario." />
+        <nav className="hub-grid" aria-label="Reportes de dólar y tasas">
+          {ITEMS.map((it) => (
+            <Link key={it.href} href={it.href} className="hub-card">
+              <span className="hub-card-name">{it.label}</span>
+              <span className="hub-card-desc">{it.desc}</span>
+              <span className="hub-card-go" aria-hidden="true">→</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </main>
   );
 }

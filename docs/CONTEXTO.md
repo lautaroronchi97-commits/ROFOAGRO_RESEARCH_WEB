@@ -57,7 +57,8 @@ editorial bajo el masthead. Oro `#EFBF2E` SOLO como acento (hairlines, filos, gl
 avaricia. Bordes hairline translúcidos, sombras multicapa, `::selection` dorada, scrollbars finas,
 contraste AA verificado. **Motion medio (28/07/2026)**, todo gated en `prefers-reduced-motion`: cinta con
 marquee continuo (pausa en hover/foco), entrada en cascada fade+rise de paneles/tarjetas, transición de
-color suave al cambiar de tema. Masthead con filo dorado + nav animada, cinta con fades, tablas con
+color suave al cambiar de tema. Masthead con filo dorado (mínimo desde C25 28/07: logo · rueda ·
+tema · sesión — la nav se mudó a la **sidebar** lateral, ver más abajo), cinta con fades, tablas con
 hover/tick dorado, charts con grilla punteada + área en degradé, footer colofón.
 
 ## Fuentes de datos (Fase 0, validadas con requests reales) — todo REST

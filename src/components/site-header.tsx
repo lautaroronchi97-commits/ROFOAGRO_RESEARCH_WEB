@@ -2,20 +2,19 @@ import Link from "next/link";
 import { RuedaClock } from "./rueda-clock";
 import { RuedaStatus } from "./rueda-status";
 import { ThemeToggle } from "./theme-toggle";
-import { NavLinks } from "./nav-links";
+import { SidebarToggle } from "./sidebar-toggle";
 import { AuthMenuLazy } from "./auth-menu-lazy";
 import { AUTH_ENFORCED } from "@/lib/auth/config";
 
 /**
- * Masthead del sitio. `visibles`/`esAdmin` (Etapa 2) solo llegan cuando el login
- * está prendido: el layout los calcula y la nav filtra las secciones permitidas +
- * muestra el link a Admin. Con el flag apagado llegan undefined → nav completa (la
- * web queda igual que hoy, sin render dinámico).
+ * Masthead mínimo del sitio (C25 — la nav se mudó a la sidebar): logo, hamburguesa
+ * (solo mobile, abre el drawer de la sidebar), estado de rueda, tema y menú de sesión.
  */
-export function SiteHeader({ visibles, esAdmin }: { visibles?: string[]; esAdmin?: boolean }) {
+export function SiteHeader() {
   return (
     <header className="masthead">
       <div className="masthead-in">
+        <SidebarToggle />
         <Link href="/" className="brand" aria-label="ROFO AGRO — Inicio">
           {/* Isotipo real (3 símbolos: trigo, trigo y gota de soja). El wordmark va como
               texto para que siga el color del tema (claro/oscuro). eslint-disable: es un
@@ -28,8 +27,6 @@ export function SiteHeader({ visibles, esAdmin }: { visibles?: string[]; esAdmin
           </span>
           <span className="brand-sub">Pizarra electrónica · granos</span>
         </Link>
-
-        <NavLinks visibles={visibles} esAdmin={esAdmin} />
 
         <div className="head-tools">
           <span className="rueda">

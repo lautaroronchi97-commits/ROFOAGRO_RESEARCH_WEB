@@ -163,18 +163,14 @@ button { font:inherit; color:inherit; background:none; border:none; }
   color:var(--ink-3); font-weight:600; padding-left:10px; border-left:1px solid var(--line-2); }
 @media (max-width:560px){ .brand-sub { display:none; } }
 
-.nav { display:flex; align-items:center; gap:2px; margin-left:6px;
-  overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
-.nav::-webkit-scrollbar { display:none; }
-.nav a { font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.07em;
-  color:var(--ink-2); font-weight:600; white-space:nowrap; padding:6px 10px; border-radius:5px; position:relative; }
-.nav a::after { content:""; position:absolute; left:50%; right:50%; bottom:1px; height:1.5px;
-  background:var(--gold); border-radius:2px; opacity:0; }
-.nav a:hover { color:var(--ink); }
-.nav a:hover::after { left:10px; right:10px; opacity:.85; }
-.nav a[aria-current="page"] { color:var(--brand-deep); }
-.nav a[aria-current="page"]::after { left:10px; right:10px; opacity:1; }
-.nav a[aria-disabled="true"] { opacity:.45; pointer-events:none; }
+/* Botón hamburguesa del masthead (C25): abre el drawer de la sidebar en mobile.
+   Oculto en desktop, donde la sidebar ya está fija — ver breakpoint del bloque Sidebar. */
+.sidebar-toggle { display:none; align-items:center; justify-content:center;
+  width:34px; height:34px; border:1px solid var(--edge); border-radius:var(--r-ctl);
+  background:color-mix(in srgb, var(--panel) 80%, transparent); color:var(--ink-2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+.sidebar-toggle:hover { color:var(--ink); border-color:var(--gold-hair); }
+.sidebar-toggle svg { width:18px; height:18px; }
 
 .head-tools { display:flex; align-items:center; gap:10px; margin-left:auto; flex-wrap:wrap; justify-content:flex-end; }
 /* E3 H2: en mobile el cluster del header (475px) desbordaba el body ~95px en TODAS las páginas.
@@ -197,6 +193,78 @@ button { font:inherit; color:inherit; background:none; border:none; }
 .toggle .ic { width:13px; height:13px; border-radius:50%;
   background:conic-gradient(var(--gold) 0 50%, color-mix(in srgb, var(--brand-deep) 70%, var(--ink-3)) 50% 100%);
   box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ink-3) 45%, transparent); }
+
+/* ============================================================
+   Sidebar — biblioteca (C25): menú lateral fijo (desktop) / drawer (mobile).
+   Reemplaza la nav superior — toda la navegación vive acá. `.site-shell` es el grid de
+   dos columnas del layout compartido; `.site-shell .wrap` neutraliza el max-width/padding
+   propio de `.wrap` (que sigue intacto para /not-found y otras páginas fuera del shell).
+   ============================================================ */
+.site-shell { max-width:1360px; margin:0 auto; padding:0 clamp(10px,2.4vw,26px);
+  display:grid; grid-template-columns:236px minmax(0,1fr); gap:26px; align-items:start; }
+.site-shell .wrap { max-width:none; margin:0; padding:16px 0 44px; }
+.site-main { min-width:0; }
+
+.sidebar { position:sticky; top:64px; max-height:calc(100vh - 76px); overflow-y:auto;
+  padding:18px 2px 24px 0; }
+.sidebar-nav { display:flex; flex-direction:column; gap:2px; }
+.sb-close { display:none; position:absolute; top:18px; right:12px; width:30px; height:30px;
+  align-items:center; justify-content:center; font-size:22px; line-height:1; color:var(--ink-3);
+  border-radius:var(--r-ctl); }
+.sb-close:hover { color:var(--ink); background:var(--panel-2); }
+.sb-inicio { font-size:var(--fs-sm); font-weight:700; color:var(--ink-2); padding:7px 10px;
+  border-radius:var(--r-ctl); margin-bottom:8px; }
+.sb-inicio:hover { color:var(--ink); background:var(--panel-2); }
+.sb-inicio[aria-current="page"] { color:var(--brand-deep); background:var(--panel-2); }
+
+.sb-grupo { border-top:1px solid var(--line); padding-top:2px; }
+.sb-grupo:first-of-type { border-top:none; }
+.sb-grupo-hd { display:flex; align-items:stretch; gap:2px; }
+.sb-grupo-link { flex:1 1 auto; min-width:0; font-size:var(--fs-xs); font-weight:800;
+  text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2); padding:10px 4px 10px 10px;
+  display:flex; align-items:center; gap:6px; }
+.sb-grupo-link:hover { color:var(--ink); }
+.sb-grupo-link[aria-current="page"] { color:var(--brand-deep); }
+.sb-grupo-toggle { flex:0 0 auto; width:30px; display:flex; align-items:center; justify-content:center;
+  color:var(--ink-3); border-radius:var(--r-ctl); }
+.sb-grupo-toggle:hover { color:var(--ink); background:var(--panel-2); }
+.sb-grupo-toggle svg { width:11px; height:11px; }
+.sb-grupo-toggle[aria-expanded="true"] svg { transform:rotate(180deg); }
+
+.sb-items { list-style:none; margin:1px 0 6px; padding:0 0 0 10px;
+  border-left:1px solid var(--line); }
+.sb-items li + li { margin-top:1px; }
+.sb-items a { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--ink-2);
+  padding:6px 8px 6px 10px; border-radius:var(--r-ctl); line-height:1.3; }
+.sb-items a:hover { color:var(--ink); background:var(--panel-2); }
+.sb-items a[aria-current="page"] { color:var(--brand-deep); font-weight:700; background:var(--panel-2); }
+.sb-lock { font-size:10px; opacity:.75; }
+
+.sb-grupo-admin { margin-top:8px; }
+.sb-grupo-admin .sb-grupo-link { color:var(--gold-text); }
+
+.sidebar-backdrop { display:none; }
+
+/* ≤880px: la sidebar deja de ser fija y pasa a drawer (hamburguesa en el masthead). */
+@media (max-width:880px){
+  .site-shell { grid-template-columns:1fr; gap:0; }
+  .sidebar-toggle { display:inline-flex; }
+  .sidebar { position:fixed; top:0; left:0; bottom:0; z-index:60; width:min(84vw, 320px);
+    max-height:none; margin:0; background:var(--panel); border-right:1px solid var(--edge);
+    box-shadow:var(--shadow); padding:70px 4px 24px 12px;
+    transform:translateX(-100%); visibility:hidden; }
+  .sidebar[data-open="true"] { transform:translateX(0); visibility:visible; }
+  .sb-close { display:flex; }
+  .sidebar-backdrop { display:block; position:fixed; inset:0; z-index:55;
+    background:rgba(6,10,7,.55); }
+}
+@media (prefers-reduced-motion: no-preference){
+  @media (max-width:880px){
+    .sidebar { transition:transform var(--t-med) ease, visibility 0s linear var(--t-med); }
+    .sidebar[data-open="true"] { transition:transform var(--t-med) ease, visibility 0s linear 0s; }
+  }
+  .sb-grupo-toggle svg { transition:transform var(--t-fast) ease; }
+}
 
 /* ============================================================
    Cinta / pizarra — banda de cotizaciones
@@ -595,7 +663,9 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   border:1px solid var(--edge); border-radius:var(--r-panel); background:var(--panel); box-shadow:var(--shadow);
   transition:border-color var(--t-fast) ease, transform var(--t-fast) ease; }
 .hub-card:hover { border-color:color-mix(in srgb, var(--gold) 55%, var(--edge)); transform:translateY(-1px); }
-.hub-card-name { font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--ink); letter-spacing:-.005em; }
+.hub-card-name { font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--ink); letter-spacing:-.005em;
+  display:flex; align-items:center; gap:7px; }
+.hub-card-lock { font-size:13px; font-family:var(--font-ui); opacity:.75; }
 .hub-card-desc { font-size:var(--fs-sm); color:var(--ink-2); line-height:1.4; padding-right:14px; }
 .hub-card-go { position:absolute; top:14px; right:15px; color:var(--gold-text); font-weight:700; opacity:.5;
   transition:opacity var(--t-fast) ease, transform var(--t-fast) ease; }
@@ -666,8 +736,9 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .calor-card-meta dd { margin:0; font-family:var(--font-mono, ui-monospace, monospace); font-size:var(--fs-2xs);
   color:var(--ink-2); font-variant-numeric:tabular-nums; }
 
-/* Migas de pan (Inicio › Sección › Subpágina) */
-.crumbs { max-width:1360px; margin:0 auto; padding:12px clamp(10px,2.4vw,26px) 0;
+/* Migas de pan (Inicio › Sección › Subpágina). Vive dentro de `.site-main` (C25): el
+   max-width/padding horizontal ya los da `.site-shell`, acá solo el espaciado vertical. */
+.crumbs { padding:12px 0 0;
   display:flex; flex-wrap:wrap; align-items:center; gap:6px;
   font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); }
 .crumbs a { color:var(--ink-3); }
@@ -947,15 +1018,9 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   color:var(--pos); background:var(--pos-weak); padding:0 4px; border-radius:3px; }
 
 /* --- página /produccion --- */
-/* (la intro migró a las clases compartidas .page-hd; prod-intro/h1/lede quedaron sin uso) */
-/* Pestañas Calendario / Estimaciones (E3 H8): control segmentado. */
-.prod-tabs { display:flex; gap:4px; margin:16px 0 4px; padding:3px; background:var(--panel-2, var(--panel));
-  border:1px solid var(--line); border-radius:var(--r-ctl); width:fit-content; }
-.prod-tab { font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:700; color:var(--ink-2);
-  padding:7px 18px; border:0; background:transparent; border-radius:calc(var(--r-ctl) - 3px); cursor:pointer;
-  transition:color var(--t-fast), background var(--t-fast); }
-.prod-tab:hover { color:var(--ink); }
-.prod-tab.on { color:var(--brand-agro); background:var(--panel); box-shadow:var(--sh-1, 0 1px 2px rgba(0,0,0,.08)); }
+/* (la intro migró a las clases compartidas .page-hd; prod-intro/h1/lede quedaron sin uso;
+   las pestañas Calendario/Estimaciones de E3 H8 se retiraron en C25 — cada una es su
+   propia página ahora: /produccion/calendario y /produccion/estimaciones) */
 
 .cal-full-wrap { padding:12px 16px 16px; }
 .cal-filters { display:flex; flex-wrap:wrap; gap:6px; padding:0 0 12px; }
