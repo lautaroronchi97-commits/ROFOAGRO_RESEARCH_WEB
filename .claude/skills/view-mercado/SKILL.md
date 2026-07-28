@@ -1,21 +1,65 @@
 ---
 name: view-mercado
 description: >-
-  Procedimiento del research direccional semanal de ROFO AGRO (MP3 de
-  docs/PLAN_INFORMES.md): producir el VIEW por grano (soja, maíz, trigo) —
-  dirección ALCISTA/BAJISTA/NEUTRAL + confianza + argumentos con números exactos
-  + qué invalidaría la tesis — usando SOLO datos que la web ya computa, y
-  guardarlo en la tabla views_mercado para que Lautaro lo lea en /granos/view.
-  Usar cuando se pida "generá el view de mercado semanal" o la Routine semanal
-  lo dispare. INTERNO MESA: no se publica a clientes.
+  Procedimiento del research direccional semanal de ROFO AGRO (V1 de
+  docs/PLAN_INFORMES_V2.md, sucesor de MP3 en docs/PLAN_INFORMES.md): pipeline
+  F0-F6 con fan-out de subagentes de solo lectura que produce el VIEW por grano
+  (soja, maíz, trigo) — dirección ALCISTA/BAJISTA/NEUTRAL + confianza +
+  argumentos con números exactos + invalidadores estructurados + relación con
+  la tesis anterior ("la bola de nieve") — y lo guarda en `views_mercado` para
+  que Lautaro lo lea y califique en /granos/view. Usar cuando se pida "generá
+  el view de mercado semanal" o la Routine semanal lo dispare. INTERNO MESA: no
+  se publica a clientes.
+# El view es la pieza de más juicio de las 4 (MP1-4): reconciliar contra la
+# tesis previa, pesar research externo con pasaporte, y redactar con la voz de
+# Lautaro. Esto pisa el modelo de la sesión (y el del selector de la Routine)
+# solo para este turno — decisión de Lautoro, §10.5 de PLAN_INFORMES_V2.md
+# (evaluar subir a Fable cuando el research confirme que rinde igual acá).
+model: claude-opus-5
+effort: high
 ---
 
-# View de mercado por grano — procedimiento semanal
+# View de mercado por grano — pipeline semanal F0→F6
 
 Sos el analista de research de la mesa de ROFO AGRO. Una vez por semana producís el
 view direccional de **soja, maíz y trigo** como lo haría un research de ALyC:
-tesis con datos, factores en contra, y qué te haría cambiar de opinión. Lo lee
-Lautaro (trader de la mesa) — tono de par a par, cero divulgación básica.
+tesis con datos, factores en contra, y qué te haría cambiar de opinión — pero a
+diferencia de v1, esta corrida **reconcilia contra la tesis de la semana anterior**
+(la bola de nieve) en vez de escribir cada vez desde cero. Lo lee Lautaro (trader de
+la mesa) — tono de par a par, cero divulgación básica.
+
+## Pipeline (una pasada por grano, los 3 en la misma sesión)
+
+```
+F0  Chequeo mecánico de invalidadores      (dato vs umbral, sin LLM opinando)
+F1  Fan-out de recolección (4 agentes paralelos, solo lectura, presupuesto fijo)
+F2  View provisorio A CIEGAS               (datos propios + hallazgos F1 verificados;
+                                            SIN ver la tesis previa todavía)
+F3  Reconciliación                         (recién acá: tesis previa + F0 + scorecard
+                                            → CONFIRMA / AJUSTA / SWITCH / CUMPLIDA)
+F4  Abogado del diablo                     (agente rojo ataca la tesis final)
+F5  Verificación de pasaportes             (mecánica: URL responde + cita presente)
+F6  Salida con template fijo + guardado + scorecard
+```
+
+Reglas que atraviesan todo el pipeline (no se negocian):
+- **Dos anillos de datos.** Anillo 1 = todo número citado sale del JSON de
+  `/api/views/insumos` (**ni un número inventado**, igual que siempre). Anillo 2 =
+  research externo, entra SOLO con pasaporte (`url` + `fecha_pub` + `cita` textual)
+  verificado en F5; un dato del anillo 2 **nunca pisa** uno del anillo 1.
+  Devolver vacío es una respuesta válida en cualquier fase de research.
+- **Blind-first.** F2 escribe el view provisorio sin haber leído la tesis previa
+  todavía — es la única mitigación de anclaje con respaldo empírico; instruir
+  "no te ancles" no alcanza si el dato ya está en el contexto.
+- **Fan-out solo para recolectar.** Los 4 agentes de F1 devuelven hallazgos
+  estructurados; la síntesis y la decisión las hacés VOS, de un solo hilo. Nada de
+  "debate hasta consenso".
+- **Salida de tamaño fijo.** El template de F6 no crece con el research — lo que no
+  entra, se cae (criterio: qué quedó afuera, no "agrandar la sección").
+- **Investigá con cabeza de mercado, no con formulario.** Las preguntas de F2 son
+  ejemplos para orientar la lectura, no una checklist cerrada — si el precio se
+  mueve por algo que las preguntas no listan, ESO es lo que hay que detectar y
+  explicar.
 
 ## Requisitos (env vars del entorno)
 
@@ -23,39 +67,40 @@ Lautaro (trader de la mesa) — tono de par a par, cero divulgación básica.
 |---|---|
 | `INFORME_BASE_URL` | Base de la web (producción; `http://localhost:3000` en pruebas locales) |
 | `INFORME_TOKEN` | Token del endpoint de insumos |
-| `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` | Guardar el view y leer feedback (PostgREST) |
+| `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` | Guardar el view y leer historial/feedback (PostgREST) |
 
 Si falta alguna, frená y avisá el faltante en el resumen — no inventes datos ni
 escribas a la base por otra vía.
 
-## Paso 0 — Calibración (SIEMPRE antes de escribir)
+## F0 — Invalidadores primero (mecánico, sin opinar)
 
-1. Leé la skill `voz-lautaro` (SKILL.md + `references/ejemplos.md`). El registro
-   es **informe largo**: voseo, humildad ("a mi óptica", "esto es simplemente mi
-   visión"), datos exactos, emojis casi nulos.
-2. Leé `references/aprendizajes.md` de ESTA skill (reglas destiladas del feedback).
-3. Leé el feedback crudo de los views anteriores (últimas ~8 semanas):
+Para CADA grano, traé el view vigente (más reciente, si existe):
 
-   ```
-   GET {SUPABASE_URL}/rest/v1/views_mercado?select=grano,fecha,direccion,confianza,feedback_lautaro&order=fecha.desc&limit=24
-   headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}
-   ```
+```
+GET {SUPABASE_URL}/rest/v1/views_mercado?grano=eq.{grano}&select=*&order=fecha.desc&limit=1
+headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}
+```
 
-   Si un feedback contradice un hábito tuyo, el feedback manda. Si detectás un
-   aprendizaje nuevo que `aprendizajes.md` no tiene, anotalo en tu resumen final
-   para que una sesión de mantenimiento lo incorpore (vos NO pushees).
+Si `invalidadores` (jsonb array `[{condicion, umbral, dato_ref, disparado_en}]`) no está
+vacío, chequeá cada uno CONTRA LOS INSUMOS DE HOY (Paso F1 de insumos, ver abajo):
+tomá el valor de `dato_ref` (ej. `"chicago.trigo.usd_tn"` = navegá el JSON de insumos
+por esa ruta) y compará contra `umbral` con la comparación que `condicion` describe.
+Si dispara, marcalo (para vos, F3 lo usa) — **NO** edites el array `invalidadores` acá
+(son inmutables hasta que F6 escriba una tesis nueva o Lautaro los cambie a mano; la
+skill tiene prohibido "mover los arcos"). Si no hay view vigente, F0 no tiene nada que
+chequear — vas directo a F1 con una tesis "inicial".
 
-## Paso 1 — Insumos (todos de la web/base; citá el número exacto y su origen)
+## F1 — Fan-out de recolección (4 agentes paralelos, solo lectura)
 
-Un solo request junta lo que la web ya computa (cero lógica duplicada):
+Primero, el único request que junta lo que la web ya computa (cero lógica duplicada):
 
 ```
 GET {INFORME_BASE_URL}/api/views/insumos
     Authorization: Bearer {INFORME_TOKEN}
 ```
 
-> E5 (22/07/2026): el token va por HEADER, ya no por `?token=` (los query strings quedan en los
-> request logs de Vercel). Un fetch con `?token=` devuelve 401.
+> E5 (22/07/2026): el token va por HEADER, ya no por `?token=`. Un fetch con `?token=`
+> devuelve 401.
 
 | Campo del JSON | Qué es | Página que lo origina (para citar/cotejar) |
 |---|---|---|
@@ -64,90 +109,206 @@ GET {INFORME_BASE_URL}/api/views/insumos
 | `empresas` | Gap de cobertura DJVE↔line-up por producto y exportador, avance de campaña, ritmo | `/comercio/empresas` |
 | `embarques` | Programa declarado por mes × producto (disponible/forward) + cumplimiento | `/comercio/embarques` |
 | `negociado` | Venta semanal por producto/campaña, Δ, % sobre cosecha, % priceado, saldo a fijar | `/comercio/negociado` |
+| `senalCamiones` | **Nuevo (fix auditoría, C5)**: diferencial de percentiles estacionales barcos-vs-camiones por producto y zona — responde "¿quién pone el precio?" (exportación apretando vs productor reteniendo) sin salir a buscarlo afuera | `/comercio/camiones` |
 | `estimaciones` | Última estimación por organismo/país/grano + Δ vs anterior + cambios del último informe | `/produccion` |
 | `curva` / `pases` / `arbitrajes` | Curva A3 por posición, spreads consecutivos con TNA, futuro vs pizarra (carry) | `/granos` |
 | `capacidad` + `pizarra` | FAS teórico vs pizarra CAC (capacidad de pago del exportador) | `/granos` |
-| `chicago` | Los 5 de Chicago en USD/tn + Δ del día | `/granos` (monitor) |
+| `chicago` | Los 5 de Chicago en USD/tn + Δ del día (soja/aceite/harina de soja YA acá — mirar acá antes de salir a buscar afuera) | `/granos` (monitor) |
 | `dolarFuturo` | DLR con TNA (contexto macro/cambiario) | `/dolar` |
 | `noticias` | Titulares de la semana por categoría | `/noticias` |
 | `agenda` | Informes de organismos de los próximos 14 días | `/produccion` |
 
-- Cada bloque trae su `meta.status`; si vino `parcial`/vacío, ese insumo se
-  **omite del análisis y se dice** ("esta semana sin dato de X") — nunca se
-  rellena de memoria.
-- Si la URL de producción no responde (por ej. la ruta todavía no está
-  deployada), levantá la web local (`NODE_USE_ENV_PROXY=1 npm run build && npm run start`)
-  y usá `http://localhost:3000`.
-- **Spreads nunca aislados** (regla de la mesa): si un pase llama la atención,
-  ponelo contra su historia con `/api/series?ids=...` (los ids del catálogo en
-  `/api/series/catalogo`) y el percentil = % de la muestra histórica ≤ valor de
-  hoy (fórmula `percentil()` de `src/lib/derivadas.ts`). Citá el percentil, no
-  solo el nivel.
+Cada bloque trae su `meta.status`; si vino `parcial`/vacío, ese insumo se **omite del
+análisis y se dice** ("esta semana sin dato de X") — nunca se rellena de memoria. Si la
+URL de producción no responde, levantá la web local
+(`NODE_USE_ENV_PROXY=1 npm run build && npm run start`) y usá `http://localhost:3000`.
 
-## Paso 2 — Análisis por grano (soja, maíz, trigo)
+**Spreads nunca aislados** (regla de la mesa): si un pase llama la atención, ponelo
+contra su historia con `/api/series?ids=...` (ids del catálogo en
+`/api/series/catalogo`) y el percentil = % de la muestra histórica ≤ valor de hoy
+(`percentil()` de `src/lib/derivadas.ts`). Citá el percentil, no solo el nivel.
 
-Checklist de lectura, en este orden (cómo piensa la mesa — `docs/negocio/01` y `02`):
+Con los insumos ya en mano, lanzá **4 subagentes en paralelo** (tool Agent/Task,
+confirmado disponible en Routines headless el 28/07/2026), cada uno con presupuesto
+fijo (~10-15 tool calls) y esta salida JSON por hallazgo:
+`{tema, dato, fuente_url, fecha_pub, cita_textual, relevancia_por_grano}`. Mejor 3
+hallazgos con pasaporte firme que 10 flojos — devolver vacío es válido.
 
-1. **Demanda física**: índice MESA + sus patas (¿la exportación está corta o
-   cubierta? ¿el line-up viene denso o parado vs lo normal estacional?). Soja:
-   el índice ya está en **equivalente poroto** (poroto + crush unificados).
-2. **Oferta**: farmer selling (pctl del avance vs 5 años) — retención = menos
-   presión vendedora; % priceado y saldo a fijar del negociado.
-3. **Fundamentals**: ¿qué revisó cada organismo en su último informe y cuánto?
-4. **Precio**: curva A3 (carry/invertida), TNA de pases y arbitraje vs pizarra,
-   Chicago (dirección y nivel), FAS vs pizarra (¿la exportación tiene margen
-   para pagar más?).
-5. **Contexto**: noticias de la semana (retenciones/clima/macro) + agenda (¿qué
-   informe puede mover el precio dentro del horizonte?).
+1. **Chicago/fondos**: posicionamiento de fondos en CBOT maíz/soja/trigo — CFTC COT
+   desagregado, API Socrata `publicreporting.cftc.gov/resource/72hh-3qpy.json`
+   (managed money neto + Δ semanal + percentil histórico, JSON filtrable sin key) o
+   `cftc.gov/dea/newcot/f_disagg.txt` de respaldo; USDA Crop Progress si estamos en
+   temporada (ESMIS `usda.library.cornell.edu/api/v1/...CropProg?latest=true`); USDA
+   FAS Export Sales si `USDA_FAS_API_KEY` está seteada (`api.fas.usda.gov/api/esr/...`,
+   sin la key da 403 — degradar honesto, no es bloqueante); wire de la semana
+   (Google News RSS / World-Grain / Pro Farmer).
+2. **Sudamérica/clima**: Brasil (Canal Rural RSS, complementa CONAB propio — los
+   números de producción SIEMPRE de `estimaciones`, esto es solo color/día a día),
+   clima Argentina (SMN JSON) y EEUU (NOAA CPC / Drought Monitor), bajante del Paraná
+   si aplica esta semana.
+3. **Macro AR**: retenciones/política/dólar — Google News RSS + lo que ya está en casa
+   (`dolarFuturo`, noticias).
+4. **Expectativas**: `agenda` propia (próximos 14 días) + qué espera el mercado de cada
+   informe si estamos en semana de publicación (DTN pre-report — re-verificar con un
+   artículo completo si la tabla de expectativas queda visible sin login; si el gate la
+   tapa, usar Pro Farmer como primario y anotarlo en el resumen).
 
-Reglas duras de la mesa:
-- **El mercado manda sobre el view** — el view orienta estrategia, no anula la
-  regla de oro operativa; no recomiendes "no comprar" contra precio de mercado.
-- **Coherencia con el semáforo MESA**: la acción sugerida usa el idioma de
-  `/comercio/temperatura` (DIFERIR / VENDER YA / COMPRAR BARATO). Si tu view
-  contradice el semáforo, decilo explícito y explicá por qué.
-- **NI UN NÚMERO INVENTADO**: cada argumento cita su dato con valor exacto del
-  JSON y de qué página sale. Sin dato → cualitativo u omitido.
+## F2 — View provisorio A CIEGAS (todavía sin leer la tesis previa)
 
-## Paso 3 — Estructura de salida (POR GRANO)
+Con insumos propios + hallazgos F1 verificados, armá el view provisorio por grano
+siguiendo el checklist de siempre (cómo piensa la mesa — `docs/negocio/01` y `02`):
 
-- **direccion**: `alcista` | `bajista` | `neutral` (del precio LOCAL del grano,
-  horizonte definido abajo).
-- **confianza**: 1-5 (5 = señales alineadas; 2 = tesis con contras fuertes; 1 no
-  se usa salvo caos total).
+1. **Demanda física**: índice MESA + sus patas (exportación corta o cubierta? line-up
+   denso o parado vs lo normal estacional?). Soja: índice en **equivalente poroto**.
+2. **Oferta**: farmer selling (pctl del avance vs 5 años) — retención = menos presión
+   vendedora; % priceado y saldo a fijar del negociado.
+3. **Fundamentals**: qué revisó cada organismo en su último informe y cuánto.
+4. **Precio**: curva A3 (carry/invertida), TNA de pases y arbitraje vs pizarra, Chicago
+   (dirección y nivel), FAS vs pizarra.
+5. **Contexto**: noticias de la semana + agenda.
+
+**Preguntas de la mesa (ejemplos, cabeza de mercado y mente abierta — no es una lista
+cerrada; si el mercado se mueve por algo que no está acá, eso es justo lo que hay que
+detectar):**
+- **¿Por qué se mueve el precio HOY, de verdad?** Separá el driver coyuntural
+  (logística de corto: barcos cargando, lluvia que no deja cosechar) del estructural —
+  ¿qué pasa cuando el driver de corto se agota?
+- **¿El nivel de precios tiene sentido con el balance?** Cosecha récord con precios
+  firmes es una pregunta, no un dato — ¿quién está pagando y por qué?
+- **¿Quién pone el precio?** Usá `senalCamiones` (el diferencial barcos-vs-camiones):
+  productor reteniendo (farmer selling bajo) vs exportación apretando (línea de barcos
+  firme, gap de cobertura). Es un dato propio — no salgas a buscarlo afuera.
+- **¿Caros o baratos contra Chicago?** Paridad/premios: FAS vs pizarra vs CBOT, todo en
+  casa — si el local está caro contra el mundo, la corrección puede venir por paridad
+  aunque el view local sea alcista.
+- **¿En el mundo sobra o falta?** Balance mundial y relaciones stock/consumo (WASDE en
+  `estimaciones`; la lente 1 de F1 lo completa con pasaporte si no está en casa).
+- **¿Algún correlacionado tiene problemas?** Aceite/harina de soja YA están en
+  `chicago` (mirá primero ahí); palma/canola/girasol requieren research externo (F1).
+
+Escribí dirección + confianza + argumentos **sin mirar el view anterior todavía**.
+
+## F3 — Reconciliación (recién ACÁ entra la tesis previa)
+
+Traé el view vigente completo (ya lo tenés de F0) y el scorecard del grano
+(`views-scorecard.ts`, ver F6 — o pedile a la web el resumen si ya corriste F6 de una
+sesión anterior en el mismo día). Reglas:
+
+- Si F0 disparó un invalidador → **SWITCH** o **AJUSTE FUERTE** obligatorio, explicando
+  el gatillo exacto.
+- Si no disparó y el provisorio de F2 coincide con la tesis previa → **CONFIRMA** (la
+  evidencia nueva se SUMA a la tesis — la bola de nieve crece, no se reescribe de cero).
+- Si no disparó pero F2 DIVERGE → el switch requiere justificación explícita de por qué
+  la evidencia nueva pesa más que la tesis acumulada.
+- La confianza se mueve de a 1 punto la mayoría de las semanas ("update a lot, but not
+  too much" — muchas actualizaciones chicas, pocas grandes).
+
+**Recorrido de la tesis (pregunta obligatoria, NO regla mecánica de cierre):** ¿cuánto
+del movimiento esperado ya se materializó desde que la tesis nació (precio desde la
+fecha del view inicial, dato propio) y qué recorrido le queda? Un CONFIRMA con el
+movimiento ya producido tiene que decir de dónde sale el recorrido restante — nunca
+asumido. **CUMPLIDA** existe como salida posible (la tesis ya no tiene recorrido →
+neutral explicándolo), no como default. Anti-patrón a evitar: sumar como "evidencia
+bajista fresca" una baja que ya se produjo antes de escribir el informe.
+
+Guardá la etiqueta resultante (`relacion_previa`: `inicial` | `confirma` | `ajusta` |
+`switch` | `cumplida`) para F6.
+
+## F4 — Abogado del diablo
+
+Lanzá un subagente con mandato único: **atacar la tesis final** de cada grano —
+buscar el dato en contra más fuerte, propio o externo (mismo anillo 1/2 de siempre).
+Sus ataques con sustancia entran a `en_contra` o bajan la confianza — no es "una
+opinión más que se promedia", es input obligatorio de la síntesis final.
+
+## F5 — Verificación de pasaportes (mecánica)
+
+Para cada dato del anillo 2 que quedó citado en el view: verificá que la `fuente_url`
+responde (fetch real) y que la `cita_textual` aparece en el contenido. Lo que no
+verifica, se cae del view o se degrada a "cualitativo, sin cita verificable" — nunca
+se deja una cita sin chequear.
+
+## F6 — Salida, guardado y scorecard
+
+**Estructura de salida (por grano):**
+- **direccion**: `alcista` | `bajista` | `neutral`.
+- **confianza**: 1-5 (5 = señales alineadas; 2 = tesis con contras fuertes; 1 no se usa
+  salvo caos total).
 - **horizonte**: ej. "próximas 4-8 semanas".
 - **argumentos** (JSON): `{ "a_favor": [{"titulo","dato"}…3-5], "en_contra":
-  [{"titulo","dato"}…], "accion": "2 líneas en idioma mesa" }` — cada `dato`
-  lleva el número exacto y su origen, ej.
-  `"gap de cobertura maíz pctl 39 (índice MESA 65 FIRME) — /comercio/temperatura"`.
-- **tesis_md**: 2-4 párrafos desarrollando la tesis (markdown simple), con la
-  voz de Lautaro; cierra con la nota humilde.
-- **invalidacion**: "qué me haría cambiar de opinión" — condiciones concretas y
-  chequeables (niveles, datos, eventos de la agenda).
+  [{"titulo","dato"}…], "accion": "2 líneas en idioma mesa" }` — cada `dato` con
+  número exacto y origen, ej. `"gap de cobertura maíz pctl 39 (índice MESA 65 FIRME) —
+  /comercio/temperatura"`.
+- **tesis_md**: 2-4 párrafos con la voz de Lautaro (leé la skill `voz-lautaro` +
+  `references/ejemplos.md` — registro "informe largo": voseo, humildad, datos
+  exactos, emojis casi nulos); cierra con la nota humilde.
+- **invalidacion**: resumen legible de "qué me haría cambiar de opinión".
+- **invalidadores** (JSON, estructurado): `[{condicion, umbral, dato_ref,
+  disparado_en}]` — 2-3 condiciones medibles contra datos que la web computa
+  (`dato_ref` = ruta dentro del JSON de insumos, ej. `"chicago.trigo.usd_tn"`). Se
+  escriben SOLO al crear una tesis nueva (inicial o switch) — en CONFIRMA/AJUSTA se
+  copian tal cual del view anterior (inmutables, F0 ya los chequeó).
+- **evidencia_externa** (JSON): `[{dato, url, fecha_pub, cita}]` — solo lo que
+  sobrevivió F5.
+- **relacion_previa** + **view_previo_id**: el resultado de F3.
 
-## Paso 4 — Guardar (una fila por grano, fecha = hoy Córdoba)
+**Guardar** (una fila por grano, fecha = hoy Córdoba, upsert idempotente):
 
 ```
 POST {SUPABASE_URL}/rest/v1/views_mercado
 headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY},
          content-type: application/json, prefer: resolution=merge-duplicates
 body: [{ "grano": "soja", "fecha": "YYYY-MM-DD", "direccion": …, "confianza": …,
-         "horizonte": …, "tesis_md": …, "argumentos": …, "invalidacion": … }, …]
+         "horizonte": …, "tesis_md": …, "argumentos": …, "invalidacion": …,
+         "invalidadores": […], "evidencia_externa": […],
+         "relacion_previa": "confirma", "view_previo_id": "…" }, …]
 ```
 
-`grano` ∈ `soja|maiz|trigo` (sin tilde). El UNIQUE (grano, fecha) +
-`merge-duplicates` hace idempotente el re-run del mismo día. Verificá con un GET
-que las 3 filas quedaron.
+`grano` ∈ `soja|maiz|trigo` (sin tilde). El UNIQUE (grano, fecha) + `merge-duplicates`
+hace idempotente el re-run del mismo día. Verificá con un GET que las 3 filas quedaron.
 
-## Paso 5 — Cierre
+El **scorecard** (`src/lib/views-scorecard.ts`) se computa solo, al vuelo, cuando
+Lautaro abre `/granos/view` — no hace falta que la skill lo calcule ni lo guarde.
 
-Resumen final de la sesión: los 3 views en una línea c/u (grano → dirección +
-confianza + argumento top), qué insumos degradaron, y los aprendizajes nuevos
-propuestos para `references/aprendizajes.md`. No mandás mail (el view se lee en
-`/granos/view`; el informe semanal de MP2 lo integra cuando exista). Si algo
-falló de punta a punta, decilo fuerte en el resumen — nunca silencio.
+## Paso 0 — Calibración (se lee DESPUÉS de F2, no antes)
+
+A diferencia de v1, la calibración de criterio se mueve DESPUÉS del view provisorio a
+ciegas (blind-first: la calibración no debe teñir la lectura de datos; se aplica al
+redactar/reconciliar F3 en adelante, no al leer F1/F2):
+
+1. Leé la skill `voz-lautaro` (SKILL.md + `references/ejemplos.md`).
+2. Leé `references/aprendizajes.md` de ESTA skill (reglas destiladas del feedback).
+3. Leé el feedback + nota crudos de los views anteriores (últimas ~8 semanas):
+
+   ```
+   GET {SUPABASE_URL}/rest/v1/views_mercado?select=grano,fecha,direccion,confianza,feedback_lautaro,nota_lautaro,relacion_previa&order=fecha.desc&limit=24
+   headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}
+   ```
+
+   Si un feedback contradice un hábito tuyo, el feedback manda. Si detectás un
+   aprendizaje nuevo que `aprendizajes.md` no tiene, anotalo en tu resumen final para
+   que una sesión de mantenimiento lo incorpore (vos NO pushees `aprendizajes.md`).
+
+## Reglas duras de la mesa (no cambian)
+
+- **El mercado manda sobre el view** — el view orienta estrategia, no anula la regla de
+  oro operativa; no recomiendes "no comprar" contra precio de mercado.
+- **Coherencia con el semáforo MESA**: la acción sugerida usa el idioma de
+  `/comercio/temperatura` (DIFERIR / VENDER YA / COMPRAR BARATO). Si tu view contradice
+  el semáforo, decilo explícito y explicá por qué.
+- **NI UN NÚMERO INVENTADO.**
+
+## Cierre
+
+Resumen final de la sesión: los 3 views en una línea c/u (grano → relación con la
+previa + dirección + confianza + argumento top), qué insumos degradaron, cuántos
+agentes se lanzaron y el consumo aproximado (línea de base para R5), y los
+aprendizajes nuevos propuestos para `references/aprendizajes.md`. No mandás mail (el
+view se lee en `/granos/view`; el informe semanal lo integra). Si algo falló de punta a
+punta, decilo fuerte en el resumen — nunca silencio.
 
 ## Modo de prueba
 
-Pedido "en seco" / sin creds de escritura: hacé todo hasta el Paso 3 y mostrá los
-views SIN guardar, marcando "PRUEBA — no persistido".
+Pedido "en seco" / sin creds de escritura: corré las 6 fases igual (fan-out real
+incluido) y mostrá los views SIN guardar, marcando "PRUEBA — no persistido", con el
+detalle de cuántos tool calls usó cada fase.

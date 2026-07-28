@@ -1605,7 +1605,7 @@ a.estim-inf:hover { color:var(--gold-text); }
 .ng-admin-link a:hover { color:var(--ink-2); }
 
 /* ============================================================
-   Granos · View de mesa (/granos/view — MP3, interno mesa)
+   Granos · View de mesa (/granos/view — V1, sucesor de MP3, interno mesa)
    ============================================================ */
 .vw-grid { display:grid; grid-template-columns:1fr; gap:14px; padding:10px 12px 14px; }
 .vw-card { border:1px solid var(--line); border-top:3px solid var(--neu); border-radius:10px;
@@ -1613,6 +1613,8 @@ a.estim-inf:hover { color:var(--gold-text); }
 .vw-hd { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 14px; margin-bottom:6px; }
 .vw-grano { font-weight:800; font-size:var(--fs-lg); letter-spacing:.01em; }
 .vw-dir { font-family:var(--font-mono); font-weight:800; font-size:var(--fs-lg); letter-spacing:.04em; }
+.vw-rel { font-size:var(--fs-2xs); font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  border:1px solid currentColor; border-radius:99px; padding:1px 8px; }
 .vw-meta { font-size:var(--fs-xs); margin-left:auto; display:inline-flex; align-items:center; gap:6px; }
 .vw-conf { display:inline-flex; gap:2px; vertical-align:middle; }
 .vw-conf i { width:7px; height:7px; border-radius:99px; background:var(--line-2); display:inline-block; }
@@ -1625,9 +1627,15 @@ a.estim-inf:hover { color:var(--gold-text); }
   letter-spacing:.08em; color:var(--ink-3); font-weight:800; }
 .vw-args ul { margin:0; padding-left:16px; }
 .vw-args li { margin:4px 0; font-size:var(--fs-xs); line-height:1.55; }
-.vw-accion, .vw-invalida { margin:9px 0 0; font-size:var(--fs-xs); line-height:1.6; color:var(--ink-2); }
-.vw-accion .k, .vw-invalida .k { display:inline-block; margin-right:6px; font-size:var(--fs-2xs);
+.vw-accion, .vw-invalida, .vw-score { margin:9px 0 0; font-size:var(--fs-xs); line-height:1.6; color:var(--ink-2); }
+.vw-accion .k, .vw-invalida .k, .vw-score .k { display:inline-block; margin-right:6px; font-size:var(--fs-2xs);
   text-transform:uppercase; letter-spacing:.07em; font-weight:800; color:var(--gold-text); }
+.vw-inval, .vw-evidencia { margin:10px 0 0; }
+.vw-inval h4, .vw-evidencia h4 { margin:0 0 3px; font-size:var(--fs-2xs); text-transform:uppercase;
+  letter-spacing:.08em; color:var(--ink-3); font-weight:800; }
+.vw-inval ul, .vw-evidencia ul { margin:0; padding-left:16px; }
+.vw-inval li, .vw-evidencia li { margin:3px 0; font-size:var(--fs-xs); line-height:1.55; }
+.vw-evidencia a { color:var(--gold-text); text-decoration:underline; text-underline-offset:2px; }
 .vw-err, .vw-vacio { padding:12px; font-size:var(--fs-sm); }
 .vw-err { color:var(--neg); }
 .vw-fb { margin-top:12px; padding-top:10px; border-top:1px dashed var(--line-2); }
@@ -1636,6 +1644,10 @@ a.estim-inf:hover { color:var(--gold-text); }
 .vw-fb textarea { width:100%; resize:vertical; font:inherit; font-size:var(--fs-sm); color:var(--ink);
   background:var(--panel-3, var(--panel)); border:1px solid var(--line-2); border-radius:8px; padding:8px 10px; }
 .vw-fb textarea:focus-visible { outline:2px solid var(--focus); outline-offset:1px; }
+.vw-fb-nota { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; font-size:var(--fs-xs); }
+.vw-fb-nota > span:first-child { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.07em;
+  font-weight:800; color:var(--ink-3); }
+.vw-fb-nota-op { display:inline-flex; align-items:center; gap:3px; cursor:pointer; }
 .vw-fb-foot { display:flex; align-items:center; gap:10px; margin-top:7px; }
 .vw-fb-ok { font-size:var(--fs-xs); color:var(--pos); }
 .vw-fb-err { font-size:var(--fs-xs); color:var(--neg); }

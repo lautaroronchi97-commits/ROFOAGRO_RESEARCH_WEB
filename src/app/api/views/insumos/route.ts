@@ -4,6 +4,7 @@ import { getSemaforo } from "@/lib/lineup/semaforo";
 import { getEmpresas } from "@/lib/lineup/empresas";
 import { getMesaEmbarque } from "@/lib/lineup/embarque";
 import { getNegociado } from "@/lib/compras/negociado";
+import { getSenalCamiones } from "@/lib/camiones/camiones";
 import { getCurvaGranos } from "@/lib/curva";
 import { getPases } from "@/lib/pases-cierres";
 import { getArbitrajes } from "@/lib/arbitrajes-cierres";
@@ -57,6 +58,7 @@ export async function GET(request: Request): Promise<Response> {
     empresas,
     embarques,
     negociado,
+    senalCamiones,
     curva,
     pases,
     arbitrajes,
@@ -72,6 +74,7 @@ export async function GET(request: Request): Promise<Response> {
     getEmpresas(),
     getMesaEmbarque(),
     getNegociado(),
+    getSenalCamiones(),
     getCurvaGranos(),
     getPases(),
     getArbitrajes(),
@@ -110,6 +113,7 @@ export async function GET(request: Request): Promise<Response> {
       empresas,
       embarques,
       negociado,
+      senalCamiones,
       estimaciones,
       curva,
       pases,
