@@ -148,11 +148,22 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
 
     try {
       ws = new WebSocket(WS_URL, { headers: { "X-Auth-Token": token } });
-    } catch {
+    } catch (e) {
+      console.error(`[a3-live] WS no se pudo instanciar: ${e instanceof Error ? e.message : String(e)}`);
       return finish();
     }
 
+    // DIAGNÓSTICO TEMPORAL (troubleshooting 28/07): el feed viene sin snapshots hace
+    // horas con token fresco, así que el corte no es de auth — hace falta ver en qué
+    // punto se cae la conexión (nunca abre / abre pero sin mensajes / mensajes con un
+    // shape distinto al esperado). Loguea como mucho una vez por tipo por conexión.
+    let openLogged = false;
+    let unknownTypeLogged = false;
+    let msgCount = 0;
+
     ws.on("open", () => {
+      openLogged = true;
+      console.error(`[a3-live] WS abierto, suscribiendo ${symbols.length} símbolos`);
       // Un solo mensaje suscribe TODOS los instrumentos; Primary responde con el
       // snapshot actual de cada uno (evita el 429 de pedir de a un símbolo por REST).
       ws?.send(
@@ -167,13 +178,24 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
     });
 
     ws.on("message", (data: WebSocket.RawData) => {
+      msgCount++;
       let msg: Record<string, unknown>;
       try {
         msg = JSON.parse(data.toString()) as Record<string, unknown>;
       } catch {
+        if (!unknownTypeLogged) {
+          unknownTypeLogged = true;
+          console.error(`[a3-live] WS mensaje no-JSON: ${data.toString().slice(0, 200)}`);
+        }
         return;
       }
-      if (msg.type !== "Md") return;
+      if (msg.type !== "Md") {
+        if (!unknownTypeLogged) {
+          unknownTypeLogged = true;
+          console.error(`[a3-live] WS mensaje con type inesperado: ${JSON.stringify(msg).slice(0, 300)}`);
+        }
+        return;
+      }
       const inst = msg.instrumentId as { symbol?: unknown } | undefined;
       const sym = typeof inst?.symbol === "string" ? inst.symbol : null;
       if (sym && !puntas.has(sym)) {
@@ -182,8 +204,15 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
       }
     });
 
-    ws.on("error", () => finish());
-    ws.on("close", () => finish());
+    ws.on("error", (err: Error) => {
+      console.error(`[a3-live] WS error: ${err.message}`);
+      finish();
+    });
+    ws.on("close", (code: number, reason: Buffer) => {
+      if (!openLogged) console.error(`[a3-live] WS cerró sin llegar a abrir (code=${code})`);
+      else if (msgCount === 0) console.error(`[a3-live] WS cerró sin ningún mensaje (code=${code} reason=${reason.toString().slice(0, 100)})`);
+      finish();
+    });
   });
 }
 
