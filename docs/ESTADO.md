@@ -19,7 +19,26 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 28/07/2026 — 📐 V3 (semanal v2) + V4 (diario, retoque) HECHOS)
+## Ahora (última actualización: 28/07/2026 — 🗂️ PLAN C25: biblioteca + menú lateral, CERRADO)
+
+**🗂️ C25 — BIBLIOTECA + MENÚ LATERAL (SIDEBAR) — PLAN CERRADO, SOLO DOCS — rama
+`claude/sidebar-menu-web-architecture-ychqgb`, PR #_.** Pedido de Lautaro: sacar la nav de la
+parte superior y pasar a un **menú desplegable fijo al costado izquierdo**, con la web como
+**biblioteca** (grupos desplegables → cada reporte con su ítem). Sesión de craneo pura, cero
+código. Relevadas las 38 rutas / ~35 reportes; hallazgo clave: las 8 claves de `SECCIONES_META`
+son también el **modelo de permisos** (reagrupar tenía costo real, se decidió con eso sobre la
+mesa). **4 decisiones cerradas por AskUserQuestion** (eligió la recomendada en las 4): página
+propia por reporte (`/granos/arbitrajes`, `/dolar/futuro`, …, componentes reusados tal cual, las
+páginas de grupo quedan como índices) · se mantienen los 8 grupos/claves de permisos · header
+mínimo + cinta (toda la nav a la sidebar) · solo-mesa mezclados en su grupo con 🔒. Excepciones
+deliberadas: Informes queda como feed con anclas; Gráficos linkea sus 2 modos por el `?mc=` ya
+persistido. Todo en **[`PLAN_SIDEBAR.md`](PLAN_SIDEBAR.md)** (árbol final + arquitectura +
+**prompt de ejecución autocontenido en §5**); registrado como **C25** en el backlog maestro.
+**Próximo paso: ejecutar ese prompt en una sesión nueva** — build con Sonnet (regla de
+PLAN_BACKLOG) y **cargando la skill `ui-ux-pro-max` antes de tocar UI** (pedido explícito).
+Detalle: [`sesiones/2026-07-28-plan-sidebar-biblioteca.md`](sesiones/2026-07-28-plan-sidebar-biblioteca.md).
+
+## Anterior (28/07/2026 — 📐 V3 (semanal v2) + V4 (diario, retoque) HECHOS)
 
 **📐 V3/V4 de `PLAN_INFORMES_V2.md` §9 (C21/C22 del backlog maestro) — HECHOS — rama
 `claude/v3-v4-informes-e7sfwf`, PR #91.** Cierra el plan de informes v2 (V0→V4 completo) tras
