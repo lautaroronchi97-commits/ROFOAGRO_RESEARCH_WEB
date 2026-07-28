@@ -15,6 +15,7 @@ export type CierrePos = {
   posicion: string;
   settlement: number | null;
   close: number | null;
+  change: number | null; // variación diaria nominal del ajuste, en US$ (ej. -6)
   changePercent: number | null;
   volume: number | null;
   openInterest: number | null;
@@ -39,6 +40,7 @@ type RawRow = {
   posicion: string | null;
   settlement: number | null;
   close: number | null;
+  change: number | null;
   change_percent: number | null;
   volume: number | null;
   open_interest: number | null;
@@ -66,7 +68,7 @@ const SOURCE = "Matba Rofex";
 export const getCierresGranos = cache(async (): Promise<CierresData> => {
   const [res, vtos] = await Promise.all([
     sbSelect(
-      "futuros_cierres_ultimo?select=symbol,fecha,underlying,posicion,settlement,close,change_percent,volume,open_interest,oi_change,implied_rate&order=underlying.asc",
+      "futuros_cierres_ultimo?select=symbol,fecha,underlying,posicion,settlement,close,change,change_percent,volume,open_interest,oi_change,implied_rate&order=underlying.asc",
       900,
     ),
     getVencimientos(),
@@ -97,6 +99,7 @@ export const getCierresGranos = cache(async (): Promise<CierresData> => {
       posicion: r.posicion ?? r.symbol,
       settlement: r.settlement,
       close: r.close,
+      change: r.change,
       changePercent: r.change_percent,
       volume: r.volume,
       openInterest: r.open_interest,

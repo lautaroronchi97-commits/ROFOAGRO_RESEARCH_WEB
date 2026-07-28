@@ -24,6 +24,7 @@ export type ArbRow = {
   pos: string;
   symbol: string; // símbolo del futuro en A3, ej. "SOJ.ROS/JUL26" (clave del feed en vivo)
   ajuste: number | null; // settlement del futuro (USD)
+  variacion: number | null; // variación diaria nominal del ajuste vs el cierre previo (US$)
   spread: number | null; // ajuste − pizarra
   directa: number | null; // ajuste/pizarra − 1, en %
   dias: number | null; // días hasta el vencimiento
@@ -71,6 +72,7 @@ export const getArbitrajes = cache(async (): Promise<ArbData> => {
         pos: p.posicion,
         symbol: p.symbol,
         ajuste,
+        variacion: p.change ?? null,
         spread,
         directa,
         dias,

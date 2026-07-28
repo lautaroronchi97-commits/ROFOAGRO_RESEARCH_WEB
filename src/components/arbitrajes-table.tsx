@@ -48,6 +48,9 @@ export async function ArbitrajesTable() {
         // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
         // mueve ahora del último operado arrastrado de la rueda anterior).
         vivo: modoOperado && operoHoy && last != null,
+        // Variación nominal del AJUSTE vs el cierre previo (US$) — siempre relativa
+        // al ajuste, no al último operado en vivo (ese ya tiene su propio spread).
+        variacion: r.variacion,
         dias: r.dias,
         volume: modoOperado ? volLive : r.volume,
         bid: p?.bid ?? null,
