@@ -19,7 +19,67 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
+## Ahora (última actualización: 28/07/2026 — 📐 V1 (view-mercado v2) + V2 (interpretaciones v2) HECHOS, mergeados)
+
+**📐 V1/V2 de `PLAN_INFORMES_V2.md` §9 (C19/C20 del backlog maestro) — HECHOS — rama
+`claude/plan-desarrollo-auditoria-mkdvam`, PR #89 (mergeado).** Retomado el plan de informes
+v2 (research multi-agente + aprendizaje continuo) donde había quedado el 24/07 tras C18/V0.
+
+**Antes de arrancar**: repasado un reporte de Lautaro de que el historial editable de "Datos
+del día" (A6) no bloqueaba una edición vieja — verificado por SQL que NO es un bug:
+`informes_generados` solo tiene una fila real (27/07, la única corrida exitosa post-C18); el
+día reportado (24/07) nunca tuvo un informe real que lo tomara. Pendiente real sigue siendo
+probar el candado con un caso genuino. De paso, cerrados 2 pendientes menores de V0: la key de
+USDA FAS (Lautaro la registró y cargó como env var del entorno de Claude) y la confirmación de
+que las Routines headless tienen el tool `Task` disponible (confirmado por config del
+`job_config`, no hacía falta un test en vivo — el fan-out de V1 es viable).
+
+**V1 — view-mercado v2**: la skill pasa de un prompt lineal a un pipeline **F0→F6**
+(invalidadores mecánicos → fan-out de 4 subagentes de solo lectura → view **blind-first** →
+reconciliación CONFIRMA/AJUSTA/SWITCH/CUMPLIDA con "recorrido de la tesis" → abogado del diablo
+→ verificación mecánica de pasaportes → salida). `getSenalCamiones()` sumado a los insumos
+(`/api/views/insumos`) — respondía "quién pone el precio" y estaba ausente. **`src/lib/views-
+scorecard.ts`** (lib pura, 17 tests): hit-rate 1/2/4 semanas + Brier contra `futuros_cierres`,
+con la posición fijada UNA VEZ en t0 (nunca re-elegida — así un rolleo de contrato en medio de
+la ventana degrada a `null` en vez de contaminar la medición). Migración aditiva sobre
+`views_mercado` (relacion_previa, view_previo_id, invalidadores, evidencia_externa,
+nota_lautaro) + `admin_feedback_view` extendida con el parámetro de nota (dropeando la firma
+vieja de 2 argumentos para no dejar overloads ambiguos en PostgREST). UI de `/granos/view`:
+badges de relación con la tesis previa, fila de scorecard, invalidadores 🟢/🔴 (sin fabricar un
+🟡 "cerca" que el plan pedía — no hay umbral machine-checkable sin inventar un parser de texto
+libre, documentado como limitación explícita) y selector de nota 1-5.
+
+**V2 — interpretaciones v2**: verificado con un fetch real (28/07) que un artículo pre/post-
+WASDE completo de **DTN** muestra la tabla de expectativas (Avg/High/Low) sin paywall — queda
+como fuente primaria. El Paso 9 de `informe-diario` suma, solo para USDA, un research acotado
+(≤10 tool calls) con la estructura *qué se esperaba → qué salió → sorpresa → reacción del
+precio → qué implica*, pasaporte verificado guardado en `evidencia_externa` (columna nueva en
+`interpretaciones`). GEA/DEA/CONAB/PAS degradan a "consenso implícito" (sin encuesta pública).
+**Fix crítico encontrado y arreglado**: el disparo del Paso 9 filtraba solo por
+`fecha_publicacion === hoy`, que nunca matcheaba el día real en que Lautaro sube el BCBA-PAS
+(fecha real del informe, de días atrás) — `construirCambios` ahora expone `actualizadoEn` y el
+filtro dispara con cualquiera de las dos fechas, probado con un test unitario real.
+
+**Cambios de modelo pedidos por Lautaro en el camino**: `view-mercado` quedó en `effort: high`
+(probó `medium`, volvió a `high`); `informe-diario` quedó en `effort: medium` (antes `high`);
+`informe-semanal` sin tocar.
+
+**Verificado**: lint/tsc/vitest (224/224, 19 nuevos) ✅ · build ✅ (`next build --webpack`, el
+sandbox de esta sesión no tenía los bindings nativos de Turbopack — no es regresión de código,
+CI real sí los tiene y pasó verde) · V1 cotejado contra datos reales de Supabase (scorecard del
+view real del 21/07) · V2 regenerado en seco el WASDE #673 contra la interpretación publicada
+(mismos números duros, capa de expectativa nueva donde DTN la tiene — soja EEUU, coincide con
+nuestro dato real — y degradación honesta donde no) · migraciones aplicadas + verificadas por
+SQL + `get_advisors` sin hallazgos nuevos · PR #89 con CI verde, mergeado.
+
+**Pendiente para la próxima sesión**: **V3** (informe semanal — depende de V1, ya mergeado) y
+**V4** (diario, retoque + medición) — prompts ya escritos en `PLAN_INFORMES_V2.md` §9.
+Confirmar en la primera corrida real de cada Routine el consumo/duración del pipeline nuevo
+(línea de base para R5 del plan). El candado de "Datos del día" (A6) sigue sin un caso real
+confirmado end-to-end. Detalle completo:
+[`sesiones/2026-07-28-c19-c20-view-mercado-interpretaciones.md`](sesiones/2026-07-28-c19-c20-view-mercado-interpretaciones.md).
+
+## Anterior (27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
 
 **🔐 A1 — TERMINAR EL LOGIN — ✅ CERRADO — sesión conversacional, sin rama de código.** Lautaro
 confirmó que el **Centro de verificación de Google** ya mostraba "Se verificó la información de
