@@ -16,7 +16,7 @@ description: >-
 # solo para este turno — decisión de Lautoro, §10.5 de PLAN_INFORMES_V2.md
 # (evaluar subir a Fable cuando el research confirme que rinde igual acá).
 model: claude-opus-5
-effort: medium
+effort: high
 ---
 
 # View de mercado por grano — pipeline semanal F0→F6
