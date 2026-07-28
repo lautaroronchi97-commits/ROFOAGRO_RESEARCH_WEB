@@ -338,15 +338,19 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   el día → leer neutral, no alcista — una sola observación, no aplicar aún a
   `references/aprendizajes.md`). Detalle:
   [`sesiones/2026-07-27-c18-routines-diagnostico.md`](../sesiones/2026-07-27-c18-routines-diagnostico.md).
-- [ ] **C19 = V1. View v2 (la bola de nieve)** — migración aditiva de `views_mercado`
-  (`relacion_previa`/`view_previo_id`/`invalidadores`/`evidencia_externa`/`nota_lautaro`) +
-  skill con pipeline F0-F6 (blind-first, invalidadores inmutables, 4 lentes de research con
-  pasaporte, agente rojo, verificación mecánica) + `views-scorecard.ts` + UI. Depende de C18.
-- [ ] **C20 = V2. Interpretaciones v2 (expectativa vs dato)** — el salto de calidad más concreto:
-  pasa de "el USDA recortó X vs el mes pasado" a "el mercado esperaba A, salió B → sorpresa" +
-  "cuánto ya estaba en el precio". Incluye el **fix crítico del disparo de BCBA-PAS** (hoy filtra
-  por `fecha_publicacion` y nunca matchearía el día real en que Lautaro sube el informe).
-  Paralela a C19.
+- [x] **C19 = V1. View v2 (la bola de nieve)** — ✅ **hecho 28/07**, PR #89 (mergeado). Migración
+  aditiva de `views_mercado` (`relacion_previa`/`view_previo_id`/`invalidadores`/
+  `evidencia_externa`/`nota_lautaro`) + skill con pipeline F0-F6 (blind-first, invalidadores
+  inmutables, 4 lentes de research con pasaporte, agente rojo, verificación mecánica) +
+  `views-scorecard.ts` (contrato fijado en t0, nunca re-elegido) + UI con badges/scorecard/
+  invalidadores/nota. Detalle:
+  [`sesiones/2026-07-28-c19-c20-view-mercado-interpretaciones.md`](../sesiones/2026-07-28-c19-c20-view-mercado-interpretaciones.md).
+- [x] **C20 = V2. Interpretaciones v2 (expectativa vs dato)** — ✅ **hecho 28/07**, mismo PR #89.
+  DTN verificado real (tabla de expectativas sin paywall). El Paso 9 de `informe-diario` arma
+  "el mercado esperaba A, salió B → sorpresa" + "cuánto ya estaba en el precio" para USDA;
+  GEA/DEA/CONAB/PAS degradan a consenso implícito. **Fix crítico del disparo de BCBA-PAS**
+  hecho: `construirCambios` expone `actualizadoEn`, el filtro ya no depende solo de
+  `fecha_publicacion`. Mismo detalle de sesión que C19.
 - [ ] **C21 = V3. Semanal v2** — sección "El mundo esta semana" (COT, condición de cultivos EEUU,
   Brasil, clima) DENTRO de las 5 páginas + agenda con expectativas + integración de switch y
   scorecard. Depende de C19.
