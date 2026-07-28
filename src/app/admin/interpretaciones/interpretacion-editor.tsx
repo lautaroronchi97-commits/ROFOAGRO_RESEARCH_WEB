@@ -57,6 +57,23 @@ export function InterpretacionEditor({ item }: { item: Interpretacion }) {
         />
       )}
 
+      {item.evidencia_externa.length > 0 && (
+        <div className="interp-evidencia">
+          <h4>Evidencia externa citada (verificada, V2)</h4>
+          <ul>
+            {item.evidencia_externa.map((e, i) => (
+              <li key={i}>
+                <strong>{e.dato}.</strong>{" "}
+                <a href={e.url} target="_blank" rel="noopener noreferrer nofollow">
+                  fuente
+                </a>{" "}
+                <span className="dim">({ddmmaaaa(e.fecha_pub)})</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="admin-card-acciones">
         <form action={actGuardar} style={{ display: "inline" }}>
           <input type="hidden" name="id" value={item.id} />
