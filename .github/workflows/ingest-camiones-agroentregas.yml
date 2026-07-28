@@ -1,0 +1,59 @@
+name: Ingesta camiones Agroentregas (JSON público → Supabase)
+
+# Mantiene al día la tabla camiones_plantas con la entrada diaria de camiones por planta, empresa y
+# grano de Agroentregas (C24 del backlog maestro, docs/negocio/10_fuente_camiones_agroentregas.md).
+#
+# Por qué DOS corridas por día: el endpoint es una foto del día EN CURSO (ignora cualquier
+# parámetro de fecha) y el total va creciendo mientras entran camiones, así que no hay forma de
+# corregir el día de ayer una vez que la fuente pasó de fecha. La corrida de las 22:00 ART toma el
+# día casi cerrado; la de las 18:00 ART es la red de seguridad —si la tardía falla o la fuente ya
+# rotó de fecha, ese día igual quedó guardado con un valor razonable en vez de perderse—. El upsert
+# es por (fecha, planta, producto) y la fecha la dicta la propia respuesta, así que repetir corridas
+# es idempotente y la última siempre gana.
+#
+# Corre TODOS los días (no solo L-V): los puertos reciben camiones los sábados (y el domingo flojo
+# también es dato real). Los `schedule` de GitHub Actions corren desde la rama default del repo.
+
+# El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 18:00 ART — red de seguridad
+    - cron: "0 1 * * *" #  22:00 ART (del día anterior) — el día casi cerrado
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Solo imprimir lo que traería, sin escribir en Supabase."
+        type: boolean
+        default: false
+
+concurrency:
+  group: ingest-camiones-agroentregas
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+      - name: Ingesta
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            node scripts/ingest-camiones-agroentregas.mjs --dry-run
+          else
+            node scripts/ingest-camiones-agroentregas.mjs
+          fi
+      - name: Avisar por mail si falló (E5 #7)
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/alerta-mail.mjs --workflow "${{ github.workflow }}" --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

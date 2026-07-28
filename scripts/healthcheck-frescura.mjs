@@ -60,6 +60,11 @@ const CHECKS = [
   // nuevo?" — umbral laxo (3 semanas) a propósito, para no generar ruido de un proceso manual sin
   // promesa de frecuencia; si se atrasa mucho más que eso sí vale la pena que Lautoro se acuerde.
   { nombre: "camiones (Williams Entregas)", tabla: "camiones", col: "fecha", maxDias: 21, cadencia: "irregular (upload manual, sin cron)" },
+  // Camiones de Agroentregas (C24): ESTE sí tiene cron (2 corridas diarias, todos los días — los
+  // puertos reciben también los sábados). La fuente es una foto del día en curso sin backfill
+  // posible, así que un atraso de más de 2 días ya significa días perdidos para siempre: umbral
+  // corto a propósito, al revés que el de Williams.
+  { nombre: "camiones_plantas (Agroentregas)", tabla: "camiones_plantas", col: "fecha", maxDias: 3, cadencia: "diario (cron 2×/día)" },
   { nombre: "noticias", tabla: "noticias", col: "fecha_pub", maxDias: 2, cadencia: "horario" },
   // Compras netas BCRA / MULC (C4): la API v4 var 78 llega con ~3-4 días hábiles de rezago
   // (docs/negocio/07) — umbral holgado para no enrojecer por el rezago normal + fin de semana;
