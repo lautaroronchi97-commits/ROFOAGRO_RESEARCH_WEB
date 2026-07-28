@@ -31,31 +31,44 @@ export async function ArbitrajesTable() {
     // El ajuste del día ya salió cuando el cierre guardado es de hoy.
     const ajusteEsDeHoy = g.fecha === hoy;
     const modoOperado = ruedaCorrio && !ajusteEsDeHoy && liveOk;
-    const rows = g.rows.map((r) => {
+    const rows = g.rows.flatMap((r) => {
       const p = live.puntas.get(r.symbol);
       const last = p?.last ?? null;
       const volLive = p?.vol ?? null; // volumen operado HOY (A3 TV, resetea por rueda)
       const operoHoy = volLive != null && volLive > 0;
+      const volumeDelDia = modoOperado ? volLive : r.volume;
+      // Pedido de Lautaro: posiciones poco líquidas (< 100 contratos de interés
+      // abierto) son ruido si nadie las está operando — se ocultan salvo que
+      // hayan operado HOY de verdad (volumen en vivo de A3, `operoHoy` — no el
+      // volumen del último cierre, que podría ser de una rueda vieja y no dice
+      // nada de la actividad de hoy). Sin A3 en vivo (fuera de rueda / feed
+      // caído) no hay forma de confirmarlo, así que queda oculta. Sin dato de OI
+      // (hueco del cierre) NO se oculta, mismo criterio conservador que el resto
+      // del filtrado de posiciones vivas.
+      const oi = r.openInterest;
+      if (oi != null && oi < 100 && !operoHoy) return [];
       // En rueda: el último operado (A3 LA) tal cual, como la pantalla de mercado
       // (eTrader) — SIN filtrar por volumen del día: una posición poco líquida que
       // no operó hoy igual muestra su último precio operado. Solo queda "—" si A3
       // no tiene último operado. Fuera de rueda: el ajuste.
       const ref = modoOperado ? last : r.ajuste;
-      return {
-        pos: r.pos,
-        ref,
-        refMode: modoOperado ? ("operado" as const) : ("ajuste" as const),
-        // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
-        // mueve ahora del último operado arrastrado de la rueda anterior).
-        vivo: modoOperado && operoHoy && last != null,
-        // Variación nominal del AJUSTE vs el cierre previo (US$) — siempre relativa
-        // al ajuste, no al último operado en vivo (ese ya tiene su propio spread).
-        variacion: r.variacion,
-        dias: r.dias,
-        volume: modoOperado ? volLive : r.volume,
-        bid: p?.bid ?? null,
-        ask: p?.ask ?? null,
-      };
+      return [
+        {
+          pos: r.pos,
+          ref,
+          refMode: modoOperado ? ("operado" as const) : ("ajuste" as const),
+          // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
+          // mueve ahora del último operado arrastrado de la rueda anterior).
+          vivo: modoOperado && operoHoy && last != null,
+          // Variación nominal del AJUSTE vs el cierre previo (US$) — siempre relativa
+          // al ajuste, no al último operado en vivo (ese ya tiene su propio spread).
+          variacion: r.variacion,
+          dias: r.dias,
+          volume: volumeDelDia,
+          bid: p?.bid ?? null,
+          ask: p?.ask ?? null,
+        },
+      ];
     });
     // Volumen y OI totales del grano (todas las posiciones vivas sumadas, en
     // toneladas): el volumen ya viene resuelto por fila (en vivo si operó hoy,
