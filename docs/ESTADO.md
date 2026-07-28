@@ -47,14 +47,38 @@ real.
 **Pendiente para consolidar (no bloquea, próxima sesión con tiempo):**
 - ~~Que Mauro se registre y se lo promueva a admin~~ → **✅ HECHO (27/07)**: verificado por SQL,
   `f.maurotam@gmail.com` ya está `rol=admin`/`estado=aprobado` en `profiles`.
-- **A6** en curso: ~~confirmar el fix de DEA~~ → **✅ HECHO (27/07)**, con Lautaro en vivo. Subió
-  el CSV real (~11 MB) desde `datosestimaciones.magyp.gob.ar`, previsualizó y confirmó — 24 filas
-  cargadas/actualizadas, vintage `2026-07-27` (antes clavado en `2026-07-13`, 14 días viejo).
-  Verificado por SQL: fila fresca en `estimaciones_produccion` con `fecha_publicacion=2026-07-27`.
-  El fix del parseo-en-el-navegador (24/07) funciona de punta a punta — **healthcheck de DEA
-  debería volver a verde**. Quedan del checklist: historial editable de "Datos del día" (probar
-  editar un día viejo + confirmar el bloqueo 🔒), Agrochat, Williams camiones, BCBA-PAS, compras
-  BCRA manual, pago final LECAP (ver detalle en `auditoria/E7-sintesis.md` §4 bloque A).
+- **A6** casi cerrado, gran avance 27/07 (rama `claude/plan-desarrollo-auditoria-ybjj6k`, PR #86
+  mergeado):
+  - ~~DEA-SAGyP~~ → **✅ HECHO**, con Lautaro en vivo. Subió el CSV real (~11 MB) desde
+    `datosestimaciones.magyp.gob.ar`, previsualizó y confirmó — 24 filas cargadas/actualizadas,
+    vintage `2026-07-27` (antes clavado en `2026-07-13`, 14 días viejo). El fix del
+    parseo-en-el-navegador (24/07) funciona de punta a punta — **healthcheck de DEA debería
+    volver a verde**.
+  - ~~Comercialización (Agrochat)~~ y ~~Camiones (Williams)~~ → **✅ HECHAS, con un bug real de
+    origen encontrado y arreglado** (no de la web): en los dos casos, lo que Agrochat devuelve ya
+    transformado al formato que pedíamos sale como texto de una celda de dataframe (sin salto de
+    línea real, no descargable) — Lautaro no podía subirlo. Fix: los dos parsers
+    (`parse-agrochat.ts`/`williams.ts`) ahora aceptan directo el dataset **crudo** de origen (SÍ es
+    un archivo real) y replican en TypeScript la misma transformación (filtra filas "Total", ×1000
+    a toneladas enteras con truncado — reproduce bit a bit los artefactos de Python). Verificado
+    90/90 y 80/80 filas contra los datos reales de Lautoro, cargado en producción.
+  - ~~BCBA-PAS~~ → **✅ HECHO**, con el `historico_pas_datasets.csv` correcto (400 filas
+    cargadas/actualizadas, 1 campaña descartada por venir idéntica a la anterior — comportamiento
+    esperado). De paso, Lautaro pasó un export alternativo con desglose por zona agroecológica →
+    anotado como ítem nuevo del backlog (**C23**, `auditoria/E7-sintesis.md` §4).
+  - ~~Compras BCRA (carga manual)~~ → **✅ HECHO**: Lautaro cargó 22/23/24-07 (345/45/25 M USD)
+    desde la web, verificado por SQL.
+  - ~~Pago final LECAP~~ → **✅ HECHO**: 12 especies cargadas (8 letras S + 4 BONCAPs T) desde la
+    tabla de BYMA, verificado por SQL contra `lecap_pago_final`. Los BONCAPs quedan guardados pero
+    sin efecto visible en `/dolar` todavía (`getLecaps` solo lee precio en vivo de las letras S —
+    pendiente menor, no bloquea).
+  - **A6 QUEDA CERRADO** salvo un ítem chico sin probar: el historial editable de "Datos del día"
+    (editar un día viejo + confirmar el bloqueo 🔒) — nunca llegó a probarse en esta sesión ni en
+    la del 24/07, pero es el único de los 7 sin confirmar.
+  - Pedido nuevo de Lautoro al cerrar: **C24** anotado en el backlog (`auditoria/E7-sintesis.md`
+    §4) — carga diaria manual de camiones vía la cuenta de X de Agroentregas, mismo patrón que la
+    carga manual de compras BCRA, para tapar el hueco hasta que llegue el archivo real de Williams
+    (que la pisa sola, mismo upsert de siempre).
 - Login prendido = **C18/V0 pasa a ser lo más urgente del backlog** (las 3 Routines de informes
   siguen sin producir nada — ver la entrada de abajo del 24/07).
 - ~~Renames de plataforma~~ → **✅ HECHOS (27/07), a mano por Lautaro, sin acción de código

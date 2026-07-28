@@ -194,43 +194,20 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
   con el flujo habitual de PR). Nada que borrar.
 - [x] **A5. Responder las preguntas de P3 y P4** — ✅ respondido 22/07 (§7): P3 = automático +
   carga manual del día · P4 = público, backfill 2020→hoy. C4 y C5 desbloqueados.
-- [ ] **A6. Probar el uploader de `/admin/datos` logueado — EN CURSO 24/07, 1/7 confirmado + 1 bug
-  real encontrado y arreglado (PR #77, mergeado).** Lautaro arrancó a probarlas en vivo, guiado
-  paso a paso:
-  - ✅ **Datos del día** (color de la rueda) — probado y confirmado, guarda bien. De paso se sumó
-    un **historial editable de los últimos 14 días** (pedido nuevo de Lautoro en el momento), con
-    cada fila bloqueándose sola apenas el informe diario ya la tomó (`informes_generados`).
-  - 🐛 **DEA-SAGyP — bug real encontrado**: el CSV oficial (~11,5 MB) hacía fallar "1 ·
-    Previsualizar" con `ERR_CONNECTION_REFUSED`/"This page couldn't load" — las Server Actions de
-    Next en Vercel tienen un límite de payload de ~4,5 MB por función (no configurable, distinto
-    del `bodySizeLimit` de Next). **Arreglado**: el parseo ahora corre en el navegador de Lautoro
-    (`parseDea` es un módulo puro), solo el resumen agregado viaja al servidor. **Sin confirmar
-    todavía que el fix funciona** — Lautoro no llegó a reintentar.
-  - ⛔ **Sesión cortada por un problema de acceso, no de la web**: Lautoro quedó con
-    `localhost:3000` en la barra de direcciones (autocompletado de una prueba vieja, no es un sitio
-    real) en vez de `rofoagro-research-web.vercel.app` — confirmado por los logs de Supabase Auth
-    (login exitoso del lado de Google, pero el navegador redirige a una dirección que no existe).
-  - **Quedan sin probar**: comercialización (Agrochat), camiones (Williams), BCBA-PAS, compras BCRA
-    manual, pago final de LECAP — y confirmar el fix de DEA. Checklist + links/filtros exactos de
-    cada fuente: `ESTADO.md` «Ahora» de esta fecha.
-  1. **Comercialización (Agrochat)** — copiá el prompt de la tarjeta, pedíselo a Agrochat, subí el
-     CSV/xlsx → Previsualizar → Confirmar. Se ve reflejado en `/comercio/negociado`.
-  2. **Camiones en puerto (Williams)** — mismo patrón con el prompt de camiones, elegís la serie
-     (total o un grano) → `/comercio/camiones`.
-  3. **Datos del día** — ✅ probado. Historial nuevo sin probar todavía.
-  4. **Compras BCRA (MULC) — carga manual** — elegís una fecha hábil reciente y cargás el monto en
-     M USD (tapa el hueco de rezago hasta que el cron automático la pise) → `/dolar`. No hay fuente
-     fija para el dato del día — se carga el que Lautoro ya conoce de su fuente habitual (research
-     `negocio/07` descartó automatizarlo).
-  5. **Estimaciones DEA-SAGyP** — descargá el CSV desde datosestimaciones.magyp.gob.ar (botón de
-     descarga del reporte "Estimaciones", dataset completo sin filtrar) y subilo → `/produccion`.
-     Sigue siendo la que más urge: mientras no se cargue una vez real, el healthcheck de DEA sigue
-     en rojo. Ahora con el fix del límite de payload aplicado — falta el reintento real.
-  6. **Estimaciones BCBA-PAS** — específicamente `historico_pas_datasets.csv` (NO `reporte_1.xlsx`)
-     de bolsadecereales.com/estimaciones-agricolas → `/produccion`.
-  7. **Pago final de letras (sintéticos)** — pegás `TICKER PAGO_FINAL [VENCIMIENTO]` por línea (lo
-     sacás de tu Excel, IAMC o BYMA) → `/dolar` (panel Sintéticos).
-  Con que confirmes cuáles ya probaste (y cuáles fallaron, si alguna) alcanza para tachar esto.
+- [x] **A6. Probar el uploader de `/admin/datos` logueado — ✅ CERRADO 27/07**, con Lautoro en vivo,
+  las 7 secciones. Detalle en `sesiones/2026-07-27-a6-uploaders-formato-crudo.md`:
+  - ✅ **Datos del día** (23/07) + historial editable de los últimos 14 días (24/07).
+  - ✅ **DEA-SAGyP**: fix del límite de payload (24/07) confirmado con el CSV real (27/07) — 24
+    filas, vintage del día.
+  - ✅ **Comercialización (Agrochat)** y ✅ **Camiones (Williams)** (27/07): bug real de origen
+    encontrado (no de la web) — lo que Agrochat devuelve ya transformado sale como texto de una
+    celda de dataframe, sin salto de línea real, no descargable. Fix: los dos parsers aceptan
+    directo el dataset CRUDO de origen (SÍ es un archivo real) y replican la transformación en
+    TypeScript. 90/90 y 80/80 filas verificadas contra datos reales.
+  - ✅ **BCBA-PAS** (27/07): `historico_pas_datasets.csv`, 400 filas.
+  - ✅ **Compras BCRA manual** y ✅ **Pago final LECAP** (27/07): cargados y verificados por SQL.
+  Solo queda sin confirmar el detalle chico del historial editable de "Datos del día" (editar un
+  día viejo + ver el bloqueo 🔒) — no bloquea nada, el resto del ítem está cerrado.
 - [x] **A7. Decidir H12 y girasol/sorgo** — ✅ decidido 22/07 (§7): H12 no por ahora · girasol/sorgo sí.
 - [x] ~~**A8. Re-evaluar Leaked password protection**~~ → **descartado por ahora, 24/07** (Lautaro:
   "descartalo"). Se retoma solo si algún día se decide upgradear Supabase a Pro ($25/mes).
@@ -376,6 +353,38 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
 - [ ] **C22 = V4. Diario (retoque) + medición** — el diario NO se sofistica a propósito; solo
   puede citar evidencia ya verificada del view vigente. Cierra con la medición de consumo real
   de las 4 Routines. Depende de C19.
+- [ ] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (nuevo, 27/07)** — al probar el uploader
+  de BCBA-PAS (A6) Lautaro pasó un export alternativo (`reporte.xlsx`, hoja "Reporte base de
+  datos") con las mismas 27 campañas 2000/01→2026/27 pero desglosadas por **zona** (NOA, NEA,
+  Núcleo Norte/Sur, Centro/S Bs As, SE BA, Cuenca del Salado, etc.), no solo el total país que ya
+  carga `historico_pas_datasets.csv`. **Verificado 27/07**: la columna `Producción(MTn)` de ese
+  archivo son toneladas CRUDAS igual que el CSV (soja 2024/25 = 50.300.000 = 50,3 Mt, maíz 2024/25
+  = 49.000.000 = 49,0 Mt, ambos coinciden con lo publicado) — resuelve la duda de escala que había
+  quedado abierta en `sesiones/2026-07-23-mp2-skill-y-alta-srl.md` sobre el `reporte_1.xlsx`
+  original (ese SÍ seguía sin poder verificarse, nunca trajo un valor >0). Hoy la web solo modela
+  el total nacional; esto habilitaría un panel nuevo (¿qué zona explica una caída de producción:
+  rinde flojo en el Núcleo o menos hectáreas en el NOA?). Alcance a definir cuando se ejecute:
+  tabla nueva (no encaja en `estimaciones_produccion`, que es por país no por zona) + parser XLSX
+  (columnas en OTRO ORDEN que el CSV: Campaña,Zona,Cultivo,... — no es un simple alias) + panel de
+  visualización. Sin prompt escrito todavía.
+- [ ] **C24. Camiones — carga diaria manual vía X de Agroentregas (nuevo, 27/07)** — mismo patrón
+  que **Compras BCRA (MULC) — carga manual** (`bcra-manual.tsx`/`bcra-actions.ts`, C4): hoy
+  `camiones` solo se actualiza cuando Lautoro sube el export tidy/zonas de Williams (periódico, no
+  diario) → entre carga y carga el panel `/comercio/camiones` queda con rezago. Lautoro propone
+  tapar ese hueco con una carga manual del dato del día, sacado de la **cuenta de X de
+  Agroentregas** (posteo diario de camiones, a confirmar el desglose exacto que publica —¿total
+  país, por zona, por producto?). Mismo criterio que compras BCRA: la carga manual es solo un
+  placeholder del día; cuando después llega el archivo real de Williams para esa fecha, el upsert
+  existente (`admin_upsert_camiones`, mismo `producto`+`zona`+`fecha` como clave) ya lo pisa solo
+  con el dato oficial — a diferencia de `compras` (que necesitó la regla explícita "MAGyP inserta,
+  Agrochat manda" porque el cron de MAGyP podía correr DESPUÉS de una corrección manual), acá no
+  hay ningún cron automático de camiones que vuelva a disparar y pueda clobbear la carga manual, así
+  que el upsert simple alcanza — confirmar este razonamiento al ejecutar, no asumirlo sin chequear.
+  Alcance a definir: (1) research rápido de qué publica exactamente esa cuenta de X (capturas
+  reales, no memoria) para saber qué campos pedir en el form; (2) tarjeta nueva en `/admin/datos`
+  (fecha + zona(s), reusa `PRODUCTO_SERIE_CLAVES`/`ZONA_DISPLAY` de `camiones/config.ts`); (3)
+  guard de huecos como ya tiene `bcra-manual.tsx` (últimos días cargados + huecos detectados). Sin
+  prompt escrito todavía.
 
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 
