@@ -10,7 +10,7 @@ description: >-
 # modelo grande, con tiempo para pensar el título y el color del día. Esto pisa
 # el modelo de la sesión (y el del selector de la Routine) solo para este turno.
 model: claude-opus-5
-effort: high
+effort: medium
 ---
 
 # Informe diario — procedimiento
