@@ -62,7 +62,7 @@
    Única fuente de verdad de los tokens dark: el selector de abajo. */
 :root[data-theme="dark"] {
   /* ---- DARK — carbón verde profundo, oro con avaricia (rueda) ---- */
-  --bg:#060A07; --panel:#0C130D; --panel-2:#111A12; --panel-3:#152017;
+  --bg:#050807; --panel:#0C130D; --panel-2:#111A12; --panel-3:#152017;
   --ink:#EDF4E7; --ink-2:#ADBFA6; --ink-3:#86987E;
   --line:rgba(168,198,160,.10); --line-2:rgba(168,198,160,.20);
   --edge:rgba(168,198,160,.14);
@@ -80,9 +80,9 @@
     0 24px 48px -24px rgba(0,0,0,.8);
   --panel-sheen:linear-gradient(180deg, rgba(237,244,231,.035), rgba(237,244,231,0) 96px);
   --atmos:
-    radial-gradient(90% 55% at 50% -12%, rgba(111,181,68,.09), transparent 62%),
-    radial-gradient(42% 30% at 88% -4%, rgba(239,191,46,.05), transparent 72%),
-    radial-gradient(120% 60% at 50% 118%, rgba(0,0,0,.55), transparent 60%);
+    radial-gradient(90% 58% at 50% -12%, rgba(111,181,68,.14), transparent 62%),
+    radial-gradient(44% 32% at 88% -4%, rgba(239,191,46,.08), transparent 72%),
+    radial-gradient(120% 60% at 50% 118%, rgba(0,0,0,.62), transparent 60%);
   --ribbon-bg:#0A120C; --ribbon-ink:#EAF3E0; --ribbon-line:rgba(234,243,224,.08);
   --grid:rgba(168,198,160,.13); --grid-strong:rgba(168,198,160,.28);
   --tip-bg:#111A12; --tip-ink:#EDF4E7; --tip-edge:rgba(239,191,46,.30);
@@ -383,29 +383,31 @@ table.tbl { width:100%; border-collapse:collapse; min-width:640px; }
   .ribbon:hover .ribbon-track, .ribbon:focus-within .ribbon-track { animation-play-state:paused; }
   @keyframes cinta-marquee { to { transform:translateX(-50%); } }
 
-  /* ---- Entrada en cascada — fade+rise breve al aparecer en pantalla, sin JS
-     (CSS puro, corre una sola vez al montar). Paneles y tarjetas destacadas
-     entran juntos; las grillas (`:where` = especificidad cero, no compite con
-     estilos propios de cada tarjeta) entran escalonadas, tope en 6 para no
-     demorar listas largas (noticias, admin). ---- */
-  @keyframes entrar { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
-  .panel, .chart-wrap, .hub-titulares, .ht-feature {
-    animation:entrar .5s cubic-bezier(.22,.7,.3,1) both;
+  /* ---- Entrada en cascada — fade+rise al aparecer en pantalla, sin JS
+     (CSS puro, corre una sola vez al montar). El hero del día entra primero
+     (titular, después la placa); los paneles lo siguen; las grillas (`:where`
+     = especificidad cero, no compite con estilos propios de cada tarjeta)
+     entran escalonadas, tope en 6 para no demorar listas largas. ---- */
+  @keyframes entrar { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  .hero-dia > .hero-main { animation:entrar .6s cubic-bezier(.22,.7,.3,1) both; }
+  .hero-dia > .hero-placa { animation:entrar .6s cubic-bezier(.22,.7,.3,1) .12s both; }
+  .panel, .chart-wrap {
+    animation:entrar .55s cubic-bezier(.22,.7,.3,1) both;
   }
   :where(.hub-grid, .home-panels, .calor-grid, .news-grid, .admin-cards, .lu-kpis,
     .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > * {
-    animation:entrar .45s cubic-bezier(.22,.7,.3,1) both;
+    animation:entrar .5s cubic-bezier(.22,.7,.3,1) both;
   }
   :where(.hub-grid, .home-panels, .calor-grid, .news-grid, .admin-cards, .lu-kpis,
-    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(2) { animation-delay:45ms; }
+    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(2) { animation-delay:70ms; }
   :where(.hub-grid, .home-panels, .calor-grid, .news-grid, .admin-cards, .lu-kpis,
-    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(3) { animation-delay:90ms; }
+    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(3) { animation-delay:140ms; }
   :where(.hub-grid, .home-panels, .calor-grid, .news-grid, .admin-cards, .lu-kpis,
-    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(4) { animation-delay:135ms; }
+    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(4) { animation-delay:210ms; }
   :where(.hub-grid, .home-panels, .calor-grid, .news-grid, .admin-cards, .lu-kpis,
-    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(5) { animation-delay:180ms; }
+    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(5) { animation-delay:280ms; }
   :where(.hub-grid, .home-panels, .calor-grid, .news-grid, .admin-cards, .lu-kpis,
-    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(n+6) { animation-delay:225ms; }
+    .lp-services, .lp-steps, .lp-why, .lp-teaser-grid) > *:nth-child(n+6) { animation-delay:350ms; }
 }
 
 /* ============================================================
@@ -530,19 +532,64 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   background:color-mix(in srgb, var(--gold) 9%, transparent); }
 
 /* ===== Portada / tablero (hub) ===== */
-.hub-hoy-hd { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .hub-hoy-more { font-size:var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.06em;
   color:var(--gold-text); white-space:nowrap; }
 .hub-hoy-more:hover { color:var(--ink); }
-.hub-titulares { list-style:none; margin:6px 0 0; padding:0; border:1px solid var(--edge);
-  border-radius:var(--r-panel); background:var(--panel); box-shadow:var(--shadow); overflow:hidden; }
-.hub-titulares li + li { border-top:1px solid var(--line); }
-.hub-titulares a { display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  padding:11px 14px; transition:background var(--t-fast) ease; }
-.hub-titulares a:hover { background:color-mix(in srgb, var(--panel-2) 80%, transparent); }
 .ht-titulo { font-size:var(--fs-base); font-weight:600; color:var(--ink); line-height:1.35; }
 .ht-fuente { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3);
   white-space:nowrap; flex-shrink:0; }
+
+/* ===== Hero del día (portada) — el momento fuerte de la home =====
+   Titular del día en display grande (izq) + placa de pizarra con el número
+   protagonista (der). Sin panel-caja: tipografía sobre el fondo, separado por
+   una regla — registro editorial, no "otra tarjeta más". */
+.hero-dia { display:grid; grid-template-columns:1.4fr .9fr; gap:clamp(24px,4vw,56px);
+  align-items:end; padding:clamp(18px,3vw,34px) 2px clamp(20px,2.6vw,30px);
+  border-bottom:1px solid var(--line-2); }
+.hero-dia.sin-placa { grid-template-columns:1fr; }
+.hero-kicker { display:flex; align-items:baseline; justify-content:space-between; gap:14px;
+  font-size:var(--fs-xs); font-weight:700; text-transform:uppercase; letter-spacing:.16em;
+  color:var(--gold-text); }
+.hero-kicker > span { display:inline-flex; align-items:center; gap:12px; min-width:0; }
+.hero-kicker > span::after { content:""; height:1px; width:56px; flex:0 0 auto;
+  background:linear-gradient(90deg, var(--gold-hair), transparent); }
+.hero-headline { display:block; margin:14px 0 10px; font-family:var(--font-display);
+  font-weight:600; font-size:clamp(27px,3.6vw,46px); line-height:1.12; letter-spacing:-.014em;
+  color:var(--ink); text-wrap:balance; transition:color var(--t-fast) ease; }
+.hero-headline:hover { color:var(--brand-deep); text-decoration:underline;
+  text-decoration-color:var(--gold); text-decoration-thickness:2px; text-underline-offset:6px; }
+.hero-meta { display:flex; align-items:center; gap:10px; }
+.hero-subheads { list-style:none; margin:18px 0 0; padding:0;
+  display:flex; flex-direction:column; border-top:1px solid var(--line); }
+.hero-subheads li { border-bottom:1px solid var(--line); }
+.hero-subheads li:last-child { border-bottom:0; }
+.hero-subheads a { display:flex; align-items:baseline; justify-content:space-between; gap:14px;
+  padding:8px 2px; transition:color var(--t-fast) ease; }
+.hero-subheads a:hover .ht-titulo { color:var(--brand-deep); }
+/* Placa del número protagonista: hairline vertical con corazón dorado + cifra display */
+.hero-placa { position:relative; padding-left:clamp(20px,3vw,44px); padding-bottom:4px; }
+.hero-placa::before { content:""; position:absolute; left:0; top:6%; bottom:6%; width:1px;
+  background:linear-gradient(180deg, transparent, var(--gold-hair) 38%, var(--gold-hair) 62%, transparent); }
+.hp-lbl { display:flex; align-items:center; gap:8px; font-size:var(--fs-xs); font-weight:700;
+  text-transform:uppercase; letter-spacing:.15em; color:var(--ink-3); }
+.hp-big { font-family:var(--font-display); font-weight:600; font-size:clamp(52px,6.4vw,88px);
+  line-height:.98; letter-spacing:-.02em; color:var(--ink); margin:10px 0 8px;
+  font-variant-numeric:lining-nums; }
+.hp-big small { font-size:.3em; font-family:var(--font-ui); font-weight:500; color:var(--ink-3);
+  letter-spacing:0; }
+.hp-ctx { margin:0; font-size:var(--fs-sm); color:var(--ink-3); }
+.hp-ctx b { font-family:var(--font-mono); font-weight:600; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.hp-link { display:inline-block; margin-top:10px; font-size:var(--fs-2xs); font-weight:800;
+  text-transform:uppercase; letter-spacing:.06em; color:var(--gold-text); }
+.hp-link:hover { color:var(--ink); }
+@media (max-width:860px){
+  .hero-dia { grid-template-columns:1fr; align-items:start; gap:22px; }
+  .hero-placa { padding-left:0; border-top:1px solid var(--line); padding-top:16px; }
+  .hero-placa::before { display:none; }
+  .hp-big { font-size:clamp(46px,13vw,64px); }
+  .hero-kicker { flex-wrap:wrap; }
+  .hero-kicker > span::after { display:none; }
+}
 .hub-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; margin-top:6px; }
 .hub-card { position:relative; display:flex; flex-direction:column; gap:5px; padding:16px 16px 15px;
   border:1px solid var(--edge); border-radius:var(--r-panel); background:var(--panel); box-shadow:var(--shadow);
@@ -554,14 +601,7 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   transition:opacity var(--t-fast) ease, transform var(--t-fast) ease; }
 .hub-card:hover .hub-card-go { opacity:1; transform:translateX(2px); }
 
-/* Titular destacado del día (protagonista) */
-.ht-feature { display:block; margin:8px 0 0; padding:16px 18px; border:1px solid var(--edge);
-  border-radius:var(--r-panel); background:var(--panel); box-shadow:var(--shadow);
-  border-left:3px solid var(--gold); transition:border-color var(--t-fast) ease, transform var(--t-fast) ease; }
-.ht-feature:hover { border-color:color-mix(in srgb, var(--gold) 55%, var(--edge)); transform:translateY(-1px); }
-.ht-feature-titulo { display:block; font-family:var(--font-display); font-size:clamp(19px,2.4vw,25px);
-  font-weight:600; letter-spacing:-.008em; color:var(--ink); line-height:1.28; }
-.ht-feature-meta { display:flex; align-items:center; gap:10px; margin-top:8px; }
+/* Chip "N medios" (cobertura del titular destacado) */
 .ht-medios { font-size:var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.05em;
   color:var(--gold-text); border:1px solid color-mix(in srgb, var(--gold) 40%, var(--edge));
   border-radius:var(--r-chip); padding:1px 6px; white-space:nowrap; }
@@ -572,16 +612,19 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 
 /* "El mercado hoy" — grilla compacta de Chicago en USD/tn */
 .mh-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(96px, 1fr)); gap:8px; }
-.mh-cell { display:flex; flex-direction:column; gap:2px; padding:10px 11px; border:1px solid var(--edge);
-  border-radius:var(--r-ctl); background:var(--panel-2); }
+.mh-cell { display:flex; flex-direction:column; gap:3px; padding:12px 13px 11px; border:1px solid var(--edge);
+  border-radius:var(--r-ctl); background:var(--panel-2);
+  transition:border-color var(--t-fast) ease, transform var(--t-fast) ease; }
+.mh-cell:hover { border-color:var(--gold-hair); transform:translateY(-1px); }
 .mh-hd { display:flex; align-items:center; gap:5px; }
 .mh-glyph { display:inline-flex; width:14px; height:14px; }
 .mh-glyph svg { width:100%; height:100%; }
 .mh-name { font-family:var(--font-ui); font-size:var(--fs-2xs); font-weight:800; color:var(--ink-2);
   text-transform:uppercase; letter-spacing:.03em; }
 .mh-pos { font-size:9px; font-weight:700; color:var(--ink-3); margin-left:auto; white-space:nowrap; }
-.mh-val { font-family:var(--font-mono); font-size:var(--fs-lg); font-weight:700; color:var(--ink);
-  font-variant-numeric:tabular-nums; line-height:1.1; display:flex; align-items:baseline; gap:4px; }
+.mh-val { font-family:var(--font-mono); font-size:22px; font-weight:600; color:var(--ink);
+  font-variant-numeric:tabular-nums; letter-spacing:-.01em; line-height:1.1;
+  display:flex; align-items:baseline; gap:4px; }
 .mh-unit { font-family:var(--font-ui); font-size:9px; font-weight:700; color:var(--ink-3);
   text-transform:uppercase; letter-spacing:.03em; }
 .mh-delta { font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums; }

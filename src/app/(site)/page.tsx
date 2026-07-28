@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { getCintaData } from "@/lib/market";
+import { getPizarra } from "@/lib/pizarra";
 import { getNoticias, type NoticiaItem } from "@/lib/noticias";
 import { getInterpretacionesPublicadas } from "@/lib/interpretaciones";
 import { ORG_LABEL, type Organismo } from "@/lib/calendario";
 import { hoyCordobaISO, fechaCordobaISO } from "@/lib/dates";
+import { nfmt } from "@/lib/format";
 import { Cinta } from "@/components/cinta";
+import { CountUp } from "@/components/count-up";
 import { MercadoHoy } from "@/components/mercado-hoy";
 import { InformesPanel } from "@/components/informes-panel";
 import { EstimacionesMini } from "@/components/estimaciones-mini";
@@ -31,7 +34,10 @@ const SECCIONES: { key: string; href: string; nombre: string; desc: string }[] =
 ];
 
 export default async function Home() {
-  const cinta = await getCintaData();
+  // getPizarra() está cache()ada y getCintaData() ya la llama adentro → pedirla
+  // acá de nuevo NO agrega ningún request: es la misma promesa deduplicada.
+  // Alimenta la placa del hero (pizarra soja = el número que todo productor conoce).
+  const [cinta, pizarra] = await Promise.all([getCintaData(), getPizarra()]);
   const [noticias, interpretaciones] = await Promise.all([getNoticias(), getInterpretacionesPublicadas()]);
 
   // Toda interpretación de informe (MP4) que Lautaro PUBLICÓ hoy (no la fecha del informe
@@ -71,6 +77,25 @@ export default async function Home() {
     }
   }
 
+  // Fecha larga del kicker del hero ("martes 28 de julio de 2026" → capitalizada).
+  const fechaLargaRaw = new Intl.DateTimeFormat("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Argentina/Cordoba",
+  }).format(new Date());
+  const fechaLarga = fechaLargaRaw.charAt(0).toUpperCase() + fechaLargaRaw.slice(1);
+
+  // La placa del hero: pizarra soja como número protagonista (misma getPizarra()
+  // deduplicada que ya usa la cinta), con maíz/trigo + mayorista como contexto.
+  // Es dato de la sección "granos" → respeta el mismo permiso que "El mercado hoy".
+  const soja = pizarra.granos.SOJ ?? null;
+  const maiz = pizarra.granos.MAI ?? null;
+  const trigo = pizarra.granos.TRI ?? null;
+  const mayorista = cinta.items.find((i) => i.label === "Mayorista")?.value ?? null;
+  const conPlaca = puedeGranos && soja !== null;
+
   return (
     <>
       <h1 className="sr">ROFO AGRO — Pizarra electrónica de granos</h1>
@@ -78,53 +103,81 @@ export default async function Home() {
       <main className="wrap">
         <div className="col">
           {destacado && (
-            <section className="hub-hoy" aria-label="Novedades del día">
-              <div className="hub-hoy-hd">
-                <h2 className="sec-title">Novedades del día</h2>
-                <Link href="/noticias" className="hub-hoy-more">
-                  Ver todas →
-                </Link>
+            <section className={`hero-dia${conPlaca ? "" : " sin-placa"}`} aria-label="Novedades del día">
+              <div className="hero-main">
+                <div className="hero-kicker">
+                  <span>Novedades del día · {fechaLarga}</span>
+                  <Link href="/noticias" className="hub-hoy-more">
+                    Ver todas →
+                  </Link>
+                </div>
+
+                {destacado.interno ? (
+                  <Link className="hero-headline" href={destacado.link}>
+                    {destacado.titulo}
+                  </Link>
+                ) : (
+                  <a className="hero-headline" href={destacado.link} target="_blank" rel="noopener noreferrer">
+                    {destacado.titulo}
+                  </a>
+                )}
+                <div className="hero-meta">
+                  <span className="ht-fuente">{destacado.fuente}</span>
+                  {!destacado.interno && destacado.nMedios > 1 && (
+                    <span className="ht-medios">{destacado.nMedios} medios</span>
+                  )}
+                </div>
+
+                {resto.length > 0 && (
+                  <ul className="hero-subheads">
+                    {resto.slice(0, 5).map((t, i) =>
+                      t.interno ? (
+                        <li key={`${t.link}-${i}`}>
+                          <Link href={t.link}>
+                            <span className="ht-titulo">{t.titulo}</span>
+                            <span className="ht-fuente">{t.fuente}</span>
+                          </Link>
+                        </li>
+                      ) : (
+                        <li key={t.link}>
+                          <a href={t.link} target="_blank" rel="noopener noreferrer">
+                            <span className="ht-titulo">{t.titulo}</span>
+                            <span className="ht-fuente">{t.fuente}</span>
+                          </a>
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                )}
               </div>
 
-              {destacado.interno ? (
-                <Link className="ht-feature" href={destacado.link}>
-                  <span className="ht-feature-titulo">{destacado.titulo}</span>
-                  <span className="ht-feature-meta">
-                    <span className="ht-fuente">{destacado.fuente}</span>
-                  </span>
-                </Link>
-              ) : (
-                <a className="ht-feature" href={destacado.link} target="_blank" rel="noopener noreferrer">
-                  <span className="ht-feature-titulo">{destacado.titulo}</span>
-                  <span className="ht-feature-meta">
-                    <span className="ht-fuente">{destacado.fuente}</span>
-                    {destacado.nMedios > 1 && (
-                      <span className="ht-medios">{destacado.nMedios} medios</span>
+              {puedeGranos && soja && (
+                <aside className="hero-placa" aria-label="Pizarra Rosario — soja disponible">
+                  <div className="hp-lbl">
+                    Pizarra Rosario · Soja
+                    {soja.estimativo && (
+                      <span className="pz-estim" title="Valor estimado (CAC sin publicar todavía)">
+                        est.
+                      </span>
                     )}
-                  </span>
-                </a>
-              )}
-
-              {resto.length > 0 && (
-                <ul className="hub-titulares">
-                  {resto.map((t, i) =>
-                    t.interno ? (
-                      <li key={`${t.link}-${i}`}>
-                        <Link href={t.link}>
-                          <span className="ht-titulo">{t.titulo}</span>
-                          <span className="ht-fuente">{t.fuente}</span>
-                        </Link>
-                      </li>
-                    ) : (
-                      <li key={t.link}>
-                        <a href={t.link} target="_blank" rel="noopener noreferrer">
-                          <span className="ht-titulo">{t.titulo}</span>
-                          <span className="ht-fuente">{t.fuente}</span>
-                        </a>
-                      </li>
-                    ),
-                  )}
-                </ul>
+                  </div>
+                  <div className="hp-big">
+                    <CountUp value={soja.usd} decimals={1} />
+                    <small> US$/tn</small>
+                  </div>
+                  <p className="hp-ctx">
+                    Maíz <b>{maiz ? nfmt(maiz.usd, 1) : "—"}</b> · Trigo <b>{trigo ? nfmt(trigo.usd, 1) : "—"}</b>
+                    {mayorista !== null && (
+                      <>
+                        {" "}
+                        · Mayorista <b>$ {nfmt(mayorista, 2)}</b>
+                      </>
+                    )}
+                  </p>
+                  <Link href="/granos" className="hp-link">
+                    Arbitrajes y pases →
+                  </Link>
+                </aside>
               )}
             </section>
           )}
