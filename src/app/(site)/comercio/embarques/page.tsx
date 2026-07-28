@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/dal";
 import { MesaEmbarquePanel } from "@/components/lineup/embarques-panel";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Comercio exterior · Mesa de embarque (análisis de mesa). Protegido SIEMPRE con
@@ -17,10 +18,9 @@ export default async function EmbarquesPage() {
   await requireAdmin();
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Mesa de embarque</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior · Mesa de embarque</h2>
+          <PageHead kicker="Programa DJVE · idioma A3" title="Mesa de embarque" />
           <MesaEmbarquePanel />
         </div>
       </main>

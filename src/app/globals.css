@@ -7,18 +7,18 @@
    (carbón verde + filo de oro, terminal financiera). Tokens del logo:
    verdes ROFO/AGRO + trigo, sin tocar.
 
-   Tipografía "Argentina" (rediseño premium, 27-28/07/2026): Piazzolla
-   (Huerta Tipográfica, Buenos Aires) para titulares y el número protagonista
-   · Rosario (Omnibus-Type) para UI/prosa · IBM Plex Mono para datos
-   tabulares. Los números de mercado SIEMPRE en mono (nunca en display) —
-   restricción deliberada, terminal financiera de verdad.
+   Tipografía «Fundación» (rediseño premium 28/07/2026, elegida por Lautaro
+   entre 3 sistemas clásicos/sobrios): superfamilia Source — Serif 4 para
+   titulares y el número protagonista · Sans 3 para UI/prosa · Code Pro para
+   datos tabulares. Los números de mercado SIEMPRE en mono (nunca en
+   display) — restricción deliberada, terminal financiera de verdad.
    ============================================================ */
 
 :root {
-  /* fuentes (las variables --font-piazzolla/--font-rosario/--font-plexmono las inyecta next/font) */
-  --font-display: var(--font-piazzolla), Georgia, "Times New Roman", serif;
-  --font-ui: var(--font-rosario), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-plexmono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* fuentes (las variables --font-sserif/--font-ssans/--font-scode las inyecta next/font) */
+  --font-display: var(--font-sserif), Georgia, "Times New Roman", serif;
+  --font-ui: var(--font-ssans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-scode), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-base: 13px;
   --fs-md: 14.5px; --fs-lg: 17px; --fs-xl: 22px;
@@ -947,10 +947,7 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   color:var(--pos); background:var(--pos-weak); padding:0 4px; border-radius:3px; }
 
 /* --- página /produccion --- */
-.prod-intro { padding:2px 2px 0; }
-.prod-h1 { font-family:var(--font-display); font-size:clamp(26px,3vw,32px); font-weight:600; letter-spacing:-.01em;
-  color:var(--ink); margin:8px 0 6px; }
-.prod-lede { font-size:var(--fs-base); color:var(--ink-2); max-width:78ch; margin:0; line-height:1.5; }
+/* (la intro migró a las clases compartidas .page-hd; prod-intro/h1/lede quedaron sin uso) */
 /* Pestañas Calendario / Estimaciones (E3 H8): control segmentado. */
 .prod-tabs { display:flex; gap:4px; margin:16px 0 4px; padding:3px; background:var(--panel-2, var(--panel));
   border:1px solid var(--line); border-radius:var(--r-ctl); width:fit-content; }
@@ -1245,6 +1242,9 @@ a.estim-inf:hover { color:var(--gold-text); }
   background:color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter:saturate(1.3) blur(10px); -webkit-backdrop-filter:saturate(1.3) blur(10px);
   border-bottom:1px solid var(--edge); }
+.lp-nav::after { /* mismo filo dorado que el masthead del sitio */
+  content:""; display:block; height:1px; margin-bottom:-1px;
+  background:linear-gradient(90deg, transparent 4%, var(--gold-hair) 30%, var(--gold-hair) 70%, transparent 96%); }
 .lp-nav-in { max-width:1200px; margin:0 auto; padding:12px clamp(16px,3vw,28px);
   display:flex; align-items:center; gap:18px; }
 .lp-nav-links { display:flex; gap:22px; margin-left:12px; }
@@ -1269,8 +1269,8 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-quote { font-family:var(--font-display); font-style:italic; font-weight:500;
   font-size:clamp(18px,2.2vw,22px); line-height:1.55; color:var(--ink-2); }
 .lp-quote strong { color:var(--ink); }
-.lp-eyebrow { display:inline-block; font-size:var(--fs-xs); font-weight:800; text-transform:uppercase;
-  letter-spacing:.14em; color:var(--brand-deep); margin-bottom:16px; }
+.lp-eyebrow { display:inline-block; font-size:var(--fs-xs); font-weight:700; text-transform:uppercase;
+  letter-spacing:.16em; color:var(--gold-text); margin-bottom:16px; }
 .lp-eyebrow-gold { color:var(--gold-text); }
 
 /* --- Hero --- */

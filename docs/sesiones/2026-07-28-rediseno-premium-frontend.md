@@ -130,13 +130,44 @@ comercio, calculadoras, calculadoras/[slug] — con la `desc` de cada calc como 
 noticias, informes). `/produccion` no se tocó: ya tenía su intro editorial propia (`prod-h1`,
 ya en display desde la 1ª vuelta).
 
+## Vuelta 3 — «quiero que cambiemos la fuente» + cabeceras en TODAS las páginas restantes
+
+Lautaro vio la vuelta 2 en el Preview: "está mejor pero quiero que cambiemos la fuente" — pidió
+repensar el sistema completo, dirección "más clásica/sobria". Y de paso: "que termines con el
+resto de la web" (cabeceras editoriales solo estaban en 8 páginas, faltaban las 8 subpáginas de
+`/comercio/*` + `/granos/view` + `/produccion`).
+
+**Cabeceras completadas** — `PageHead` cableado en `/comercio/{puertos,empresas,senal,embarques,
+temperatura,negociado,camiones}` y `/granos/view` (mismo patrón: kicker con las fuentes propias
+de cada subpágina + título + h1 visible reemplazando el `sr`-only). `/produccion` migró su intro
+a mano a las mismas clases `.page-hd*` (necesitaba `<b>` en el lede, que `PageHead` no acepta al
+recibir solo `string`) — `.prod-intro/.prod-h1/.prod-lede` quedaron sin uso, documentado en el
+CSS en vez de borrado silencioso.
+
+**Tipografía «Fundación»** (reemplaza «Argentina» de las vueltas 1-2): se armaron 3 candidatos
+clásicos/sobrios — S1 Source Serif 4 + Source Sans 3 + Source Code Pro · S2 Newsreader + Libre
+Franklin + Plex Mono · S3 EB Garamond + Archivo + Plex Mono — renderizados **sobre el sitio real
+en vivo** (home + /dolar, no specimen abstracto) inyectando los `@font-face` por `page.
+addStyleTag` con los woff2 como data URI (sin tocar el build). Lautaro eligió **S1
+«Fundación»**. Reemplazo 1:1 en `layout.tsx` (Piazzolla→Source Serif 4, Rosario→Source Sans 3,
+IBM Plex Mono→Source Code Pro) y en el comentario/nombres de variable de `globals.css`
+(`--font-piazzolla/--font-rosario/--font-plexmono` → `--font-sserif/--font-ssans/--font-scode`)
+— cero selectores tocados, mismo mapeo quirúrgico a `--font-display/--font-ui/--font-mono` de
+las vueltas anteriores. `chart-export.ts` actualizado al mismo criterio.
+
+**Landing**: `.lp-eyebrow` pasó a dorado (antes verde) para unificarse con el lenguaje de kicker
+del resto del sitio; `.lp-nav` sumó el mismo filo dorado del masthead.
+
+Verificado igual que las vueltas anteriores: lint/tsc/build ✅ · 205/205 tests ✅ · Playwright
+real en home/granos/comercio-camiones/landing/producción, claro+oscuro+mobile, cero errores de
+consola.
+
 ## Quedó pendiente / en vuelo
 
 - Confirmar visualmente `/comercio/*` subpáginas, `/granos/view`, `/admin` logueado (comparten
-  componentes ya verificados; riesgo bajo).
-- Feedback de Lautaro sobre la vuelta 2 en el Preview (el PR ya está ready-for-review).
-- La landing `/bienvenida` quedó con la 1ª pasada (tipografía display en `lp-h1/h2` + motion);
-  si Lautaro quiere el mismo salto de energía ahí, es una vuelta aparte.
+  componentes ya verificados; riesgo bajo) — ahora también tienen su cabecera editorial.
+- Feedback de Lautaro sobre la vuelta 3 (tipografía «Fundación» + cabeceras completas) en el
+  Preview.
 - Evaluado y descartado esta vez: View Transitions API (fade CSS de tema alcanza, menos riesgo).
 
 ## Trampas descubiertas (para la próxima sesión)

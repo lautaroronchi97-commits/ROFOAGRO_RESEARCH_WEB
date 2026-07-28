@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/dal";
 import { NegociadoPanel } from "@/components/compras/negociado-panel";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Comercio exterior · Negociado por producto (volumen de comercialización SIO Granos).
@@ -18,10 +19,9 @@ export default async function NegociadoPage() {
   await requireAdmin();
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Negociado por producto</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior · Negociado por producto</h2>
+          <PageHead kicker="SIO Granos · corte semanal" title="Negociado por producto" />
           <NegociadoPanel />
         </div>
       </main>

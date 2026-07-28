@@ -30,17 +30,19 @@ export default async function ProduccionPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Calendario de informes y estimaciones de producción</h1>
       <main className="wrap">
         <div className="col">
-          <div className="prod-intro">
-            <h2 className="prod-h1">Calendario de informes + estimaciones de producción</h2>
-            <p className="prod-lede">
+          {/* Mismas clases que PageHead (page-head.tsx), compuestas a mano: el lede
+              acá lleva marcado (<b>) y el componente solo acepta string plano. */}
+          <header className="page-hd">
+            <div className="page-hd-kicker">USDA · CONAB · BCR · SAGyP · BCBA</div>
+            <h1 className="page-hd-title">Producción</h1>
+            <p className="page-hd-lede">
               Cuándo publica cada organismo y qué proyecta para la producción de cada país y grano.
               Horarios en hora Argentina. Las fechas <b>oficiales</b> las publica el organismo; las marcadas{" "}
               <b>est.</b> son estimadas para los que no tienen agenda pública.
             </p>
-          </div>
+          </header>
 
           <ProduccionTabs
             calendario={

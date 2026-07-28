@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/dal";
 import { TemperaturaPanel } from "@/components/lineup/temperatura-panel";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Comercio exterior · Calor de mercadería (índice MESA). Protegido SIEMPRE con
@@ -17,10 +18,9 @@ export default async function TemperaturaPage() {
   await requireAdmin();
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Calor de mercadería (MESA)</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior · Calor de mercadería</h2>
+          <PageHead kicker="Índice MESA · percentiles estacionales" title="Calor de mercadería" />
           <TemperaturaPanel />
         </div>
       </main>

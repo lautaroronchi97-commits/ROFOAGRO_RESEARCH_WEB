@@ -68,9 +68,17 @@ invisible + label chiquito) + oscuro más profundo + cascada al doble. Verificad
 vuelta 1 (Playwright claro/oscuro/mobile, 205/205 tests, lint/tsc/build). PR #88 **ready for
 review** — Lautaro lo sacó de draft él mismo.
 
-**Pendiente**: feedback de Lautaro sobre la vuelta 2 en el Preview · si quiere el mismo salto de
-energía en la landing `/bienvenida` (quedó con la 1ª pasada) es una vuelta aparte · vistazo
-logueado a las páginas de mesa.
+**Vuelta 3 (misma sesión)**: Lautaro dijo "está mejor pero quiero que cambiemos la fuente" +
+"que termines con el resto de la web". **Tipografía nueva — sistema «Fundación»** (reemplaza
+«Argentina»): Source Serif 4 + Source Sans 3 + Source Code Pro, elegida entre 3 candidatos
+clásicos/sobrios renderizados en vivo sobre el sitio real (no specimen abstracto). **Cabeceras
+editoriales completadas** en las 8 subpáginas de `/comercio/*` + `/granos/view` que faltaban de
+la vuelta 2, y `/produccion` migrada a las mismas clases compartidas. Landing con el eyebrow y
+el filo de nav unificados al lenguaje dorado del resto del sitio. Verificado igual que siempre
+(205/205 tests, lint/tsc/build, Playwright real). PR #88 al día.
+
+**Pendiente**: feedback de Lautaro sobre la vuelta 3 en el Preview · vistazo logueado a las
+páginas de mesa (`/admin`, ahora también con cabecera en sus subpáginas públicas).
 
 ## Anterior (27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
 

@@ -12,6 +12,7 @@ import {
   type DireccionView,
 } from "@/lib/views-mercado";
 import { ViewFeedback } from "./view-feedback";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Granos · View de mesa (MP3 de docs/PLAN_INFORMES.md). Research direccional
@@ -129,10 +130,9 @@ export default async function ViewMesaPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — View de mesa por grano</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Granos · View de mesa</h2>
+          <PageHead kicker="Research direccional · solo mesa" title="View de mesa por grano" />
           <Panel id="view-mesa">
             <PanelHead
               title="View semanal por grano"
