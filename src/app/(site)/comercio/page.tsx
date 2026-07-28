@@ -4,6 +4,7 @@ import { DjvePanel } from "@/components/djve-panel";
 import { requireSeccion } from "@/lib/auth/dal";
 import { authConfigured } from "@/lib/auth/env";
 import { getPerfil } from "@/lib/auth/dal";
+import { PageHead } from "@/components/page-head";
 
 export const revalidate = 3600;
 
@@ -36,10 +37,9 @@ export default async function ComercioPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Comercio exterior</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior</h2>
+          <PageHead kicker="DJVE · line-up · camiones" title="Comercio exterior" lede="Declaraciones de venta al exterior de granos y subproductos." />
 
           <nav className="hub-grid" aria-label="Datos públicos" style={{ marginBottom: 18 }}>
             {PUBLICO.map((a) => (

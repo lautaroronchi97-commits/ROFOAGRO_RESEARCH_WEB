@@ -13,6 +13,7 @@ import { CalcCostos } from "@/components/calc-costos";
 import { CalcPorcentaje } from "@/components/calc-porcentaje";
 import { CalcPases } from "@/components/calc-pases";
 import { QueEsEsto } from "@/components/que-es-esto";
+import { PageHead } from "@/components/page-head";
 import { requireSeccion } from "@/lib/auth/dal";
 
 export const revalidate = 60;
@@ -88,11 +89,10 @@ export default async function CalculadoraPage({
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — {calc.nombre}</h1>
       <main className="wrap">
         <div className="col">
           {/* Sin back-link acá: el breadcrumb del layout (Inicio › Calculadoras › …) ya cumple (E3 H11). */}
-          <h2 className="sec-title">{calc.nombre}</h2>
+          <PageHead kicker="Calculadora de mesa" title={calc.nombre} lede={calc.desc} />
           <QueEsEsto paraQue={calc.paraQue} comoSeCalcula={calc.comoSeCalcula} />
           {renderCalc()}
         </div>

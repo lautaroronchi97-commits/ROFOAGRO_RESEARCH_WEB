@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/dal";
 import { SemaforoPanel } from "@/components/lineup/semaforo-panel";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Comercio exterior · Semáforo físico → precio (análisis de mesa). Protegido SIEMPRE
@@ -17,10 +18,9 @@ export default async function SenalPage() {
   await requireAdmin();
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Señal física → precio</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior · Señal física → precio</h2>
+          <PageHead kicker="Cobertura × capacidad de pago" title="Señal física → precio" />
           <SemaforoPanel />
         </div>
       </main>

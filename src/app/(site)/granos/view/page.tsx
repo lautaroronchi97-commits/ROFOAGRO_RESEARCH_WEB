@@ -15,6 +15,7 @@ import {
 } from "@/lib/views-mercado";
 import type { ResumenGrano } from "@/lib/views-scorecard";
 import { ViewFeedback } from "./view-feedback";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Granos · View de mesa (V1 de docs/PLAN_INFORMES_V2.md, sucesor de MP3). Research
@@ -211,10 +212,9 @@ export default async function ViewMesaPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — View de mesa por grano</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Granos · View de mesa</h2>
+          <PageHead kicker="Research direccional · solo mesa" title="View de mesa por grano" />
           <Panel id="view-mesa">
             <PanelHead
               title="View semanal por grano"

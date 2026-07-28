@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/dal";
 import { EmpresasPanel } from "@/components/lineup/empresas-panel";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Comercio exterior · Empresas exportadoras (análisis de mesa). Protegido SIEMPRE
@@ -17,10 +18,9 @@ export default async function EmpresasPage() {
   await requireAdmin();
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Empresas exportadoras</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior · Empresas</h2>
+          <PageHead kicker="DJVE × line-up · por exportador" title="Empresas exportadoras" />
           <EmpresasPanel />
         </div>
       </main>

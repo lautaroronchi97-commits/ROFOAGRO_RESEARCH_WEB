@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/dal";
 import { FotoOperativaPanel } from "@/components/lineup/foto-operativa";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Puertos · Line-up de buques (análisis de mesa). Protegido SIEMPRE con requireAdmin
@@ -18,10 +19,9 @@ export default async function PuertosPage() {
   await requireAdmin();
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Puertos · Line-up de buques</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Puertos · Line-up de buques</h2>
+          <PageHead kicker="Line-up físico · rueda por rueda" title="Puertos · Line-up de buques" />
           <FotoOperativaPanel />
         </div>
       </main>

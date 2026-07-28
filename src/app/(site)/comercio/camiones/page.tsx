@@ -4,6 +4,7 @@ import { authConfigured } from "@/lib/auth/env";
 import { getPerfil } from "@/lib/auth/dal";
 import { CamionesPanel } from "@/components/camiones/camiones-panel";
 import { SenalCamionesPanel } from "@/components/camiones/senal-camiones";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Comercio exterior · Camiones en puerto (C5 del backlog maestro). Los datos crudos (entrada
@@ -25,10 +26,9 @@ export default async function CamionesPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Camiones en puerto</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Comercio exterior · Camiones en puerto</h2>
+          <PageHead kicker="Williams Entregas · zona y producto" title="Camiones en puerto" />
           <CamionesPanel />
           {esAdmin && <SenalCamionesPanel />}
         </div>

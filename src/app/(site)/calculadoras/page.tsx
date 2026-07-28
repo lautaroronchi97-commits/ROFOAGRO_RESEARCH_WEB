@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CALCULADORAS } from "@/lib/calculadoras";
 import { requireSeccion } from "@/lib/auth/dal";
+import { PageHead } from "@/components/page-head";
 
 export const metadata: Metadata = {
   title: "Calculadoras · ROFO AGRO",
@@ -13,10 +14,9 @@ export default async function CalculadorasPage() {
   await requireSeccion("calculadoras");
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Calculadoras</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Calculadoras</h2>
+          <PageHead kicker="Cotizadores de mesa" title="Calculadoras" lede="Corré tus números con la lógica de una mesa: a fijar, pases, carry, costos y más." />
           <nav className="hub-grid" aria-label="Calculadoras">
             {CALCULADORAS.map((c) => (
               <Link key={c.slug} href={`/calculadoras/${c.slug}`} className="hub-card">

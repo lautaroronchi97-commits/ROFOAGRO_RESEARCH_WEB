@@ -19,7 +19,68 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 28/07/2026 — 📐 V1 (view-mercado v2) + V2 (interpretaciones v2) HECHOS, mergeados)
+## Ahora (última actualización: 28/07/2026 — 🎨 REDISEÑO PREMIUM FRONT/UI/UX — código HECHO, PR en draft esperando feedback de Lautaro)
+
+**🎨 REDISEÑO PREMIUM FRONT/UI/UX — rama `claude/premium-frontend-design-s3wmcs`, PR #88
+(draft).** Pedido explícito de Lautaro: llevar el front a nivel "premium, >10K USD" — misma
+paleta y logos, tipografías propias (nada de Inter/Roboto), motion medio, "que no parezca IA
+genérica". **Fase de diseño primero, sin código**: 3 direcciones maquetadas con datos reales
+(A «Sala de operaciones» dark/Fraunces · B «Research de banca privada» claro/Newsreader · C
+«Panel de vidrio» glass) + specimen de 4 sistemas tipográficos, todo mostrado y confirmado por
+Lautaro ANTES de tocar el código real. Elegido: **híbrido A+B** (un solo sistema de tokens, dos
+pieles) + tipografía **T1 «Argentina»** (Piazzolla, Huerta Tipográfica BA + Rosario,
+Omnibus-Type + IBM Plex Mono). Skill `ui-ux-pro-max` instalada (de las 7 del bundle
+`nextlevelbuilder/ui-ux-pro-max-skill` se conservó solo esa, las otras 6 generan banners/logos
+con IA externa, no aplican).
+
+**Build: solo 5 archivos tocados** (`layout.tsx` fuentes · `globals.css` tokens+motion ·
+`cinta.tsx` marquee · `chart-export.ts` nombre de fuente) — el sistema de variables CSS pagó:
+los otros 70+ componentes heredaron el rediseño completo SIN tocarlos (`--font-ui`/
+`--font-mono` mismos nombres, nueva `--font-display` sumada y aplicada quirúrgicamente en
+`.panel-hd h2` —todo panel del sitio— + titulares editoriales; los NÚMEROS siguen siempre en
+mono, nunca display, restricción deliberada). Motion medio (marquee continuo de la cinta,
+entrada en cascada, transición de tema) — todo gated en `prefers-reduced-motion`, cae al
+comportamiento de siempre si el usuario lo pidió. **Bug real preexistente encontrado y
+arreglado de paso** (verificado contra el código sin tocar antes de atribuírselo): el gráfico
+de la calculadora "A fijar" (`calc-fijar.tsx`) tenía un viewBox desproporcionado que volvía
+gigantes sus textos — llevado a la misma convención que el resto de los charts del sitio.
+
+**Verificado**: lint/tsc/build ✅ · **205/205 tests** ✅ (sin tocar expects) · Playwright real
+con datos de Supabase en claro+oscuro+mobile en home/granos/dólar/producción/gráficos/
+calculadoras/noticias/informes/landing/ingresar/comercio(hub)/sin-acceso, cero errores de
+consola, cero scroll horizontal en mobile. **Sin verificar**: páginas de mesa gateadas
+(`/comercio/*` subpáginas admin, `/granos/view`, `/admin`) — requieren sesión real, comparten
+los mismos componentes ya verificados en el resto del sitio (riesgo bajo, no confirmado a
+ojo). **Trampa real encontrada**: un `npm run build` cortado por timeout del sandbox puede
+corromper `.next` de un modo que NO se nota en el build pero sí sirviendo (chunk 500 con MIME
+`text/plain`) — `rm -rf .next` + rebuild limpio lo resuelve; casi se atribuye por error a un
+bug de la app. Detalle completo:
+[`sesiones/2026-07-28-rediseno-premium-frontend.md`](sesiones/2026-07-28-rediseno-premium-frontend.md).
+
+**Vuelta 2 (misma sesión)**: Lautaro vio el Preview y dijo *"siento que la web prácticamente no
+cambió"* — tenía razón: la 1ª pasada fue demasiado conservadora (sin momento fuerte, tipografía
+imperceptible). Se le mostró un **antes/después renderizado** y aprobó ("Pushealo y seguí"):
+**hero del día en la home** (titular display grande + placa con la pizarra de soja como número
+protagonista ~88px serif que cuenta hasta su valor — misma `getPizarra()` cacheada, cero fetch
+nuevo, gate `puedeGranos`) + **cabeceras editoriales en las 8 páginas de sección**
+(`page-head.tsx`: kicker con fuentes de la sección + título display + lede, reemplaza el h1
+invisible + label chiquito) + oscuro más profundo + cascada al doble. Verificado igual que la
+vuelta 1 (Playwright claro/oscuro/mobile, 205/205 tests, lint/tsc/build). PR #88 **ready for
+review** — Lautaro lo sacó de draft él mismo.
+
+**Vuelta 3 (misma sesión)**: Lautaro dijo "está mejor pero quiero que cambiemos la fuente" +
+"que termines con el resto de la web". **Tipografía nueva — sistema «Fundación»** (reemplaza
+«Argentina»): Source Serif 4 + Source Sans 3 + Source Code Pro, elegida entre 3 candidatos
+clásicos/sobrios renderizados en vivo sobre el sitio real (no specimen abstracto). **Cabeceras
+editoriales completadas** en las 8 subpáginas de `/comercio/*` + `/granos/view` que faltaban de
+la vuelta 2, y `/produccion` migrada a las mismas clases compartidas. Landing con el eyebrow y
+el filo de nav unificados al lenguaje dorado del resto del sitio. Verificado igual que siempre
+(205/205 tests, lint/tsc/build, Playwright real). PR #88 al día.
+
+**Pendiente**: feedback de Lautaro sobre la vuelta 3 en el Preview · vistazo logueado a las
+páginas de mesa (`/admin`, ahora también con cabecera en sus subpáginas públicas).
+
+## Anterior (28/07/2026 — 📐 V1 (view-mercado v2) + V2 (interpretaciones v2) HECHOS, mergeados)
 
 **📐 V1/V2 de `PLAN_INFORMES_V2.md` §9 (C19/C20 del backlog maestro) — HECHOS — rama
 `claude/plan-desarrollo-auditoria-mkdvam`, PR #89 (mergeado).** Retomado el plan de informes

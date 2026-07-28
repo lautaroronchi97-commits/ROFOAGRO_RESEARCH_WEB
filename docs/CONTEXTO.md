@@ -39,17 +39,26 @@ rinde por organismo/país/grano/campaña — USDA, CONAB, BCR-GEA, SAGyP-DEA; po
 (base; en v1 el calendario se genera en código) — detalle en las sesiones abajo) · Deploy en Vercel.
 TZ America/Argentina/Cordoba.
 
-## Design system — "Pizarra electrónica" (aprobado; rediseño premium aplicado 09/07/2026, PR #5)
+## Design system — "Pizarra electrónica" (aprobado; rediseño premium 09/07/2026 PR #5 → tipografía
+"Argentina" + motion, rediseño premium front/UI/UX 28/07/2026 PR #88)
 Tokens en `src/app/globals.css`. Paleta del logo: verdes (RF `#2F6E34` / AGRO `#4E9C3A`) + trigo `#EFBF2E`;
-fondo claro `#EDF2E3`. Semáforo vivo: pos `#16A34A`/`#37D982`, neg `#DC2626`/`#FF5C5C`. Dos temas:
-claro (clientes) / oscuro "rueda" (trader). Fuentes Inter + JetBrains Mono (números tabulares).
-Marca: **ROFO AGRO** (nunca "CONSULTAR"). Glifos trigo/soja/maíz, cinta tipo pizarrón.
+fondo claro `#EDF2E3`. Semáforo vivo: pos `#16A34A`/`#37D982`, neg `#DC2626`/`#FF5C5C`. Dos temas, un solo
+sistema de tokens: claro **"Research de banca privada"** (clientes) / oscuro **"Sala de operaciones"**
+(trader). Marca: **ROFO AGRO** (nunca "CONSULTAR"). Glifos trigo/soja/maíz, cinta tipo pizarrón.
+**Tipografía "Argentina" (28/07/2026, PR #88):** Piazzolla (Huerta Tipográfica, Buenos Aires) para
+titulares/números protagonistas · Rosario (Omnibus-Type) para UI/prosa · IBM Plex Mono para datos
+tabulares — las 3 vía `next/font/google` (autohospedadas, sin red en runtime), reemplazan Inter +
+JetBrains Mono. Display aplicado quirúrgicamente (`--font-display`): wordmark, `.panel-hd h2` (TODO panel
+del sitio), titulares editoriales (home/landing/producción/auth). **Los números de mercado SIEMPRE en
+mono, nunca display** — restricción deliberada, terminal financiera de verdad.
 **Rediseño premium (solo presentación, cero cambios de datos/fórmulas):** oscuro = carbón verde profundo
-(`#060A07`, paneles `#0C130D`–`#152017`) con atmósfera radial sutil; claro = papel crema tipo informe de
-banca privada. Oro `#EFBF2E` SOLO como acento (hairlines, filos, glow) — mantener esa avaricia. Bordes
-hairline translúcidos, sombras multicapa, transiciones 150–250ms, `::selection` dorada, scrollbars finas,
-`reduced-motion` respetado, contraste AA verificado. Masthead con filo dorado + nav animada, cinta con
-fades, tablas con hover/tick dorado, charts con grilla punteada + área en degradé, footer colofón.
+(`#060A07`, paneles `#0C130D`–`#152017`) con atmósfera radial sutil; claro = papel crema con regla doble
+editorial bajo el masthead. Oro `#EFBF2E` SOLO como acento (hairlines, filos, glow) — mantener esa
+avaricia. Bordes hairline translúcidos, sombras multicapa, `::selection` dorada, scrollbars finas,
+contraste AA verificado. **Motion medio (28/07/2026)**, todo gated en `prefers-reduced-motion`: cinta con
+marquee continuo (pausa en hover/foco), entrada en cascada fade+rise de paneles/tarjetas, transición de
+color suave al cambiar de tema. Masthead con filo dorado + nav animada, cinta con fades, tablas con
+hover/tick dorado, charts con grilla punteada + área en degradé, footer colofón.
 
 ## Fuentes de datos (Fase 0, validadas con requests reales) — todo REST
 | Dato | Fuente | Endpoint / nota |
