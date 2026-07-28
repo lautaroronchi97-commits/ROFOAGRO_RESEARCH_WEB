@@ -6,6 +6,7 @@ import { MejorCajaPanel } from "@/components/mejor-caja-panel";
 import { PasesPanel } from "@/components/pases-panel";
 import { CapacidadPanel } from "@/components/capacidad-panel";
 import { requireSeccion } from "@/lib/auth/dal";
+import { PageHead } from "@/components/page-head";
 
 // 30s para que la 1ª columna de Arbitrajes (último operado en vivo) y las puntas
 // se actualicen seguido durante la rueda; el poll del cliente refresca en ese ritmo.
@@ -21,10 +22,9 @@ export default async function GranosPage() {
   await requireSeccion("granos");
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Granos</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Granos</h2>
+          <PageHead kicker="Pizarra · Matba Rofex · Chicago" title="Granos" lede="Arbitrajes contra pizarra, pases, capacidad de pago y la mejor salida para hacer caja." />
           <ArbitrajesTable />
           <MonitorMercados />
           <MejorCajaPanel />

@@ -6,6 +6,7 @@ import { SinteticosPanel } from "@/components/sinteticos-panel";
 import { PanelCambiario } from "@/components/panel-cambiario";
 import { DolarOficialPanel } from "@/components/dolar-oficial-panel";
 import { requireSeccion } from "@/lib/auth/dal";
+import { PageHead } from "@/components/page-head";
 
 export const revalidate = 60;
 
@@ -19,10 +20,9 @@ export default async function DolarPage() {
   await requireSeccion("dolar");
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Dólar y tasas</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Dólar y tasas</h2>
+          <PageHead kicker="MAE · MEP · futuros · LECAPs" title="Dólar y tasas" lede="Dólar futuro y linked, tasas implícitas, sintéticos y el panel cambiario." />
           <DolarFuturoPanel />
           <DolarOficialPanel />
           <DolarLinkedPanel />

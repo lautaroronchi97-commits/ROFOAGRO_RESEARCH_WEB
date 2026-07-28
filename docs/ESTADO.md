@@ -57,8 +57,20 @@ corromper `.next` de un modo que NO se nota en el build pero sí sirviendo (chun
 bug de la app. Detalle completo:
 [`sesiones/2026-07-28-rediseno-premium-frontend.md`](sesiones/2026-07-28-rediseno-premium-frontend.md).
 
-**Pendiente**: feedback de Lautaro sobre el resultado (el PR queda draft hasta que lo revise) ·
-si quiere, un vistazo logueado a las páginas de mesa.
+**Vuelta 2 (misma sesión)**: Lautaro vio el Preview y dijo *"siento que la web prácticamente no
+cambió"* — tenía razón: la 1ª pasada fue demasiado conservadora (sin momento fuerte, tipografía
+imperceptible). Se le mostró un **antes/después renderizado** y aprobó ("Pushealo y seguí"):
+**hero del día en la home** (titular display grande + placa con la pizarra de soja como número
+protagonista ~88px serif que cuenta hasta su valor — misma `getPizarra()` cacheada, cero fetch
+nuevo, gate `puedeGranos`) + **cabeceras editoriales en las 8 páginas de sección**
+(`page-head.tsx`: kicker con fuentes de la sección + título display + lede, reemplaza el h1
+invisible + label chiquito) + oscuro más profundo + cascada al doble. Verificado igual que la
+vuelta 1 (Playwright claro/oscuro/mobile, 205/205 tests, lint/tsc/build). PR #88 **ready for
+review** — Lautaro lo sacó de draft él mismo.
+
+**Pendiente**: feedback de Lautaro sobre la vuelta 2 en el Preview · si quiere el mismo salto de
+energía en la landing `/bienvenida` (quedó con la 1ª pasada) es una vuelta aparte · vistazo
+logueado a las páginas de mesa.
 
 ## Anterior (27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
 

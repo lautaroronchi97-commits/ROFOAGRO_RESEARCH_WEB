@@ -3,6 +3,7 @@ import { getCatalogo } from "@/lib/series";
 import { GraficosClient } from "@/components/graficos-client";
 import { QueEsEsto } from "@/components/que-es-esto";
 import { requireSeccion } from "@/lib/auth/dal";
+import { PageHead } from "@/components/page-head";
 
 /**
  * Página del panel de gráficos de spreads entre cosechas. Shell estática (no
@@ -23,10 +24,9 @@ export default async function GraficosPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Gráficos de spreads entre cosechas</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Gráficos de spreads entre cosechas</h2>
+          <PageHead kicker="Series 2020 → hoy · Matba Rofex · Chicago" title="Gráficos de spreads" lede="Campañas superpuestas al vencimiento, ratios y bandas históricas." />
           <QueEsEsto
             paraQue="Compara cómo se movió el spread entre dos posiciones a lo largo de las campañas, superponiendo los años para ver si el precio de hoy está caro o barato frente a su propia historia."
             comoSeCalcula="Alinea cada campaña por el vencimiento y grafica el spread (o la relación) entre las dos posiciones elegidas. La banda muestra el mínimo, el máximo y la mediana históricos, y el percentil ubica el valor de hoy dentro de esa historia."

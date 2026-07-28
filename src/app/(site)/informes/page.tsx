@@ -6,6 +6,7 @@ import { ORG_LABEL } from "@/lib/calendario";
 import { Panel, PanelHead } from "@/components/panel";
 import { QueEsEsto } from "@/components/que-es-esto";
 import { MdLite } from "@/components/md-lite";
+import { PageHead } from "@/components/page-head";
 
 export const metadata: Metadata = {
   title: "Informes · ROFO AGRO",
@@ -80,10 +81,9 @@ export default async function InformesPage() {
 
   return (
     <>
-      <h1 className="sr">ROFO AGRO — Informes</h1>
       <main className="wrap">
         <div className="col">
-          <h2 className="sec-title">Informes de la mesa</h2>
+          <PageHead kicker="Research de la mesa" title="Informes" lede="El informe diario, el semanal y la lectura de los informes de organismos." />
           <Panel id="informe-diario">
             <PanelHead title="Informe diario" sub="research del día · mesa ROFO AGRO" />
             <QueEsEsto

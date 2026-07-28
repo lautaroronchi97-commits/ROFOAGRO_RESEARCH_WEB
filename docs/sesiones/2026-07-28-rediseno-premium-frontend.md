@@ -103,16 +103,41 @@ que la etiqueta de la barra de mayor magnitud no quede pegada al mes del eje.
   `.tbl`/`.admin-*`) ya verificados en el resto del sitio — riesgo bajo, pero no confirmado con
   los ojos. Recomendado que Lautaro haga un vistazo logueado.
 
+## Vuelta 2 — «la web prácticamente no cambió» → hero real + cabeceras de sección
+
+Feedback de Lautaro al ver el Preview de la 1ª vuelta: *"siento que la web prácticamente no
+cambió"* — y tenía razón en los 4 frentes que marcó (sin momento fuerte en el home, tipografía
+imperceptible, paleta igual, motion invisible). Diagnóstico honesto: la 1ª pasada aplicó el
+sistema aprobado de forma demasiado conservadora sobre la estructura existente — las maquetas
+prometían un hero que nunca se construyó. Se le mostró un **antes/después renderizado** (pidió
+verlo antes de decidir) y aprobó: "Pushealo y seguí".
+
+**Hero del día (home)** — `page.tsx` + `count-up.tsx` (nuevo) + CSS: titular destacado en
+display grande (hasta 46px) sobre el fondo con kicker dorado y fecha completa, titulares
+secundarios como lista editorial con hairlines, y la **placa**: pizarra de soja de Rosario como
+número protagonista (~88px serif) con maíz/trigo/mayorista de contexto y link a Arbitrajes —
+misma `getPizarra()` `cache()`ada que ya usaba la cinta, cero requests nuevos. El número asienta
+contando hasta su valor al montar (SSR trae el valor final; `reduced-motion` lo desactiva).
+Gate de permisos: la placa respeta `puedeGranos` (mismo criterio que "El mercado hoy").
+Además: oscuro más profundo (`--bg` #060A07→#050807, atmósfera más presente), números de
+"El mercado hoy" a 22px con hover, cascada al doble de intensidad, y limpieza de clases muertas
+(`.ht-feature*`, `.hub-titulares`, `.hub-hoy-hd`).
+
+**Cabeceras editoriales de sección** — `page-head.tsx` (nuevo): kicker con las fuentes que cubre
+la sección (p. ej. "Pizarra · Matba Rofex · Chicago") + título display + lede. Reemplaza el par
+`<h1 className="sr">` + `<h2 className="sec-title">` en las 8 páginas de sección (granos, dólar,
+comercio, calculadoras, calculadoras/[slug] — con la `desc` de cada calc como lede —, gráficos,
+noticias, informes). `/produccion` no se tocó: ya tenía su intro editorial propia (`prod-h1`,
+ya en display desde la 1ª vuelta).
+
 ## Quedó pendiente / en vuelo
 
-- Confirmar visualmente `/comercio/*`, `/granos/view`, `/admin` logueado (ver arriba).
-- Feedback de Lautaro sobre el resultado final antes de sacar el PR de draft — el PR queda
-  **draft** al cerrar esta sesión hasta que él lo revise, aunque todo lo verificable desde acá
-  ya pasó.
-- Si en una próxima vuelta se quiere ir más lejos: número protagonista con "cuenta hasta su
-  valor" (requeriría un client component por número, invasivo en 70+ RSC — evaluado y
-  descartado esta vez por el costo/beneficio) · transición de tema con View Transitions API
-  (evaluado, se prefirió el fade de color CSS por menor riesgo en verificación headless).
+- Confirmar visualmente `/comercio/*` subpáginas, `/granos/view`, `/admin` logueado (comparten
+  componentes ya verificados; riesgo bajo).
+- Feedback de Lautaro sobre la vuelta 2 en el Preview (el PR ya está ready-for-review).
+- La landing `/bienvenida` quedó con la 1ª pasada (tipografía display en `lp-h1/h2` + motion);
+  si Lautaro quiere el mismo salto de energía ahí, es una vuelta aparte.
+- Evaluado y descartado esta vez: View Transitions API (fade CSS de tema alcanza, menos riesgo).
 
 ## Trampas descubiertas (para la próxima sesión)
 
@@ -123,6 +148,12 @@ que la etiqueta de la barra de mayor magnitud no quede pegada al mes del eje.
   checking`) — se manifestaba como "This page couldn't load" SOLO en algunas rutas/viewports
   (parecía un bug de la app, no lo era). Fix: `rm -rf .next` y rebuild limpio. Moraleja: si un
   build se cortó por timeout, no confiar en el próximo `npm run build` sin borrar `.next` antes.
+- **Variante del mismo síntoma con otra causa**: si el `npm run start` nuevo falla con
+  `EADDRINUSE` (un server viejo sigue dueño del puerto), el server viejo sirve las referencias
+  de chunks del build ANTERIOR mientras `.next` en disco ya cambió → página sin CSS/JS. El
+  error queda solo en el log del start fallido (el `curl` al puerto da 200 igual, porque
+  responde el viejo). Siempre matar `next-server` ANTES de rebuildear, y verificar en el log
+  que el start nuevo dijo "✓ Ready".
 - **Antes de reportar un bug visual como propio, comparar contra el código sin tocar** (`git
   stash` + rebuild + mismo request) — el bug de `calc-fijar.tsx` resultó preexistente
   (reproducible 1:1 en el código original), no introducido por este rediseño; verificarlo así
