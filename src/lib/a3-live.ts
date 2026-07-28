@@ -192,7 +192,8 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
       if (msg.type !== "Md") {
         if (!unknownTypeLogged) {
           unknownTypeLogged = true;
-          console.error(`[a3-live] WS mensaje con type inesperado: ${JSON.stringify(msg).slice(0, 300)}`);
+          const full = JSON.stringify(msg);
+          console.error(`[a3-live] WS mensaje con type inesperado (${full.length} chars, keys=${Object.keys(msg).join(",")}): ${full}`);
         }
         return;
       }
