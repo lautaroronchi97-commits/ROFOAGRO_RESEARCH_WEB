@@ -91,8 +91,10 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
             </th>
             <th scope="col">
               <InfoTip term="Var US$">
-                Variación nominal del ajuste vs el cierre anterior, en dólares (ej. +3 = subió 3
-                USD/tn). Siempre sobre el ajuste, no sobre el último operado en vivo.
+                Variación nominal en dólares vs el ajuste anterior. En rueda se recalcula en vivo
+                contra el último operado (A3) cada vez que hay una operación nueva; fuera de rueda
+                es la variación oficial del último cierre (Matba Rofex). — antes de la 1ª operación
+                del día.
               </InfoTip>
             </th>
             <th scope="col">
