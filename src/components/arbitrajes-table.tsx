@@ -9,6 +9,8 @@ import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
 import { ArbitrajesEditable, type ArbGranoClient } from "./arbitrajes-editable";
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 /**
  * Referencia de la 1ª columna (pedido de Lautaro, 07/2026):
  *   - Fuera de rueda → el último AJUSTE (settlement de cierre).
@@ -31,28 +33,53 @@ export async function ArbitrajesTable() {
     // El ajuste del día ya salió cuando el cierre guardado es de hoy.
     const ajusteEsDeHoy = g.fecha === hoy;
     const modoOperado = ruedaCorrio && !ajusteEsDeHoy && liveOk;
-    const rows = g.rows.map((r) => {
+    const rows = g.rows.flatMap((r) => {
       const p = live.puntas.get(r.symbol);
       const last = p?.last ?? null;
       const volLive = p?.vol ?? null; // volumen operado HOY (A3 TV, resetea por rueda)
       const operoHoy = volLive != null && volLive > 0;
+      const volumeDelDia = modoOperado ? volLive : r.volume;
+      // Pedido de Lautaro: posiciones poco líquidas (< 100 contratos de interés
+      // abierto) son ruido si nadie las está operando — se ocultan salvo que
+      // hayan operado HOY de verdad (volumen en vivo de A3, `operoHoy` — no el
+      // volumen del último cierre, que podría ser de una rueda vieja y no dice
+      // nada de la actividad de hoy). Sin A3 en vivo (fuera de rueda / feed
+      // caído) no hay forma de confirmarlo, así que queda oculta. Sin dato de OI
+      // (hueco del cierre) NO se oculta, mismo criterio conservador que el resto
+      // del filtrado de posiciones vivas.
+      const oi = r.openInterest;
+      if (oi != null && oi < 100 && !operoHoy) return [];
       // En rueda: el último operado (A3 LA) tal cual, como la pantalla de mercado
       // (eTrader) — SIN filtrar por volumen del día: una posición poco líquida que
       // no operó hoy igual muestra su último precio operado. Solo queda "—" si A3
       // no tiene último operado. Fuera de rueda: el ajuste.
       const ref = modoOperado ? last : r.ajuste;
-      return {
-        pos: r.pos,
-        ref,
-        refMode: modoOperado ? ("operado" as const) : ("ajuste" as const),
-        // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
-        // mueve ahora del último operado arrastrado de la rueda anterior).
-        vivo: modoOperado && operoHoy && last != null,
-        dias: r.dias,
-        volume: modoOperado ? volLive : r.volume,
-        bid: p?.bid ?? null,
-        ask: p?.ask ?? null,
-      };
+      // Var: en rueda se recalcula EN VIVO contra el WS (último operado − ajuste
+      // anterior), como pidió Lautoro — no alcanza con el `change` de CEM, que
+      // solo se actualiza una vez por día cuando sale el cierre oficial. Antes de
+      // la 1ª operación del día (last == null) queda en blanco, no se muestra el
+      // dato de ayer disfrazado de hoy. Fuera de rueda (o sin A3 en vivo) sí vale
+      // el `change` de CEM: en ese momento ES el oficial del último cierre.
+      const variacion = modoOperado
+        ? last != null && r.ajuste != null
+          ? round2(last - r.ajuste)
+          : null
+        : r.variacion;
+      return [
+        {
+          pos: r.pos,
+          ref,
+          refMode: modoOperado ? ("operado" as const) : ("ajuste" as const),
+          // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
+          // mueve ahora del último operado arrastrado de la rueda anterior).
+          vivo: modoOperado && operoHoy && last != null,
+          variacion,
+          dias: r.dias,
+          volume: volumeDelDia,
+          bid: p?.bid ?? null,
+          ask: p?.ask ?? null,
+        },
+      ];
     });
     // Volumen y OI totales del grano (todas las posiciones vivas sumadas, en
     // toneladas): el volumen ya viene resuelto por fila (en vivo si operó hoy,

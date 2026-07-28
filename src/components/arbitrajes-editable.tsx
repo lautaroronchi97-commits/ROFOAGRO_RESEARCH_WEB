@@ -18,6 +18,7 @@ type Row = {
   ref: number | null; // referencia: último ajuste (fuera de rueda) o último operado (en rueda)
   refMode: "ajuste" | "operado";
   vivo: boolean; // operó hoy → mostrar el punto en vivo
+  variacion: number | null; // variación nominal del ajuste vs el cierre previo (US$)
   dias: number | null;
   volume: number | null;
   bid: number | null; // comprador (A3 en vivo, solo lectura)
@@ -69,7 +70,7 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
     <div>
       <FiltroGrano value={filtro} onChange={setFiltro} presentes={granos.map((g) => g.underlying as GranoKey)} />
       <div className="table-scroll">
-      <table className="tbl" style={{ minWidth: 760 }}>
+      <table className="tbl" style={{ minWidth: 840 }}>
         <thead>
           <tr>
             <th className="l" scope="col">Posición</th>
@@ -86,6 +87,14 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
                 operado de cada posición (A3), como la pantalla de mercado, hasta que salga el próximo
                 ajuste. El punto verde marca las que operaron hoy; queda en — solo si A3 no tiene último
                 operado.
+              </InfoTip>
+            </th>
+            <th scope="col">
+              <InfoTip term="Var US$">
+                Variación nominal en dólares vs el ajuste anterior. En rueda se recalcula en vivo
+                contra el último operado (A3) cada vez que hay una operación nueva; fuera de rueda
+                es la variación oficial del último cierre (Matba Rofex). — antes de la 1ª operación
+                del día.
               </InfoTip>
             </th>
             <th scope="col">
@@ -128,7 +137,7 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
             return (
               <React.Fragment key={g.underlying}>
                 <tr className="grp">
-                  <td className="l" colSpan={9}>
+                  <td className="l" colSpan={10}>
                     <span className="grp-cell">
                       <span className="gglyph" style={{ color: glyphColor(g.underlying) }}>
                         {glyphFor(g.underlying)}
@@ -196,6 +205,7 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
                         {r.vivo && <span className="ref-live" aria-hidden="true" />}
                         {nfmt(r.ref, 2)}
                       </td>
+                      <td className={cls(r.variacion)}>{sfmt(r.variacion, 2)}</td>
                       <td>{nfmt(r.bid, 2)}</td>
                       <td>{nfmt(r.ask, 2)}</td>
                       <td className={cls(spread)}>{sfmt(spread, 2)}</td>
@@ -220,7 +230,7 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
           })}
           {visibles.length === 0 && (
             <tr>
-              <td className="l dim" colSpan={9}>
+              <td className="l dim" colSpan={10}>
                 {granos.length === 0
                   ? "Sin datos de arbitrajes todavía (faltan cierres o pizarra)."
                   : "Sin datos para este grano."}

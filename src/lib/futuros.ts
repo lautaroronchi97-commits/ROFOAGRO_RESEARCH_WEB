@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { sbSelect } from "./supabase";
 import type { Meta } from "./market";
-import { vencKeyDePosicion, hoyVencKey } from "./dates";
+import { vencKeyDePosicion, hoyVencKey, hoyCordobaISO } from "./dates";
+import { getVencimientos } from "./vencimientos";
 
 /**
  * Cierres de futuros de granos (A3/Matba ROFEX), leídos de Supabase
@@ -14,6 +15,7 @@ export type CierrePos = {
   posicion: string;
   settlement: number | null;
   close: number | null;
+  change: number | null; // variación diaria nominal del ajuste, en US$ (ej. -6)
   changePercent: number | null;
   volume: number | null;
   openInterest: number | null;
@@ -38,6 +40,7 @@ type RawRow = {
   posicion: string | null;
   settlement: number | null;
   close: number | null;
+  change: number | null;
   change_percent: number | null;
   volume: number | null;
   open_interest: number | null;
@@ -63,10 +66,13 @@ const vencKey = vencKeyDePosicion;
 const SOURCE = "Matba Rofex";
 
 export const getCierresGranos = cache(async (): Promise<CierresData> => {
-  const res = await sbSelect(
-    "futuros_cierres_ultimo?select=symbol,fecha,underlying,posicion,settlement,close,change_percent,volume,open_interest,oi_change,implied_rate&order=underlying.asc",
-    900,
-  );
+  const [res, vtos] = await Promise.all([
+    sbSelect(
+      "futuros_cierres_ultimo?select=symbol,fecha,underlying,posicion,settlement,close,change,change_percent,volume,open_interest,oi_change,implied_rate&order=underlying.asc",
+      900,
+    ),
+    getVencimientos(),
+  ]);
 
   if (!res.ok) {
     const problema =
@@ -93,6 +99,7 @@ export const getCierresGranos = cache(async (): Promise<CierresData> => {
       posicion: r.posicion ?? r.symbol,
       settlement: r.settlement,
       close: r.close,
+      change: r.change,
       changePercent: r.change_percent,
       volume: r.volume,
       openInterest: r.open_interest,
@@ -104,13 +111,24 @@ export const getCierresGranos = cache(async (): Promise<CierresData> => {
 
   const orden = ["SOJ", "MAI", "TRI"];
   const hoyYM = hoyVencKey();
+  const hoy = hoyCordobaISO();
   const granos = [...byGrano.values()]
     .sort((a, b) => orden.indexOf(a.underlying) - orden.indexOf(b.underlying))
     .map((g) => ({
       ...g,
-      // Solo disponible (venc 0) + posiciones vivas (vto en el mes actual o futuro).
+      // Disponible (venc 0) siempre + posiciones vivas. Con vencimiento real
+      // conocido (tabla `vencimientos`) se usa la fecha exacta — así un contrato
+      // que ya venció (ej. JUL26 el 24/07) deja de listarse aunque siga siendo
+      // el mes en curso; A3 lo rechaza como inexistente en el feed en vivo si se
+      // lo sigue pidiendo (ver a3-live.ts). Sin vencimiento cargado se cae a la
+      // granularidad de MES de siempre, para no ocultar una posición real por un
+      // hueco en `vencimientos` (ej. SOJ.ROS/AGO26, sin fila todavía).
       posiciones: g.posiciones
-        .filter((p) => p.venc === 0 || p.venc >= hoyYM)
+        .filter((p) => {
+          if (p.venc === 0) return true;
+          const vto = vtos.get(p.symbol);
+          return vto ? vto >= hoy : p.venc >= hoyYM;
+        })
         .sort((a, b) => a.venc - b.venc),
     }))
     .filter((g) => g.posiciones.length > 0);

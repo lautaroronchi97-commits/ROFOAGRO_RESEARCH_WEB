@@ -61,6 +61,72 @@ base por SQL, no sintéticas) · dry-run de los 2 cableados (barrido + uploader)
 (sin sesión admin en este sandbox). Detalle completo:
 [`sesiones/2026-07-28-d7-detector-anomalias.md`](sesiones/2026-07-28-d7-detector-anomalias.md).
 
+## Anterior (28/07/2026 — 🚚 C24: camiones de Agroentregas, AUTOMÁTICO)
+
+**🚚 C24 — CAMIONES DE AGROENTREGAS (por planta y EMPRESA) — HECHO — rama
+`claude/plan-desarrollo-auditoria-matsqn`, PR #_.** Lautaro lo eligió tras descartar C14
+(estrategias avanzadas, sigue en pausa) y dejar C23 en pausa. Pasó la captura de la placa diaria
+que publica Agroentregas y dijo *"si se puede pegar esa imagen genial, sino cargo los totales"*.
+
+**No hizo falta ninguna de las dos: la fuente resultó automatizable.** El research (requests
+reales, 28/07) encontró que `agroentregas.com.ar/total-de-camiones.html` se alimenta de un
+**endpoint JSON público sin auth ni key** (`RestServiceImpl.svc/camiones`) que devuelve exactamente
+esa placa **y con más detalle: por planta, por EMPRESA y por grano**. C24 dejó de ser "carga manual
+diaria" (como estaba escrito en el backlog) y pasó a ser una **ingesta automática, 2 corridas por
+día**, sin formulario nuevo en `/admin/datos`.
+
+**El caveat que definió el diseño**: los 28 destinos son Up River + Paraná bonaerense — **no hay
+Bahía Blanca ni Necochea**, y solo las plantas que Agroentregas atiende. Su total **NO es
+comparable** con el nacional de Williams, así que va en **tabla propia** (`camiones_plantas`,
+migración `20260728150000` aplicada) y nunca se mezcla con `camiones`: mezclarlos contaminaría el
+percentil estacional de la señal barcos-vs-camiones, cuyas 2 patas son Gran Rosario **y Bahía
+Blanca**. **Complementa, no reemplaza** (Lautaro preguntó explícitamente): le saca la *urgencia* a
+la carga manual —el día a día ya lo cubre el cron— pero Williams queda como respaldo **nacional e
+histórico** (42.624 filas desde 2018, es lo que la señal necesita).
+
+**Sin backfill posible** (el endpoint ignora cualquier parámetro de fecha, probado), **pero** cada
+respuesta trae el mismo día de la semana de hace 1 y 2 años y la ingesta los guarda → corriendo el
+cron a diario, al año hay **3 años de estacionalidad de Up River construidos solos**.
+
+**Build**: `agroentregas.ts` (parser puro, con control de consistencia que exige que el detalle por
+planta cierre exacto contra los totales que publica la propia fuente — si no, falla en vez de
+guardar un día a medias) · `ingest-camiones-agroentregas.mjs` (importa ese parser, no lo
+reimplementa) · workflow 2×/día todos los días (los puertos reciben los sábados) · `plantas.ts` +
+`plantas-panel.tsx` = panel **"Pulso diario Up River"** arriba del de Williams, con serie por grano
+pública y tabla **"quién recibió camiones hoy" por empresa (solo mesa)** · healthcheck con umbral
+**3 días** (corto a propósito: acá sí hay cron y un atraso son días perdidos para siempre).
+
+**Verificado**: lint/tsc/build ✅ · **235/235 tests** (11 nuevos, fixture = respuesta real sin
+retocar) · **1:1 contra la placa de Lautaro**, las 3 filas del encabezado incluidas (28/07/2026
+4.560 camiones/145.920 tn · 29/07/2025 2.846 · 30/07/2024 3.325) · corrida real de la ingesta
+contra la base (233 filas) cotejada por SQL · RLS por SQL (anon lee, no escribe) · `get_advisors`
+sin hallazgos nuevos · navegador con Playwright claro/oscuro/mobile: **+60,2% vs el mismo día de
+2025** (exacto), los 17 exportadores suman exacto 4.560, cero errores de consola, cero scroll
+horizontal (bypass temporal de `esAdmin` revertido, git limpio).
+
+**Pendiente**: el primer disparo real del cron post-merge. Detalle:
+[`sesiones/2026-07-28-c24-camiones-agroentregas.md`](sesiones/2026-07-28-c24-camiones-agroentregas.md)
+· fuente: [`negocio/10_fuente_camiones_agroentregas.md`](negocio/10_fuente_camiones_agroentregas.md).
+
+## Anterior (28/07/2026 — 🗂️ PLAN C25: biblioteca + menú lateral, CERRADO)
+
+**🗂️ C25 — BIBLIOTECA + MENÚ LATERAL (SIDEBAR) — PLAN CERRADO, SOLO DOCS — rama
+`claude/sidebar-menu-web-architecture-ychqgb`, PR #_.** Pedido de Lautaro: sacar la nav de la
+parte superior y pasar a un **menú desplegable fijo al costado izquierdo**, con la web como
+**biblioteca** (grupos desplegables → cada reporte con su ítem). Sesión de craneo pura, cero
+código. Relevadas las 38 rutas / ~35 reportes; hallazgo clave: las 8 claves de `SECCIONES_META`
+son también el **modelo de permisos** (reagrupar tenía costo real, se decidió con eso sobre la
+mesa). **4 decisiones cerradas por AskUserQuestion** (eligió la recomendada en las 4): página
+propia por reporte (`/granos/arbitrajes`, `/dolar/futuro`, …, componentes reusados tal cual, las
+páginas de grupo quedan como índices) · se mantienen los 8 grupos/claves de permisos · header
+mínimo + cinta (toda la nav a la sidebar) · solo-mesa mezclados en su grupo con 🔒. Excepciones
+deliberadas: Informes queda como feed con anclas; Gráficos linkea sus 2 modos por el `?mc=` ya
+persistido. Todo en **[`PLAN_SIDEBAR.md`](PLAN_SIDEBAR.md)** (árbol final + arquitectura +
+**prompt de ejecución autocontenido en §5**); registrado como **C25** en el backlog maestro.
+**Próximo paso: ejecutar ese prompt en una sesión nueva** — build con Sonnet (regla de
+PLAN_BACKLOG) y **cargando la skill `ui-ux-pro-max` antes de tocar UI** (pedido explícito).
+Detalle: [`sesiones/2026-07-28-plan-sidebar-biblioteca.md`](sesiones/2026-07-28-plan-sidebar-biblioteca.md).
+
 ## Anterior (28/07/2026 — 📐 V3 (semanal v2) + V4 (diario, retoque) HECHOS)
 
 **📐 V3/V4 de `PLAN_INFORMES_V2.md` §9 (C21/C22 del backlog maestro) — HECHOS — rama

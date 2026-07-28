@@ -152,6 +152,12 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
       return finish();
     }
 
+    // Si A3 rechaza la suscripción (ej. algún símbolo del batch ya no existe del
+    // lado suyo) responde con {status:"ERROR", description:"..."} en vez de un "Md"
+    // — se loguea entero (una vez por conexión) para no quedar a ciegas la próxima
+    // vez que pase algo así, en vez de agotar el timeout en silencio.
+    let unknownTypeLogged = false;
+
     ws.on("open", () => {
       // Un solo mensaje suscribe TODOS los instrumentos; Primary responde con el
       // snapshot actual de cada uno (evita el 429 de pedir de a un símbolo por REST).
@@ -173,7 +179,13 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
       } catch {
         return;
       }
-      if (msg.type !== "Md") return;
+      if (msg.type !== "Md") {
+        if (!unknownTypeLogged) {
+          unknownTypeLogged = true;
+          console.error(`[a3-live] WS respuesta inesperada: ${JSON.stringify(msg)}`);
+        }
+        return;
+      }
       const inst = msg.instrumentId as { symbol?: unknown } | undefined;
       const sym = typeof inst?.symbol === "string" ? inst.symbol : null;
       if (sym && !puntas.has(sym)) {
@@ -207,10 +219,24 @@ export const getPasesLive = cache(async (): Promise<LiveResult> => {
 /** Puntas de los FUTUROS outright que muestra el panel Arbitrajes. */
 export const getFuturosLive = cache(async (): Promise<LiveResult> => {
   if (!a3Configured()) return SIN_CONFIG;
-  const { granos } = await getCierresGranos();
-  const symbols = granos.flatMap((g) =>
+  const [{ granos }, instrumentos] = await Promise.all([
+    getCierresGranos(),
+    getA3InstrumentsBySegment("DDA"),
+  ]);
+  const candidatos = granos.flatMap((g) =>
     g.posiciones.filter((p) => p.venc > 0).map((p) => p.symbol),
   );
+  // Mismo filtro que getPasesLive: `getCierresGranos` marca "vivo" con granularidad
+  // de MES (útil para la tabla de ajustes), así que a fin de mes puede incluir un
+  // símbolo cuyo vencimiento real ya pasó (ej. JUL26 vence el 24, sigue "vivo" hasta
+  // el 31). A3 valida la suscripción del WS en bloque: un solo símbolo inexistente
+  // rechaza el pedido ENTERO ("Product X don't exist"), dejando sin puntas a los
+  // demás. Se filtra contra la lista real de instrumentos de A3 antes de suscribir.
+  let symbols = candidatos;
+  if (instrumentos.length > 0) {
+    const set = new Set(instrumentos);
+    symbols = candidatos.filter((s) => set.has(s));
+  }
   return fetchPuntas(symbols);
 });
 
