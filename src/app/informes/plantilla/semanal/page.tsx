@@ -12,10 +12,15 @@ import { VariacionBarras } from "@/components/variacion-barras";
 import { DolarOficialChart } from "@/components/dolar-oficial-chart";
 
 /**
- * Placa del informe SEMANAL (MP2 de docs/PLAN_INFORMES.md) — PDF A4 de 5 páginas, tema
- * SIEMPRE claro (impreso). Standalone (sin header/nav), gateada por token en searchParam
- * (Playwright la screenshotea/imprime con un simple page.goto — mismo patrón que la
- * plantilla diaria de MP1). Excluida de SECCIONES_META/nav; noindex.
+ * Placa del informe SEMANAL (MP2 de docs/PLAN_INFORMES.md, ampliada por V3 de
+ * docs/PLAN_INFORMES_V2.md §6.3) — PDF A4 de 5 páginas, tema SIEMPRE claro (impreso).
+ * Standalone (sin header/nav), gateada por token en searchParam (Playwright la
+ * screenshotea/imprime con un simple page.goto — mismo patrón que la plantilla diaria de
+ * MP1). Excluida de SECCIONES_META/nav; noindex.
+ *
+ * V3 sumó "El mundo esta semana" (página 3, research externo acotado) sin agregar hoja: el
+ * `ChartTabla` bajo `DolarOficialChart` se omite acá (`sinTabla`) porque es una relectura del
+ * mismo gráfico — la tabla completa sigue disponible en vivo en `/dolar`.
  */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -28,6 +33,10 @@ type ProsaSemanal = {
   resumen_ejecutivo?: string[];
   granos_texto?: string;
   dolar_texto?: string;
+  /** V3 (PLAN_INFORMES_V2.md §6.3): "El mundo esta semana" — 3-4 bullets del research
+   *  acotado (COT/Crop Progress/Brasil/clima), cada uno con su fuente citada EN el texto.
+   *  Vacío/ausente = "sin lectura externa esta semana" (degradación honesta, P7). */
+  mundo_bullets?: string[];
   comex_texto?: string;
   cierre?: string;
 };
@@ -96,6 +105,7 @@ export default async function PlantillaSemanalPage({
     sub: v.fechaActual ? `(${v.fechaActual})` : undefined,
   }));
   const negociadoActivas = negociado.filas.filter((f) => f.activa && f.semanal != null).slice(0, 14);
+  const mundoBullets = prosa.mundo_bullets ?? [];
 
   return (
     <div className="sem-page">
@@ -181,11 +191,23 @@ export default async function PlantillaSemanalPage({
         </div>
         <div className="sem-sec">
           <p className="sem-sec-tit">Dólar oficial (BCRA A3500)</p>
-          <DolarOficialChart serie={variacionDolar.serie} />
+          <DolarOficialChart serie={variacionDolar.serie} sinTabla />
         </div>
         <div className="sem-sec">
           <p className="sem-sec-tit">Chicago (CBOT, USD/tn)</p>
           <VariacionBarras items={barrasChicago} />
+        </div>
+        <div className="sem-sec">
+          <p className="sem-sec-tit">El mundo esta semana</p>
+          {mundoBullets.length > 0 ? (
+            <ul className="sem-resumen">
+              {mundoBullets.map((b, i) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="sem-texto">Sin lectura de research externo esta semana.</p>
+          )}
         </div>
         {prosa.dolar_texto && <p className="sem-texto">{prosa.dolar_texto}</p>}
       </section>

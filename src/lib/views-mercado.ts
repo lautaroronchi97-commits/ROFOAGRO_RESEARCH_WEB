@@ -113,7 +113,7 @@ function parseInvalidadores(x: unknown): Invalidador[] {
     .filter((i) => i.condicion || i.dato_ref);
 }
 
-function parseEvidenciaExterna(x: unknown): EvidenciaExterna[] {
+export function parseEvidenciaExterna(x: unknown): EvidenciaExterna[] {
   if (!Array.isArray(x)) return [];
   return x
     .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")

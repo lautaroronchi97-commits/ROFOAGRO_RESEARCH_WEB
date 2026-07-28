@@ -18,6 +18,7 @@ import {
   getVariacionSemanalPizarra,
   getVariacionSemanalDolarOficial,
   getViewMercadoVigentePorGrano,
+  getScorecardResumen,
 } from "@/lib/informe-semanal";
 
 /**
@@ -27,12 +28,16 @@ import {
  *
  * `tipo=diario` (default, MP1): granos (ajustes A3 con Δ vs rueda anterior + pizarra CAC
  * $/USD), dólar mayorista + curva DDF, Chicago + macro, noticias del día, agenda de
- * hoy/mañana y el "color de la rueda"/BCRA que Lautaro carga en /admin/datos.
+ * hoy/mañana, el "color de la rueda"/BCRA que Lautaro carga en /admin/datos, y el view de
+ * mercado vigente por grano (V1, con su `evidencia_externa` ya verificada — V4 de
+ * PLAN_INFORMES_V2.md §6.4: el diario la puede citar como contexto, cero fetch nuevo).
  *
- * `tipo=semanal` (MP2): variación SEMANAL (último dato real vs el de ~7 días antes, sin
+ * `tipo=semanal` (MP2/V3): variación SEMANAL (último dato real vs el de ~7 días antes, sin
  * asumir "viernes calendario") de granos/Chicago/pizarra/dólar oficial, negociado SIO de
- * la semana, comercio exterior (embarques + empresas), view de mercado por grano (MP3, si
- * ya hay alguno) y agenda de la semana próxima. Todo reusando las libs existentes.
+ * la semana, comercio exterior (embarques + empresas), view de mercado por grano (con
+ * `relacion_previa` — V3 la usa para el bullet automático de SWITCH) y su scorecard
+ * (hit-rate/racha a 4 semanas, mencionado 1 vez por mes), y agenda de la semana próxima.
+ * Todo reusando las libs existentes.
  */
 
 export async function GET(request: Request): Promise<Response> {
@@ -58,7 +63,7 @@ async function datosDiario(fecha: string) {
     .toISOString()
     .slice(0, 10);
 
-  const [cierres, arbitrajes, pizarra, dolarFuturo, chicago, noticias, colorRes, bcraRes, estimRes, interpRes] =
+  const [cierres, arbitrajes, pizarra, dolarFuturo, chicago, noticias, colorRes, bcraRes, estimRes, interpRes, viewsMercado] =
     await Promise.all([
       getCierresGranos(),
       getArbitrajes(),
@@ -80,6 +85,9 @@ async function datosDiario(fecha: string) {
         `interpretaciones?estado=eq.publicado&fecha_publicacion=eq.${fecha}&select=organismo,informe,publicado_md`,
         0,
       ),
+      // V4 (PLAN_INFORMES_V2.md §6.4): view vigente por grano con su evidencia_externa ya
+      // verificada — el diario la puede citar de contexto, sin research propio.
+      getViewMercadoVigentePorGrano(),
     ]);
 
   // Color de la rueda: null si no cargó nada ese día (el informe sale igual, degrada).
@@ -129,6 +137,7 @@ async function datosDiario(fecha: string) {
     volumenPorGrano,
     informesHoy,
     interpretaciones,
+    viewsMercado,
   };
 }
 
@@ -154,6 +163,7 @@ async function datosSemanal(fecha: string) {
     chicago,
     noticias,
     estimRes,
+    scorecard,
   ] = await Promise.all([
     getVariacionSemanalGranos(fecha),
     getVariacionSemanalChicago(fecha),
@@ -171,6 +181,9 @@ async function datosSemanal(fecha: string) {
       "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url&order=fecha_publicacion.asc",
       3600,
     ),
+    // V3 (PLAN_INFORMES_V2.md §6.3): hit-rate/racha a 4 semanas por grano, se menciona 1 vez
+    // por mes en el cierre — cero fórmula nueva, reusa la lib pura de /granos/view.
+    getScorecardResumen(),
   ]);
 
   const noticiasCompactas = {
@@ -204,5 +217,6 @@ async function datosSemanal(fecha: string) {
     noticias: noticiasCompactas,
     informesSemana,
     agenda: getEventos(fecha, semanaProxima),
+    scorecard,
   };
 }
