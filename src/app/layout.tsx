@@ -1,17 +1,31 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Piazzolla, Rosario, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 
-const inter = Inter({
+// Sistema tipográfico "Argentina" (rediseño premium, 27-28/07/2026): Piazzolla
+// (Huerta Tipográfica, Buenos Aires) para titulares/números protagonistas,
+// Rosario (Omnibus-Type) para UI/prosa, IBM Plex Mono para datos tabulares.
+// Las 3 se autohospedan vía next/font (build-time, cero red en runtime).
+const piazzolla = Piazzolla({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-piazzolla",
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
-const jbMono = JetBrains_Mono({
+const rosario = Rosario({
   subsets: ["latin"],
-  variable: "--font-jbmono",
+  variable: "--font-rosario",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-plexmono",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -31,7 +45,7 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${inter.variable} ${jbMono.variable}`}
+      className={`${piazzolla.variable} ${rosario.variable} ${plexMono.variable}`}
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>

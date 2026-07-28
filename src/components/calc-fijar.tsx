@@ -30,13 +30,23 @@ const CURVA_INI: PosCurva[] = [
   { vto: "2027-04-30", precio: 350 },
 ];
 
-/** Gráfico de barras del delta (disponible − futuro) por plazo. */
+/** Gráfico de barras del delta (disponible − futuro) por plazo.
+ * W/H fijados a la MISMA convención que el resto de los charts del sitio
+ * (dolar-futuro-chart/evolucion-chart/negociado-chart: ~640×240) — el viewBox
+ * chico anterior (280×150) quedaba desproporcionado al estirarse a 100% del
+ * ancho real del panel (~1300px): un factor de escala ~4,4x volvía gigantes
+ * los textos de 11/10px. Bug preexistente, no introducido por el rediseño;
+ * encontrado al verificar visualmente esta sesión. */
 function DeltaChart({ filas }: { filas: FilaFijar[] }) {
   if (filas.length === 0) return null;
-  const W = Math.max(280, filas.length * 74);
-  const H = 150;
+  const W = Math.max(640, filas.length * 140);
+  const H = 240;
   const padT = 18;
-  const padB = 24;
+  // padB con margen extra (24→34): la etiqueta del valor de una barra negativa
+  // se dibuja DEBAJO de la barra (top+height+12) — con el bug de escala
+  // corregido arriba, la barra de mayor magnitud llegaba a solaparse con el
+  // mes del eje (H-7). Pre-existente también (visible ya en el viewBox viejo).
+  const padB = 34;
   const h = H - padT - padB;
   const vals = filas.map((f) => f.delta);
   const maxV = Math.max(0, ...vals);

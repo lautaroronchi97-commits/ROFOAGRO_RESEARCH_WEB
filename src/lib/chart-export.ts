@@ -52,7 +52,7 @@ export function exportarSvgComoPng(container: HTMLElement | null, filename: stri
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, ancho, alto);
     ctx.drawImage(img, 0, 0, ancho, alto);
-    ctx.font = "600 11px 'JetBrains Mono', monospace";
+    ctx.font = "600 11px 'IBM Plex Mono', monospace";
     ctx.fillStyle = "rgba(128,128,128,.6)";
     ctx.textAlign = "right";
     ctx.fillText("ROFO AGRO", ancho - 8, alto - 8);

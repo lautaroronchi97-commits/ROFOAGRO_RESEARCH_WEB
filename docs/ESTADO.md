@@ -19,7 +19,48 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
+## Ahora (última actualización: 28/07/2026 — 🎨 REDISEÑO PREMIUM FRONT/UI/UX — código HECHO, PR en draft esperando feedback de Lautaro)
+
+**🎨 REDISEÑO PREMIUM FRONT/UI/UX — rama `claude/premium-frontend-design-s3wmcs`, PR #88
+(draft).** Pedido explícito de Lautaro: llevar el front a nivel "premium, >10K USD" — misma
+paleta y logos, tipografías propias (nada de Inter/Roboto), motion medio, "que no parezca IA
+genérica". **Fase de diseño primero, sin código**: 3 direcciones maquetadas con datos reales
+(A «Sala de operaciones» dark/Fraunces · B «Research de banca privada» claro/Newsreader · C
+«Panel de vidrio» glass) + specimen de 4 sistemas tipográficos, todo mostrado y confirmado por
+Lautaro ANTES de tocar el código real. Elegido: **híbrido A+B** (un solo sistema de tokens, dos
+pieles) + tipografía **T1 «Argentina»** (Piazzolla, Huerta Tipográfica BA + Rosario,
+Omnibus-Type + IBM Plex Mono). Skill `ui-ux-pro-max` instalada (de las 7 del bundle
+`nextlevelbuilder/ui-ux-pro-max-skill` se conservó solo esa, las otras 6 generan banners/logos
+con IA externa, no aplican).
+
+**Build: solo 5 archivos tocados** (`layout.tsx` fuentes · `globals.css` tokens+motion ·
+`cinta.tsx` marquee · `chart-export.ts` nombre de fuente) — el sistema de variables CSS pagó:
+los otros 70+ componentes heredaron el rediseño completo SIN tocarlos (`--font-ui`/
+`--font-mono` mismos nombres, nueva `--font-display` sumada y aplicada quirúrgicamente en
+`.panel-hd h2` —todo panel del sitio— + titulares editoriales; los NÚMEROS siguen siempre en
+mono, nunca display, restricción deliberada). Motion medio (marquee continuo de la cinta,
+entrada en cascada, transición de tema) — todo gated en `prefers-reduced-motion`, cae al
+comportamiento de siempre si el usuario lo pidió. **Bug real preexistente encontrado y
+arreglado de paso** (verificado contra el código sin tocar antes de atribuírselo): el gráfico
+de la calculadora "A fijar" (`calc-fijar.tsx`) tenía un viewBox desproporcionado que volvía
+gigantes sus textos — llevado a la misma convención que el resto de los charts del sitio.
+
+**Verificado**: lint/tsc/build ✅ · **205/205 tests** ✅ (sin tocar expects) · Playwright real
+con datos de Supabase en claro+oscuro+mobile en home/granos/dólar/producción/gráficos/
+calculadoras/noticias/informes/landing/ingresar/comercio(hub)/sin-acceso, cero errores de
+consola, cero scroll horizontal en mobile. **Sin verificar**: páginas de mesa gateadas
+(`/comercio/*` subpáginas admin, `/granos/view`, `/admin`) — requieren sesión real, comparten
+los mismos componentes ya verificados en el resto del sitio (riesgo bajo, no confirmado a
+ojo). **Trampa real encontrada**: un `npm run build` cortado por timeout del sandbox puede
+corromper `.next` de un modo que NO se nota en el build pero sí sirviendo (chunk 500 con MIME
+`text/plain`) — `rm -rf .next` + rebuild limpio lo resuelve; casi se atribuye por error a un
+bug de la app. Detalle completo:
+[`sesiones/2026-07-28-rediseno-premium-frontend.md`](sesiones/2026-07-28-rediseno-premium-frontend.md).
+
+**Pendiente**: feedback de Lautaro sobre el resultado (el PR queda draft hasta que lo revise) ·
+si quiere, un vistazo logueado a las páginas de mesa.
+
+## Anterior (27/07/2026 — 🔐 LOGIN ENCENDIDO (A1) + 🚨 C18/V0 CERRADO: las 3 Routines de informes funcionando de punta a punta)
 
 **🔐 A1 — TERMINAR EL LOGIN — ✅ CERRADO — sesión conversacional, sin rama de código.** Lautaro
 confirmó que el **Centro de verificación de Google** ya mostraba "Se verificó la información de
