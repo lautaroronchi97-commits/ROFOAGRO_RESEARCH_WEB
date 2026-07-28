@@ -71,7 +71,7 @@ async function datosDiario(fecha: string) {
       // automática a esta misma tabla, con fuente='api').
       sbSelect(`compras_bcra?fecha=eq.${fecha}&select=fecha,monto_musd,fuente`, 0),
       sbSelectAll(
-        "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url&order=fecha_publicacion.asc",
+        "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url,actualizado_en&order=fecha_publicacion.asc",
         3600,
       ),
       // MP4 (interpretación de informes de organismos, aún sin construir): consulta
@@ -102,13 +102,15 @@ async function datosDiario(fecha: string) {
     cierres.granos.map((g) => [g.underlying, volumenTotalGrano(g)]),
   );
 
-  // Informe de organismo publicado JUSTO hoy (ej. USDA/CONAB/GEA/DEA): qué cambió,
-  // con números exactos (reusa estimaciones.ts, cero lógica nueva). Si además MP4 ya
-  // publicó su interpretación de ese mismo informe, se adjunta vía `interpretaciones`.
+  // Informe de organismo publicado JUSTO hoy (ej. USDA/CONAB/GEA/DEA) O cargado a la base
+  // hoy con una fecha_publicacion vieja (BCBA-PAS: Lautaro lo sube con la fecha real del
+  // informe, que puede ser de días atrás) — fix de auditoría V2: antes solo miraba `fecha`,
+  // el disparo de PAS nunca matcheaba. Reusa estimaciones.ts, cero lógica nueva. Si además
+  // MP4 ya publicó su interpretación de ese mismo informe, se adjunta vía `interpretaciones`.
   const estimRows = estimRes.ok ? parseRows(estimRes.data) : [];
   const informesHoy = organismosPresentes(estimRows)
     .map((o) => construirCambios(estimRows, o))
-    .filter((c) => c.fecha === fecha && c.cambios.length > 0);
+    .filter((c) => c.cambios.length > 0 && (c.fecha === fecha || c.actualizadoEn?.slice(0, 10) === fecha));
   const interpretaciones = interpRes.ok && Array.isArray(interpRes.data) ? interpRes.data : [];
 
   return {

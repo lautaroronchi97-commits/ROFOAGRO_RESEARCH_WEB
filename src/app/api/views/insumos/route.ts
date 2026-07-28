@@ -84,7 +84,7 @@ export async function GET(request: Request): Promise<Response> {
     getDolarFuturo(),
     getNoticias(),
     sbSelectAll(
-      "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url&order=fecha_publicacion.asc",
+      "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url,actualizado_en&order=fecha_publicacion.asc",
       3600,
     ),
   ]);
