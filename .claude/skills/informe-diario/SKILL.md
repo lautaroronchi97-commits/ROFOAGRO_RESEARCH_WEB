@@ -10,7 +10,7 @@ description: >-
 # modelo grande, con tiempo para pensar el título y el color del día. Esto pisa
 # el modelo de la sesión (y el del selector de la Routine) solo para este turno.
 model: claude-opus-5
-effort: high
+effort: medium
 ---
 
 # Informe diario — procedimiento
@@ -209,11 +209,14 @@ insumo degradó (si alguno), y si el mail salió. Si algo falló a mitad de
 camino, decilo fuerte — nunca en silencio (ej. "se generó el PNG pero no se
 pudo mandar el mail: falta RESEND_API_KEY").
 
-## Paso 9 — Interpretación de informes de organismos (MP4, después del Paso 7)
+## Paso 9 — Interpretación de informes de organismos (V2 de PLAN_INFORMES_V2.md §6.2, después del Paso 7)
 
 Con el mismo JSON del Paso 1 ya tenés `informesHoy`: los informes de
-organismos (USDA/CONAB/BCR-GEA/DEA-SAGyP) que se publicaron **justo hoy**,
-cada uno con `organismo`, `informe` y `cambios` (grano/país/campaña,
+organismos (USDA/CONAB/BCR-GEA/DEA-SAGyP/BCBA-PAS) que se publicaron **hoy O
+se cargaron a la base hoy** (`actualizadoEn`, fix de auditoría V2 — BCBA-PAS
+se sube con la fecha REAL del informe, que puede ser de días atrás; el
+disparo ya contempla las dos fechas, no hace falta que vos lo chequees a
+mano), cada uno con `organismo`, `informe` y `cambios` (grano/país/campaña,
 antes→ahora, delta, unidad — números exactos, ya calculados por
 `estimaciones.ts`). Si `informesHoy` viene vacío, no hay nada que hacer en
 este paso — seguí directo al cierre (Paso 8).
@@ -228,18 +231,72 @@ Para cada entrada de `informesHoy` con `cambios.length > 0`:
    Si devuelve una fila, **saltealo** (ya se generó — no lo pises: puede tener
    ediciones de Lautaro encima).
 
-2. **Redactá el borrador** (3-6 párrafos, voz `voz-lautaro` registro
-   **"Informe largo"** — rigor de datos + framing didáctico ["Recordemos
-   que…", "Dato no menor…"], emojis muy puntuales o ninguno): qué publicó el
-   organismo, qué cambió (cada número de `cambios` tal cual: antes → ahora,
-   unidad), qué implica para precios/mesa (a qué grano/plaza pega, si es
-   alcista/bajista/neutral y por qué), y qué mirar ahora. **Regla dura: solo
-   números que están en `cambios` (o en el resto del JSON del Paso 1) — nada
-   inventado.** Si un cambio es chico o dudoso, decilo con la humildad
-   característica ("a mi óptica, no es un cambio que mueva el amperímetro")
-   en vez de forzarle relevancia.
+2. **Research acotado — SOLO para informes USDA** (presupuesto fijo, ≤10 tool
+   calls; GEA/DEA/CONAB/PAS no tienen encuesta de expectativas pública, van
+   directo al paso 3): buscá la tabla de expectativas pre-report para ESTE
+   informe (WASDE/Crop Production/Grain Stocks/Acreage).
+   - **Fuente primaria: DTN** (`dtnpf.com`, buscar con Google News RSS o
+     WebSearch el artículo de esa semana — verificado el 28/07/2026 con un
+     fetch real: la tabla completa `Avg/High/Low` por grano queda visible SIN
+     login en el artículo, no solo en la portada). Si el artículo específico
+     de esta corrida SÍ pide login/paywall (puede pasar con formatos nuevos),
+     caé a **Pro Farmer** como respaldo y anotalo en el resumen.
+   - Extraé, para cada grano de `cambios`: el promedio esperado por el
+     mercado (`Avg`) y el rango (`High`/`Low`) de la variable que cambió
+     (ending stocks, producción, etc.), con **pasaporte**: `{dato, url,
+     fecha_pub, cita}` — la cita textual exacta de la tabla, y verificá antes
+     de usarla que la URL responde y la cita aparece (mismo criterio F5 de
+     `view-mercado`: lo que no verifica, se cae).
+   - Si no conseguís una expectativa confiable (gate, artículo no encontrado,
+     cita no verifica), **NO inventes una — seguí sin ella** y decilo en la
+     interpretación ("sin encuesta de expectativas a mano esta vez").
+   - Devolvé vacío es una respuesta válida — no fuerces una tabla que no
+     verifica.
 
-3. **Guardá el borrador**:
+3. **Redactá el borrador** (3-6 párrafos, voz `voz-lautaro` registro
+   **"Informe largo"** — rigor de datos + framing didáctico ["Recordemos
+   que…", "Dato no menor…"], emojis muy puntuales o ninguno) con esta
+   estructura (siempre, GEA/DEA/CONAB/PAS incluidos):
+   - **Qué se esperaba**: para USDA con expectativa verificada (paso 2),
+     el `Avg`/rango del mercado, citado con su pasaporte. Para
+     GEA/DEA/CONAB/PAS (sin encuesta pública) o si el paso 2 no consiguió
+     nada: "consenso implícito" — la estimación PREVIA de ese mismo
+     organismo (vintage anterior, ya en `cambios`) + qué venían diciendo los
+     otros organismos si hay un dato comparable en el JSON del Paso 1 (todo
+     en casa, sin research nuevo).
+   - **Qué salió**: cada número de `cambios` tal cual (antes → ahora, delta,
+     unidad) — el dato duro, siempre presente.
+   - **Sorpresa**: comparar qué salió vs qué se esperaba → alcista/bajista/
+     neutral y por qué. Si no hay expectativa (ni encuesta ni consenso
+     implícito claro), decilo y quedate solo con la descripción del cambio.
+   - **Cuánto ya estaba en el precio** (SIEMPRE, no solo con expectativa
+     verificada): qué venía haciendo Chicago (`chicago` del JSON, o
+     `cbot_cierres` si hace falta más historia) en los días previos a este
+     informe — si el movimiento ya se veía venir, decilo ("el mercado lo
+     venía descontando: Chicago ya había caído X% en la semana previa") en
+     vez de presentar como sorpresa algo que ya estaba en el precio.
+   - **Reacción del precio**: qué hizo Chicago EL DÍA del informe
+     (`chicago`/`cierres` del JSON — dato propio, cero fetch nuevo), citado
+     junto a la sorpresa.
+   - **Qué implica y qué mirar**: para precios/mesa (a qué grano/plaza pega,
+     si es alcista/bajista/neutral y por qué) y qué evento mirar ahora
+     (`agenda` del JSON).
+   - Si `color` (el texto que Lautaro cargó ese día) o una lectura propia
+     que haya compartido tocan este mismo informe, citalos como el color de
+     la rueda — **citables, nunca fuente de números ni algo que "corregís"**;
+     si su lectura y el dato difieren, mostrá las dos.
+   - Antes de escribir, leé las interpretaciones YA PUBLICADAS de este mismo
+     organismo (`GET .../interpretaciones?organismo=eq.{organismo}&estado=eq.publicado&order=fecha_publicacion.desc&limit=3`)
+     como calibración de CRITERIO (qué priorizó/descartó Lautaro, qué tono) —
+     **nunca como fuente de números**, los números siempre salen de cero del
+     dato crudo (`cambios`).
+   - **Regla dura: solo números que están en `cambios`, en el resto del JSON
+     del Paso 1, o en un pasaporte verificado del paso 2 — nada inventado.**
+     Si un cambio es chico o dudoso, decilo con la humildad característica
+     ("a mi óptica, no es un cambio que mueva el amperímetro") en vez de
+     forzarle relevancia.
+
+4. **Guardá el borrador** (con la evidencia externa del paso 2, si hubo):
    ```
    POST {SUPABASE_URL}/rest/v1/interpretaciones
    headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY},
@@ -249,13 +306,16 @@ Para cada entrada de `informesHoy` con `cambios.length > 0`:
             "granos": [...granos únicos de cambios],
             "borrador_md": "<el texto en markdown simple: párrafos separados
               por línea en blanco, **negrita** con doble asterisco>",
+            "evidencia_externa": [{"dato":"...", "url":"...", "fecha_pub":"...", "cita":"..."}, …],
             "estado": "borrador" }]
    ```
-   El UNIQUE `(organismo, informe, fecha_publicacion)` + `resolution=merge-
-   duplicates` lo hace idempotente (por eso el chequeo del paso 1 ya evita
-   pisar una edición — este POST solo corre si no existía fila).
+   `evidencia_externa` queda `[]` si el paso 2 no aplicó o no consiguió nada
+   verificable — nunca inventes un pasaporte para llenarlo. El UNIQUE
+   `(organismo, informe, fecha_publicacion)` + `resolution=merge-duplicates`
+   lo hace idempotente (por eso el chequeo del paso 1 ya evita pisar una
+   edición — este POST solo corre si no existía fila).
 
-4. **Avisá por mail** (mismo `RESEND_API_KEY`/`RESEND_FROM`/`ADMIN_EMAILS`
+5. **Avisá por mail** (mismo `RESEND_API_KEY`/`RESEND_FROM`/`ADMIN_EMAILS`
    del Paso 6, sin adjunto):
    ```
    POST https://api.resend.com/emails

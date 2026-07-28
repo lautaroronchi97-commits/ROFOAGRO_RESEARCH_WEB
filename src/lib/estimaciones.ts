@@ -26,6 +26,11 @@ export type EstimRow = {
   fecha_publicacion: string; // "YYYY-MM-DD"
   informe: string;
   url: string | null;
+  /** Cuándo se cargó ESTA fila a la base (`now()` en cada upsert) — puede ser MUY posterior a
+   * `fecha_publicacion` para fuentes de carga manual (BCBA-PAS: Lautaro sube el informe con su
+   * fecha real, que puede ser de días atrás). V2 de PLAN_INFORMES_V2.md §6.2: el disparo del
+   * Paso 9 de informe-diario usa esto para no perderse informes cargados hoy con fecha vieja. */
+  actualizado_en: string | null;
 };
 
 /** Una celda de la pizarra: última estimación de un organismo para un grano/país/campaña. */
@@ -128,6 +133,7 @@ export function parseRows(data: unknown): EstimRow[] {
       fecha_publicacion: o.fecha_publicacion.slice(0, 10),
       informe: typeof o.informe === "string" ? o.informe : "",
       url: typeof o.url === "string" ? o.url : null,
+      actualizado_en: typeof o.actualizado_en === "string" ? o.actualizado_en : null,
     });
   }
   return out;
@@ -268,14 +274,23 @@ export function ultimaFecha(rows: EstimRow[], organismo: string): string | null 
  * Qué tocó el último informe de `organismo`: para cada fila de la última fecha, busca el vintage
  * inmediatamente anterior (misma serie) y devuelve el delta. Solo producción (la variable estrella).
  */
-export function construirCambios(rows: EstimRow[], organismo: string): { organismo: string; fecha: string | null; informe: string; cambios: Cambio[] } {
+export function construirCambios(
+  rows: EstimRow[],
+  organismo: string,
+): { organismo: string; fecha: string | null; informe: string; actualizadoEn: string | null; cambios: Cambio[] } {
   const fecha = ultimaFecha(rows, organismo);
-  if (!fecha) return { organismo, fecha: null, informe: "", cambios: [] };
+  if (!fecha) return { organismo, fecha: null, informe: "", actualizadoEn: null, cambios: [] };
 
   const delDia = rows.filter(
     (r) => r.organismo === organismo && r.fecha_publicacion === fecha && r.variable === "produccion",
   );
   const informe = delDia[0]?.informe ?? "";
+  // Más reciente `actualizado_en` entre las filas de este vintage — cuándo se cargó A LA BASE
+  // (fix de auditoría V2: para carga manual como BCBA-PAS, esto puede ser MUY distinto de `fecha`).
+  const actualizadoEn = delDia.reduce<string | null>(
+    (max, r) => (r.actualizado_en && (!max || r.actualizado_en > max) ? r.actualizado_en : max),
+    null,
+  );
   const cambios: Cambio[] = [];
   for (const r of delDia) {
     const serie = vintagesDe(rows, organismo, r.pais, r.grano, r.campania, "produccion");
@@ -298,7 +313,7 @@ export function construirCambios(rows: EstimRow[], organismo: string): { organis
   }
   // Los movimientos más grandes primero (por magnitud absoluta).
   cambios.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-  return { organismo, fecha, informe, cambios };
+  return { organismo, fecha, informe, actualizadoEn, cambios };
 }
 
 /* ------------------------------------------------------------------ */
