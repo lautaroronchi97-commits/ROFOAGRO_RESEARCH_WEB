@@ -403,6 +403,16 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   [`negocio/10_fuente_camiones_agroentregas.md`](../negocio/10_fuente_camiones_agroentregas.md);
   detalle: [`sesiones/2026-07-28-c24-camiones-agroentregas.md`](../sesiones/2026-07-28-c24-camiones-agroentregas.md).
 
+- [ ] **C25. Biblioteca + menú lateral (sidebar) (nuevo, 28/07)** — pedido explícito de Lautaro:
+  sacar la nav de la parte superior y pasar a un **menú desplegable fijo al costado izquierdo**,
+  con la web reorganizada como **biblioteca** (grupos desplegables → cada reporte con su ítem y su
+  **página propia**: `/granos/arbitrajes`, `/dolar/futuro`, etc., reusando los componentes tal
+  cual). Las 4 decisiones estructurales YA cerradas con él por AskUserQuestion (página propia por
+  reporte · se mantienen los 8 grupos/claves de permisos · header mínimo + cinta · solo-mesa
+  mezclados en su grupo con 🔒). **Plan y prompt autocontenido en
+  [`PLAN_SIDEBAR.md`](../PLAN_SIDEBAR.md)** (§5). Build con patrón claro → Sonnet; cargar la skill
+  `ui-ux-pro-max` antes de tocar UI (pedido explícito).
+
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
