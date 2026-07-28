@@ -382,24 +382,26 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   tabla nueva (no encaja en `estimaciones_produccion`, que es por país no por zona) + parser XLSX
   (columnas en OTRO ORDEN que el CSV: Campaña,Zona,Cultivo,... — no es un simple alias) + panel de
   visualización. Sin prompt escrito todavía.
-- [ ] **C24. Camiones — carga diaria manual vía X de Agroentregas (nuevo, 27/07)** — mismo patrón
-  que **Compras BCRA (MULC) — carga manual** (`bcra-manual.tsx`/`bcra-actions.ts`, C4): hoy
-  `camiones` solo se actualiza cuando Lautoro sube el export tidy/zonas de Williams (periódico, no
-  diario) → entre carga y carga el panel `/comercio/camiones` queda con rezago. Lautoro propone
-  tapar ese hueco con una carga manual del dato del día, sacado de la **cuenta de X de
-  Agroentregas** (posteo diario de camiones, a confirmar el desglose exacto que publica —¿total
-  país, por zona, por producto?). Mismo criterio que compras BCRA: la carga manual es solo un
-  placeholder del día; cuando después llega el archivo real de Williams para esa fecha, el upsert
-  existente (`admin_upsert_camiones`, mismo `producto`+`zona`+`fecha` como clave) ya lo pisa solo
-  con el dato oficial — a diferencia de `compras` (que necesitó la regla explícita "MAGyP inserta,
-  Agrochat manda" porque el cron de MAGyP podía correr DESPUÉS de una corrección manual), acá no
-  hay ningún cron automático de camiones que vuelva a disparar y pueda clobbear la carga manual, así
-  que el upsert simple alcanza — confirmar este razonamiento al ejecutar, no asumirlo sin chequear.
-  Alcance a definir: (1) research rápido de qué publica exactamente esa cuenta de X (capturas
-  reales, no memoria) para saber qué campos pedir en el form; (2) tarjeta nueva en `/admin/datos`
-  (fecha + zona(s), reusa `PRODUCTO_SERIE_CLAVES`/`ZONA_DISPLAY` de `camiones/config.ts`); (3)
-  guard de huecos como ya tiene `bcra-manual.tsx` (últimos días cargados + huecos detectados). Sin
-  prompt escrito todavía.
+- [x] **C24. Camiones de Agroentregas** — ✅ **hecho 28/07**, y **salió mejor que el pedido**: el
+  ítem estaba escrito como "carga diaria MANUAL desde la cuenta de X, mismo patrón que Compras
+  BCRA", con el research de qué publica esa cuenta como paso 1. Ese research (28/07, con requests
+  reales) encontró que la página pública `agroentregas.com.ar/total-de-camiones.html` se alimenta
+  de un **endpoint JSON abierto sin auth** que trae exactamente la placa que postean **y con más
+  detalle: planta, empresa y grano** → C24 dejó de ser carga manual y pasó a ser **ingesta
+  automática** (2 corridas diarias). Cero formulario nuevo en `/admin/datos`.
+  **El razonamiento del ítem sobre el upsert quedó obsoleto** (decía "el archivo de Williams
+  después lo pisa"): se confirmó, como pedía el propio ítem, que NO aplica — los 28 destinos son
+  Up River + Paraná bonaerense, **sin Bahía Blanca ni Necochea**, así que su total no es comparable
+  con el nacional de Williams y pisarse mutuamente contaminaría el percentil estacional de la señal
+  barcos-vs-camiones. Va en **tabla propia** (`camiones_plantas`, migración `20260728150000`
+  aplicada), conviviendo con `camiones` sin mezclarse: Williams = respaldo nacional e histórico
+  (2018→hoy, alimenta la señal), Agroentregas = pulso diario de Up River + "qué exportador está
+  levantando" (apertura por empresa, solo mesa — no la da ninguna otra fuente que tengamos).
+  Sin backfill posible (el endpoint ignora parámetros de fecha), pero cada respuesta trae el mismo
+  día de la semana de hace 1 y 2 años y la ingesta los guarda → al año de correr hay 3 años de
+  estacionalidad construidos solos. Research y verificación:
+  [`negocio/10_fuente_camiones_agroentregas.md`](../negocio/10_fuente_camiones_agroentregas.md);
+  detalle: [`sesiones/2026-07-28-c24-camiones-agroentregas.md`](../sesiones/2026-07-28-c24-camiones-agroentregas.md).
 
 - [ ] **C25. Biblioteca + menú lateral (sidebar) (nuevo, 28/07)** — pedido explícito de Lautaro:
   sacar la nav de la parte superior y pasar a un **menú desplegable fijo al costado izquierdo**,
