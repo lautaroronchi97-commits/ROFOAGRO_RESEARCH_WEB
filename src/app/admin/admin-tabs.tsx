@@ -10,6 +10,7 @@ const TABS: { href: string; label: string; badge?: "usuarios" | "interpretacione
   { href: "/admin/actividad", label: "Actividad" },
   { href: "/admin/datos", label: "Datos" },
   { href: "/admin/interpretaciones", label: "Interpretaciones", badge: "interpretaciones" },
+  { href: "/admin/conexiones", label: "Conexiones" },
 ];
 
 /**

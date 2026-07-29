@@ -240,6 +240,32 @@ export const getFuturosLive = cache(async (): Promise<LiveResult> => {
   return fetchPuntas(symbols);
 });
 
+/** Resultado de un ping barato al WS de A3 — para el panel `/admin/conexiones`, que solo
+ *  necesita saber "¿está trayendo datos?", no la grilla completa de puntas. */
+export type A3PingResult = {
+  estado: LiveEstado;
+  symbol: string | null;
+  latenciaMs: number | null;
+  updatedAt: number | null;
+};
+
+/**
+ * Pide puntas de UN solo instrumento real (A3 rechaza la suscripción entera si el símbolo no
+ * existe de su lado — por eso se toma el primero de `getA3InstrumentsBySegment`, no uno
+ * inventado). No expone `fetchPuntas` en sí: esta es la única entrada pública para "solo
+ * quiero saber si el feed responde", separada de `getPasesLive`/`getFuturosLive` (que arman
+ * la grilla completa que consumen los paneles de mercado).
+ */
+export async function a3Ping(): Promise<A3PingResult> {
+  if (!a3Configured()) return { estado: "sin-config", symbol: null, latenciaMs: null, updatedAt: null };
+  const instrumentos = await getA3InstrumentsBySegment("DDA");
+  const symbol = instrumentos[0] ?? null;
+  if (!symbol) return { estado: "caido", symbol: null, latenciaMs: null, updatedAt: null };
+  const t0 = Date.now();
+  const r = await fetchPuntas([symbol]);
+  return { estado: r.estado, symbol, latenciaMs: r.updatedAt ? Date.now() - t0 : null, updatedAt: r.updatedAt };
+}
+
 /* ---------------- merge de meta (cierres + capa en vivo) ---------------- */
 
 /**
