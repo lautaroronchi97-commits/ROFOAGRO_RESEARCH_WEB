@@ -30,8 +30,8 @@ export async function SinteticosPanel() {
     <Panel id="sinteticos">
       <PanelHead
         glyph={<IconSint />}
-        title="Sintéticos · LECAPs"
-        sub="LECAP + dólar futuro vs futuro directo"
+        title="Sintéticos · LECAPs y BONCAPs"
+        sub="LECAP/BONCAP + dólar futuro vs futuro directo"
         stamp={<SourceStamp meta={meta} />}
       />
 
@@ -49,18 +49,18 @@ export async function SinteticosPanel() {
         <table className="tbl" style={{ minWidth: 620 }}>
           <thead>
             <tr>
-              <th className="l" scope="col">Letra</th>
+              <th className="l" scope="col">Letra/Bono</th>
               <th scope="col">
-                <InfoTip term="DLR">Posición de dólar futuro con el mismo vencimiento que la letra.</InfoTip>
+                <InfoTip term="DLR">Posición de dólar futuro con el mismo vencimiento que la letra/bono.</InfoTip>
               </th>
               <th scope="col">Precio</th>
               <th scope="col">
-                <InfoTip term="Pago final">Importe que paga la letra al vencimiento (VN 100). Se fija en la emisión.</InfoTip>
+                <InfoTip term="Pago final">Importe que paga la letra/bono al vencimiento (VN 100). Se fija en la emisión.</InfoTip>
               </th>
               <th scope="col">
                 <InfoTip term="Sintético">
-                  Dólar a término armado con la letra: spot × (pago final / precio). Es el tipo de cambio que
-                  te queda si comprás la letra y la cobrás al vencimiento.
+                  Dólar a término armado con la letra/bono: spot × (pago final / precio). Es el tipo de cambio
+                  que te queda si lo comprás hoy y lo cobrás al vencimiento.
                 </InfoTip>
               </th>
               <th scope="col">
@@ -95,8 +95,8 @@ export async function SinteticosPanel() {
             {rows.length === 0 && (
               <tr>
                 <td className="l dim" colSpan={8}>
-                  Sin sintéticos para mostrar — falta el precio de las letras o el dólar futuro, o el pago
-                  final no está cargado (se carga en <code>/admin/datos</code>).
+                  Sin sintéticos para mostrar — falta el precio de las letras/bonos o el dólar futuro, o el
+                  pago final no está cargado (se carga en <code>/admin/datos</code>).
                 </td>
               </tr>
             )}
@@ -105,8 +105,8 @@ export async function SinteticosPanel() {
       </div>
 
       <QueEsEsto
-        paraQue="Compara armar un dólar a término con una LECAP (comprarla hoy y cobrarla al vencimiento) contra vender el dólar futuro de la misma posición. Sirve para ver cuál de los dos rinde más en dólares."
-        comoSeCalcula="Sintético = dólar spot × (pago final de la letra / precio de hoy). Tasa directa = sintético / dólar futuro − 1. TNA = directa × 365 / días al vencimiento. El pago final (importe al vencimiento) se carga a mano; el precio de la letra y el dólar futuro se actualizan solos."
+        paraQue="Compara armar un dólar a término con una LECAP o un BONCAP (comprarlo hoy y cobrarlo al vencimiento) contra vender el dólar futuro de la misma posición. Sirve para ver cuál de los dos rinde más en dólares."
+        comoSeCalcula="Sintético = dólar spot × (pago final de la letra/bono / precio de hoy). Tasa directa = sintético / dólar futuro − 1. TNA = directa × 365 / días al vencimiento. El pago final (importe al vencimiento) se carga a mano; el precio de la letra/bono y el dólar futuro se actualizan solos."
       />
     </Panel>
   );
