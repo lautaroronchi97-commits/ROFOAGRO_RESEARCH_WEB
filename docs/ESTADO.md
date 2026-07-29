@@ -19,7 +19,45 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 📋 PLAN C23/C27: PAS por zona + condición de cultivos, CERRADO)
+## Ahora (última actualización: 29/07/2026 — 🗺️ C23 FASE 1: BCBA-PAS por zona agroecológica, HECHA)
+
+**🗺️ C23 FASE 1 — PRODUCCIÓN BCBA-PAS POR ZONA AGROECOLÓGICA — HECHA (código completo, migración
+sin aplicar) — rama `claude/fase1-bcba-pas-zonas-7lwyom`, PR #_.** Ejecuta el prompt de §8 del plan
+cerrado el mismo día (entrada de abajo): `src/lib/xlsx-lite.ts` extraído byte-a-byte de
+`parse-agrochat.ts` (parser XLSX compartido, cero cambio de comportamiento, tests de agrochat
+intactos como red) · `src/lib/parse-pas-zonas.ts` (headers normalizados — tolera el typo real
+"Perdído" — 16 zonas canónicas, rinde SIEMPRE recalculado, guard de escala + duplicado de grupo,
+identidad suma-zonas=TOTAL ±0,5% solo desde 2008/09) · migración `20260729120000_c23_pas_zonas.sql`
+(tabla `pas_zonas` + RPC `admin_upsert_pas_zonas`, RLS `authenticated`+`is_admin()` patrón
+`views_mercado`) · uploader en `/admin/datos#pas-zonas` (guard de identidad con "forzar" + cruce vs.
+el comparador nacional como warning) · `pas-zonas-calc.ts`/`pas-zonas.ts` (foto de campaña con Δ
+descompuesto en efecto área/efecto rinde + evolución de participación top-6+Resto) · panel
+`/produccion/zonas` (solo mesa) reusando el motor de charts + la paleta de 7 colores ya existente ·
+registro en el catálogo de monitoreo (PR #104).
+
+**Migración escrita, SIN APLICAR a propósito** (instrucción explícita del prompt de ejecución: la
+aplica el orquestador por MCP con el OK de Lautaro). Verificado igual con Playwright: subida real
+del `.xlsx` de `data/pas/` por el uploader (1.837 filas, 6 granos, 27 campañas, sin fallas de
+identidad — coincide con el análisis del plan), confirmación falla PROLIJO por falta de la RPC
+(esperado), y el panel probado con el histórico completo parseado en memoria (bypass temporal
+revertido, `git diff` limpio): soja 2025/26 TOTAL 50,1 Mt/−0,4%, maíz 2024/25 = 49,0 Mt (1:1 con el
+plan), % del total sumando exacto 100%, identidad del shift-share exacta. **2 bugs reales
+encontrados y arreglados en la propia verificación**: una campaña "solo TOTAL" (maíz/sorgo 2025/26,
+sin cosecha) dibujaba una caída falsa a 0% en el gráfico de evolución → excluida del eje; las
+etiquetas del eje X podían pegarse en los últimos 2 puntos → 9 ticks evenly-spaced. 329/329 tests
+(51 nuevos) · lint/tsc/build ✅ · claro/oscuro/mobile sin errores de consola ni scroll horizontal
+(se encontró y documentó, sin tocar, un scroll horizontal mobile PRE-EXISTENTE y ajeno a este PR en
+`/admin/datos`, causado por un `<code>` largo de la sección de Agrochat).
+
+**Pendiente para la próxima sesión**: que el orquestador aplique
+`supabase/migrations/20260729120000_c23_pas_zonas.sql` por MCP → recién ahí Lautaro puede subir el
+archivo real desde `/admin/datos` y ver el panel con datos de Postgres de verdad (hoy solo se probó
+parseando el .xlsx en memoria) · confirmar `/admin/conexiones` levanta el check `pas_zonas (BCBA
+zonal)` · **Fase 2 (C27, condición de cultivos)** — prompt en `PLAN_PAS_ZONAS.md` §9, depende de
+esta Fase 1 mergeada. Detalle:
+[`sesiones/2026-07-29-c23-fase1-pas-zonas.md`](sesiones/2026-07-29-c23-fase1-pas-zonas.md).
+
+## Anterior (29/07/2026 — 📋 PLAN C23/C27: PAS por zona + condición de cultivos, CERRADO)
 
 **📋 C23/C27 — PLAN BCBA-PAS POR ZONA + CONDICIÓN DE CULTIVOS — PLAN CERRADO, SOLO DOCS +
 FIXTURES (cero código de producto) — rama `claude/plan-desarrollo-auditoria-yccgvw`, PR #105

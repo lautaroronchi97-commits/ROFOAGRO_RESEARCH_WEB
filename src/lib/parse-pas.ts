@@ -38,7 +38,9 @@ export type FilaEstimacion = {
 
 export type Descarte = { grano: string; campania: string; motivo: string };
 
-const CULTIVO: Record<string, string> = {
+// Exportados (C23, docs/PLAN_PAS_ZONAS.md §4.b): `parse-pas-zonas.ts` reusa el mismo mapa de
+// cultivos y los mismos rangos de plausibilidad — cero comportamiento nuevo, solo visibilidad.
+export const CULTIVO: Record<string, string> = {
   Soja: "soja",
   "Maíz": "maiz",
   Maiz: "maiz",
@@ -50,7 +52,7 @@ const CULTIVO: Record<string, string> = {
 
 // Rangos de plausibilidad de la producción nacional AR (Mt) — mismos que scripts/ingest-pas.mjs,
 // cota anti-basura para cuando el origen cambie de escala sin avisar.
-const RANGO_MT: Record<string, [number, number]> = {
+export const RANGO_MT: Record<string, [number, number]> = {
   soja: [15, 70],
   maiz: [10, 95],
   trigo: [5, 40],
@@ -87,8 +89,12 @@ function splitSemicolon(line: string): string[] {
   return out.map((s) => s.trim());
 }
 
-/** "2000/2001" → "2000/01"; ya-corto "2000/01" pasa igual. Cualquier otra cosa → null. */
-function normalizarCampania(raw: string): string | null {
+/**
+ * "2000/2001" → "2000/01"; ya-corto "2000/01" pasa igual. Cualquier otra cosa → null.
+ * Exportada (C23, docs/PLAN_PAS_ZONAS.md §4.a): `parse-pas-zonas.ts` la reusa — su export
+ * (`reporte_zonas_*.xlsx`) trae la campaña en formato largo "2000/2001" siempre.
+ */
+export function normalizarCampania(raw: string): string | null {
   const c = raw.trim();
   const largo = c.match(/^(\d{4})\/(\d{4})$/);
   if (largo) return `${largo[1]}/${largo[2]!.slice(2)}`; // grupos obligatorios del regex

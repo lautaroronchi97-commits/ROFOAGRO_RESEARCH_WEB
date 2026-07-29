@@ -56,6 +56,11 @@ export const CHECKS: Check[] = [
   { nombre: "estimaciones DEA-SAGyP", tabla: "estimaciones_produccion", col: "fecha_publicacion", filtro: "&organismo=eq.DEA", maxDias: 9, cadencia: "semanal" },
   // views_mercado tiene RLS solo-admin → este check requiere la SERVICE key (la del workflow); con anon da 401.
   { nombre: "views_mercado (view semanal MP3)", tabla: "views_mercado", col: "creado_en", maxDias: 10, cadencia: "semanal (Routine viernes)" },
+  // pas_zonas (C23): misma RLS solo-admin que views_mercado → este check TAMBIÉN requiere la
+  // SERVICE key, anon da 401. Umbral holgado (21d, como Williams): el desglose zonal solo se
+  // mueve de verdad en ventanas de siembra/cosecha, la cadencia real es "cuando sale el PAS del
+  // jueves" sin fecha fija comprometida — no hay cron, es 100% carga manual de Lautaro.
+  { nombre: "pas_zonas (BCBA zonal)", tabla: "pas_zonas", col: "actualizado_en", maxDias: 21, cadencia: "manual (PAS jueves; el zonal cambia fuerte solo en siembra/cosecha)" },
 ];
 
 // E5 #9: "seeds de futuro" — datos que no se atrasan hacia el pasado sino que se AGOTAN hacia
@@ -159,6 +164,7 @@ export const CARGAS_MANUALES: CargaManual[] = [
   { id: "bcra-manual", nombre: "Compras BCRA (MULC) — manual", href: "/admin/datos#bcra-manual", cadenciaTexto: "diaria hábil, tapa el rezago de la API" },
   { id: "dea", nombre: "Estimaciones DEA-SAGyP", href: "/admin/datos#dea", cadenciaTexto: "semanal" },
   { id: "pas", nombre: "Estimaciones BCBA-PAS", href: "/admin/datos#pas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
+  { id: "pas-zonas", nombre: "Estimaciones BCBA-PAS por zona", href: "/admin/datos#pas-zonas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
   { id: "lecap", nombre: "Pago final de letras (LECAP)", href: "/admin/datos#lecap", cadenciaTexto: "esporádica (~cada 1-2 meses)" },
   { id: "interpretaciones", nombre: "Revisar interpretaciones", href: "/admin/interpretaciones", cadenciaTexto: "cuando hay un borrador esperando" },
   { id: "view-feedback", nombre: "Calificar el view de mercado", href: "/granos/view", cadenciaTexto: "semanal, tras la Routine del viernes" },

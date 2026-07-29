@@ -11,6 +11,7 @@ import { DatosDia, type DiaColor } from "./datos-dia";
 import { BcraManual, type PuntoReciente } from "./bcra-manual";
 import { DeaUploader } from "./dea-uploader";
 import { PasUploader } from "./pas-uploader";
+import { PasZonasUploader } from "./pas-zonas-uploader";
 import { LecapUploader } from "./lecap-uploader";
 
 /**
@@ -104,6 +105,9 @@ export default async function DatosPage() {
       </div>
       <div id="pas">
         <PasUploader hoy={fechaHoy} />
+      </div>
+      <div id="pas-zonas">
+        <PasZonasUploader />
       </div>
 
       <div id="lecap" className="admin-hd" style={{ marginTop: 32 }}>

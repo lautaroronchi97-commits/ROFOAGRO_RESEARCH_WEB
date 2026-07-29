@@ -368,7 +368,8 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   real de las 4 Routines NO se pudo completar**: esa telemetría no es visible desde este entorno
   de código (vive del lado de la cuenta de Lautoro) — queda pendiente real, no bloqueante.
   Mismo detalle de sesión que C21.
-- [ ] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (anotado 27/07 — PLAN CERRADO 29/07)** —
+- [x] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (anotado 27/07 — PLAN CERRADO 29/07 —
+  ✅ FASE 1 HECHA 29/07, rama `claude/fase1-bcba-pas-zonas-7lwyom`)** —
   al probar el uploader de BCBA-PAS (A6) Lautaro pasó un export alternativo (`reporte.xlsx`, hoja
   "Reporte base de datos") desglosado por **zona agroecológica**, no solo el total país que ya
   carga `historico_pas_datasets.csv`. **29/07: archivo real analizado a fondo y plan cerrado con
@@ -382,7 +383,15 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   foto de campaña (Δ descompuesto en efecto área/efecto rinde) + evolución histórica (top-6+Resto,
   desde 2008/09) · uploader con guard de identidad "forzar" · registro en el catálogo de monitoreo
   del PR #104. El archivo real quedó **versionado en `data/pas/`** (fixture del build, no depende
-  de volver a pedirlo).
+  de volver a pedirlo). **Fase 1 construida 29/07** (`xlsx-lite.ts` extraído de `parse-agrochat.ts` ·
+  `parse-pas-zonas.ts` · uploader · `pas-zonas.ts`/`pas-zonas-calc.ts` + panel `/produccion/zonas` ·
+  catálogo de monitoreo) y **verificada con Playwright contra el .xlsx real** (1.837 filas cargables,
+  identidad cierra 100% desde 2008/09, soja/maíz coinciden 1:1 con lo verificado en el plan) —
+  detalle en `sesiones/2026-07-29-c23-fase1-pas-zonas.md`. **Pendiente real: la migración
+  `20260729120000_c23_pas_zonas.sql` quedó ESCRITA SIN APLICAR** (instrucción explícita del prompt
+  de ejecución: la aplica el orquestador por MCP con el OK de Lautaro) — hasta que se aplique, el
+  panel degrada solo ("no se pudo cargar") y el uploader falla prolijo en el paso 2. Sigue la
+  **Fase 2 (C27)** una vez mergeado esto.
 - [x] **C24. Camiones de Agroentregas** — ✅ **hecho 28/07**, y **salió mejor que el pedido**: el
   ítem estaba escrito como "carga diaria MANUAL desde la cuenta de X, mismo patrón que Compras
   BCRA", con el research de qué publica esa cuenta como paso 1. Ese research (28/07, con requests
