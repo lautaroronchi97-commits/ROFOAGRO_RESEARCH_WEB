@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createSupabaseServerClient } from "./auth/server";
+import { selectAllPaginado } from "./auth/select-all";
 
 /**
  * pas-zonas.ts — lectura de `pas_zonas` (C23, docs/PLAN_PAS_ZONAS.md §3.a/§6). La tabla tiene RLS
@@ -13,6 +14,12 @@ import { createSupabaseServerClient } from "./auth/server";
  * Las agregaciones puras (foto de campaña, evolución de participación) viven en
  * `pas-zonas-calc.ts` (sin "server-only", testeable) — reexportadas acá para que el resto del
  * código importe un solo módulo.
+ *
+ * Pagina con `selectAllPaginado` (29/07/2026, bug real): con 1.837 filas (>1.000, el corte de
+ * PostgREST) un `.select()` sin `.range()` devolvía solo las campañas más viejas — el panel
+ * mostraba producción "completa" hasta 2016/17 y desaparecía todo lo posterior, sin ningún error
+ * visible. Orden por (campania, grano, zona) — las 3 columnas de la PK que no sea `semana`
+ * (no aplica acá) — para que la paginación sea determinística entre páginas.
  */
 export * from "./pas-zonas-calc";
 
@@ -22,10 +29,14 @@ export type PasZonasData = { filas: FilaZonaDB[]; error: string | null };
 
 export const getPasZonas = cache(async (): Promise<PasZonasData> => {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("pas_zonas")
-    .select("grano,campania,zona,sembrado_ha,perdido_ha,cosechado_ha,produccion_tn,rinde_tn_ha")
-    .order("campania", { ascending: true });
-  if (error) return { filas: [], error: error.message };
-  return { filas: (data ?? []) as FilaZonaDB[], error: null };
+  const { filas, error } = await selectAllPaginado<FilaZonaDB>((from, to) =>
+    supabase
+      .from("pas_zonas")
+      .select("grano,campania,zona,sembrado_ha,perdido_ha,cosechado_ha,produccion_tn,rinde_tn_ha")
+      .order("campania", { ascending: true })
+      .order("grano", { ascending: true })
+      .order("zona", { ascending: true })
+      .range(from, to),
+  );
+  return { filas, error };
 });
