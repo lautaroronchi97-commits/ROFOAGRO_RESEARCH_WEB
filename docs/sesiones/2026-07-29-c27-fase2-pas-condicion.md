@@ -1,6 +1,6 @@
 # Sesión 2026-07-29 — C27 Fase 2: condición de cultivos BCBA-PAS
 
-- **Rama:** `claude/determined-ptolemy-47adgf` · **PR:** #_ (base `main`)
+- **Rama:** `claude/determined-ptolemy-47adgf` · **PR:** #107 (base `main`, mergeado)
 - **Objetivo pedido:** ejecutar la Fase 2 de [`PLAN_PAS_ZONAS.md`](../PLAN_PAS_ZONAS.md) §9 (C27
   del backlog maestro): condición de cultivos semanal BCBA-PAS. Precondición (Fase 1/C23 mergeada,
   `xlsx-lite.ts` + `normalizarCampania` disponibles) confirmada al arrancar — nada que re-decidir.
@@ -21,8 +21,9 @@
   en el orden real del header. 12 tests.
 - **Migración `supabase/migrations/20260729130000_c27_pas_condicion.sql`** — tabla `pas_condicion`
   (fenología en **jsonb array ordenado**, RLS `authenticated`+`is_admin()`, revoke anon) + RPC
-  `admin_upsert_pas_condicion`. **Escrita, sin aplicar** (mismo criterio que C23: la aplica el
-  orquestador por MCP con OK de Lautaro).
+  `admin_upsert_pas_condicion`. Escrita sin aplicar durante el build (mismo criterio que C23: la
+  aplica el orquestador por MCP con OK de Lautaro) — **aplicada el mismo día, post-merge** (ver
+  «Verificado»).
 - **Uploader** `src/app/admin/datos/pas-condicion-{uploader.tsx,actions.ts}` — card nueva en
   `/admin/datos#pas-condicion`, patrón 2 pasos, un archivo por cultivo (el parser detecta cuál del
   propio contenido). Sin fecha ni guard de identidad (a diferencia de pas-zonas: acá no hay un
@@ -70,18 +71,31 @@
   20-30, fenología apenas arrancando en Macollaje/Encañazón) sin romper el resto del historial —
   exactamente el comportamiento pedido. Claro/oscuro (toggle real "Modo rueda"/"Modo pizarra") +
   mobile 390px: cero errores de consola, cero scroll horizontal en las 4 combinaciones probadas.
-- **RLS de `pas_condicion` (anon no lee, admin sí): NO verificado** — la tabla no existe todavía
-  (migración sin aplicar), mismo límite que dejó pendiente la sesión de C23.
+### Post-merge (mismo día): migración aplicada + carga real de Lautaro, verificada por SQL
+- El orquestador aplicó `20260729130000_c27_pas_condicion.sql` y Lautaro subió los 4 archivos
+  reales desde `/admin/datos#pas-condicion` con su sesión real. Verificado por SQL contra la base:
+  `pas_condicion` con **1.872 filas exactas** — girasol 250 (total) + maíz 727 (243/1ra + 242/2da +
+  242/total) + soja 560 (186/1ra + 186/2da + 188/total) + trigo 335 (total), 1:1 con lo que había
+  mostrado la previsualización del uploader en el bypass (ningún descarte silencioso extra).
+- **RLS confirmada en los dos sentidos**: `set local role anon` → `permission denied` (el `revoke
+  all` deja la tabla inaccesible de raíz, ni siquiera 0 filas silenciosas); `set local role
+  authenticated` + `request.jwt.claims` de un usuario `rol=admin` real → ve las 1.872 filas.
+- **Valor de control cotejado byte a byte** contra el fixture: girasol semana 7 de 2025/26—
+  `cc_buena=37,29308468`, `ch_regular=41,73906156`, fenología `Cosecha=29,8647211` — coincide exacto
+  con lo que había verificado el test unitario contra el .xlsx crudo.
+- `actualizado_en` de las 1.872 filas es de hoy → el check `pas_condicion (BCBA condición)` de
+  `/admin/conexiones` debería levantar en verde (maxDias=14, sin confirmar visualmente en navegador
+  con sesión real, pero la condición de frescura del check ya se cumple).
 
 ## Quedó pendiente / en vuelo
-- **Aplicar `supabase/migrations/20260729130000_c27_pas_condicion.sql`** (el orquestador, por MCP,
-  con el OK de Lautaro) — desbloquea la carga real de los 4 archivos, la RLS por SQL, y el panel
-  leyendo Postgres de verdad (hoy solo se probó parseando los .xlsx en memoria).
-- Después de aplicar la migración: subir los 4 archivos reales desde `/admin/datos#pas-condicion`
-  con la sesión real de Lautaro y confirmar que `/admin/conexiones` levanta el check nuevo
-  `pas_condicion (BCBA condición)`.
-- Con esto se cierra el plan completo `PLAN_PAS_ZONAS.md` (Fases 1 y 2, C23+C27) — no queda ninguna
-  fase más en ese documento.
+- Confirmar VISUALMENTE en `/admin/conexiones` (con sesión real de Lautoro) que el check
+  `pas_condicion (BCBA condición)` aparece en verde — la condición de datos ya se cumple (verificado
+  por SQL), solo falta el vistazo en navegador.
+- `pas_zonas` (C23, Fase 1) sigue con **0 filas** en la base — su migración está aplicada pero
+  Lautaro todavía no subió el archivo real de zonas; no es parte de esta sesión, queda anotado para
+  no perderlo de vista.
+- Con la carga real de C27 confirmada, **`PLAN_PAS_ZONAS.md` queda operativo de punta a punta en su
+  Fase 2** (Fase 1/C23 solo le falta la carga de datos mencionada arriba, no código).
 
 ## Trampas descubiertas (para la próxima sesión)
 - **El `[98,102]` de tolerancia que proponía el plan para los bloques CC/CH no sobrevivió el

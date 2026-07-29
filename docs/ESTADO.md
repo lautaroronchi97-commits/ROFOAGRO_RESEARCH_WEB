@@ -19,10 +19,11 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 🌱 C27 FASE 2: condición de cultivos BCBA-PAS, HECHA)
+## Ahora (última actualización: 29/07/2026 — 🌱 C27 FASE 2: condición de cultivos BCBA-PAS, HECHA Y DE PUNTA A PUNTA CON DATOS REALES)
 
-**🌱 C27 FASE 2 — CONDICIÓN DE CULTIVOS SEMANAL BCBA-PAS — HECHA (código completo, migración sin
-aplicar) — rama `claude/determined-ptolemy-47adgf`, PR #_.** Ejecuta el prompt de §9 de
+**🌱 C27 FASE 2 — CONDICIÓN DE CULTIVOS SEMANAL BCBA-PAS — HECHA, migración aplicada y los 4
+archivos reales cargados por Lautaro — rama `claude/determined-ptolemy-47adgf`, PR #107
+(mergeado).** Ejecuta el prompt de §9 de
 `PLAN_PAS_ZONAS.md` (C27 del backlog maestro), cierra el plan completo (Fases 1+2, C23+C27).
 `src/lib/parse-pas-condicion.ts` (15 columnas fijas normalizadas + **fenología leída DINÁMICAMENTE
 del header** — girasol/soja/maíz/trigo traen 4 vocabularios agronómicos distintos, nunca
@@ -44,24 +45,28 @@ de soja exactas en 97%), no por datos malos. Recalibrada empíricamente a **`[90
 confirmar un salto limpio entre esa masa y los outliers genuinos (54%, 76-84%), documentado en el
 código y en los tests.
 
-**Migración escrita, SIN APLICAR a propósito** (mismo criterio que C23: la aplica el orquestador
-por MCP con el OK de Lautaro). Verificado igual con Playwright: subida real de los 4 `.xlsx` de
-`data/pas/` por el uploader (girasol 250 filas/4 descartes de bloque, soja 560/7 descartes —incl. 6
-PK duplicadas—, maíz 727/4 descartes, trigo 335/0 descartes — los 4 coinciden 1:1 con los tests),
-confirmación falla PROLIJO por falta de la RPC (esperado), y el panel probado con los 4 archivos
-parseados en memoria (bypass temporal de 3 puntos —DAL, proxy y datos de la página— revertido,
-`git status` limpio): selector de ciclo correctamente oculto para girasol/trigo (sin ciclos) y
-visible para soja/maíz (1ra/2da), trigo con la campaña **2026/27 en curso** dibujada parcial sin
-romper el resto del historial, crosshair con tooltip exacto (verificado 1:1 contra el cálculo). 44
-tests nuevos (369/369 total) · lint/tsc/build ✅ · claro/oscuro/mobile sin errores de consola ni
-scroll horizontal.
+**Verificado primero con Playwright/bypass** (subida real de los 4 `.xlsx` de `data/pas/` por el
+uploader — girasol 250 filas/4 descartes de bloque, soja 560/7 descartes —incl. 6 PK duplicadas—,
+maíz 727/4 descartes, trigo 335/0 descartes — los 4 coinciden 1:1 con los tests; confirmación
+fallaba PROLIJO por falta de la RPC, como se esperaba antes de aplicar la migración; panel probado
+con los 4 archivos parseados en memoria, bypass temporal de 3 puntos —DAL, proxy y datos de la
+página— revertido, `git status` limpio): selector de ciclo correctamente oculto para girasol/trigo
+(sin ciclos) y visible para soja/maíz (1ra/2da), trigo con la campaña **2026/27 en curso** dibujada
+parcial sin romper el resto del historial, crosshair con tooltip exacto. 44 tests nuevos (369/369
+total) · lint/tsc/build ✅ · claro/oscuro/mobile sin errores de consola ni scroll horizontal.
 
-**Pendiente para la próxima sesión**: que el orquestador aplique
-`supabase/migrations/20260729130000_c27_pas_condicion.sql` por MCP → recién ahí Lautaro puede subir
-los 4 archivos reales desde `/admin/datos` y ver el panel con datos de Postgres de verdad (hoy solo
-se probó parseando los .xlsx en memoria) · confirmar `/admin/conexiones` levanta el check nuevo
-`pas_condicion (BCBA condición)`. Con esto **`PLAN_PAS_ZONAS.md` queda completo** (Fases 1 y 2).
-Detalle:
+**Migración APLICADA por el orquestador (mismo día) + los 4 archivos reales cargados por Lautaro
+desde `/admin/datos#pas-condicion`.** Verificado por SQL contra la base real: `pas_condicion` con
+**1.872 filas** — exacto girasol 250 (total) + maíz 727 (243/1ra + 242/2da + 242/total) + soja 560
+(186/1ra + 186/2da + 188/total) + trigo 335 (total), sin ninguna fila de más ni de menos respecto a
+lo que había mostrado la previsualización del uploader. RLS confirmada en los dos sentidos: `anon`
+da `permission denied` (revoke total, ni siquiera 0 filas silenciosas) y `authenticated`+`is_admin()`
+ve las 1.872. Valor de control cotejado byte a byte contra el fixture (girasol semana 7 de 2025/26:
+`cc_buena=37,29308468`, `ch_regular=41,73906156`, fenología `Cosecha=29,8647211`) — coincide exacto.
+`actualizado_en` de hoy → el healthcheck de `/admin/conexiones` debería levantar
+`pas_condicion (BCBA condición)` en verde. Con esto **`PLAN_PAS_ZONAS.md` queda completo de punta a
+punta** (Fases 1 y 2 — `pas_zonas` de C23 sigue con 0 filas, carga pendiente aparte, no forma parte
+de esta sesión). Detalle:
 [`sesiones/2026-07-29-c27-fase2-pas-condicion.md`](sesiones/2026-07-29-c27-fase2-pas-condicion.md).
 
 ## Anterior (29/07/2026 — 🗺️ C23 FASE 1: BCBA-PAS por zona agroecológica, HECHA)
