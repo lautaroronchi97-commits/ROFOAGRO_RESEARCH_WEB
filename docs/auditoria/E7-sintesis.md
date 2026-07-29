@@ -436,7 +436,8 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   de Lautaro). Detalle:
   [`sesiones/2026-07-29-panel-conexiones.md`](../sesiones/2026-07-29-panel-conexiones.md).
 
-- [ ] **C27. Condición de cultivos semanal BCBA-PAS (nuevo, 29/07)** — al cerrar el plan de C23,
+- [x] **C27. Condición de cultivos semanal BCBA-PAS (nuevo, 29/07 — HECHO 29/07, código completo,
+  migración sin aplicar)** — al cerrar el plan de C23,
   Lautaro adjuntó además los exports de **condición de cultivos** de la misma web de BCBA (uno por
   cultivo, hoja "Reporte base de datos"): serie **semanal** de condición de cultivo
   (Mala→Excelente %), condición hídrica (Sequía→Exceso %) y avance fenológico (% por etapa, con

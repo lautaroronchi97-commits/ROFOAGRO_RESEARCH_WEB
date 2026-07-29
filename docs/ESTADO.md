@@ -19,7 +19,52 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 🗺️ C23 FASE 1: BCBA-PAS por zona agroecológica, HECHA)
+## Ahora (última actualización: 29/07/2026 — 🌱 C27 FASE 2: condición de cultivos BCBA-PAS, HECHA)
+
+**🌱 C27 FASE 2 — CONDICIÓN DE CULTIVOS SEMANAL BCBA-PAS — HECHA (código completo, migración sin
+aplicar) — rama `claude/determined-ptolemy-47adgf`, PR #_.** Ejecuta el prompt de §9 de
+`PLAN_PAS_ZONAS.md` (C27 del backlog maestro), cierra el plan completo (Fases 1+2, C23+C27).
+`src/lib/parse-pas-condicion.ts` (15 columnas fijas normalizadas + **fenología leída DINÁMICAMENTE
+del header** — girasol/soja/maíz/trigo traen 4 vocabularios agronómicos distintos, nunca
+hardcodeada — mapa Soja/Soja1/Soja2/Maiz/Maiz1/Maiz2/Trigo/Girasol acotado a esos 4 cultivos, sin
+hueco para cebada/sorgo, semana 0-53 sin fecha, PK duplicada con "gana la última") ·
+`pas-condicion-calc.ts`/`pas-condicion.ts` (ciclos/campañas derivados de los datos reales, overlay
+de campañas para condición de cultivo/hídrica + series de fenología) · migración
+`20260729130000_c27_pas_condicion.sql` (tabla `pas_condicion` con fenología en **jsonb array
+ordenado** + RPC `admin_upsert_pas_condicion`, misma RLS que `pas_zonas`) · uploader en
+`/admin/datos#pas-condicion` (un archivo por cultivo) · panel `/produccion/condicion` (selector
+cultivo+ciclo+campaña, 3 charts con eje "semana de campaña", la campaña elegida en color pleno
+sobre las previas en gris) · registro en `biblioteca.ts` y en el catálogo de monitoreo.
+
+**Hallazgo real de esta sesión que cambió el código respecto al plan**: la tolerancia `[98,102]`
+que proponía el plan para los bloques CC/CH de origen (deben sumar ~100%) descartaba **~20-25% de
+las filas de soja/maíz** al verificarla contra los 4 archivos reales — BCBA redondea cada categoría
+a un entero independiente y la suma cae rutinariamente en 96-99% por puro redondeo (122/499 filas
+de soja exactas en 97%), no por datos malos. Recalibrada empíricamente a **`[90,110]`** tras
+confirmar un salto limpio entre esa masa y los outliers genuinos (54%, 76-84%), documentado en el
+código y en los tests.
+
+**Migración escrita, SIN APLICAR a propósito** (mismo criterio que C23: la aplica el orquestador
+por MCP con el OK de Lautaro). Verificado igual con Playwright: subida real de los 4 `.xlsx` de
+`data/pas/` por el uploader (girasol 250 filas/4 descartes de bloque, soja 560/7 descartes —incl. 6
+PK duplicadas—, maíz 727/4 descartes, trigo 335/0 descartes — los 4 coinciden 1:1 con los tests),
+confirmación falla PROLIJO por falta de la RPC (esperado), y el panel probado con los 4 archivos
+parseados en memoria (bypass temporal de 3 puntos —DAL, proxy y datos de la página— revertido,
+`git status` limpio): selector de ciclo correctamente oculto para girasol/trigo (sin ciclos) y
+visible para soja/maíz (1ra/2da), trigo con la campaña **2026/27 en curso** dibujada parcial sin
+romper el resto del historial, crosshair con tooltip exacto (verificado 1:1 contra el cálculo). 44
+tests nuevos (369/369 total) · lint/tsc/build ✅ · claro/oscuro/mobile sin errores de consola ni
+scroll horizontal.
+
+**Pendiente para la próxima sesión**: que el orquestador aplique
+`supabase/migrations/20260729130000_c27_pas_condicion.sql` por MCP → recién ahí Lautaro puede subir
+los 4 archivos reales desde `/admin/datos` y ver el panel con datos de Postgres de verdad (hoy solo
+se probó parseando los .xlsx en memoria) · confirmar `/admin/conexiones` levanta el check nuevo
+`pas_condicion (BCBA condición)`. Con esto **`PLAN_PAS_ZONAS.md` queda completo** (Fases 1 y 2).
+Detalle:
+[`sesiones/2026-07-29-c27-fase2-pas-condicion.md`](sesiones/2026-07-29-c27-fase2-pas-condicion.md).
+
+## Anterior (29/07/2026 — 🗺️ C23 FASE 1: BCBA-PAS por zona agroecológica, HECHA)
 
 **🗺️ C23 FASE 1 — PRODUCCIÓN BCBA-PAS POR ZONA AGROECOLÓGICA — HECHA (código completo, migración
 sin aplicar) — rama `claude/fase1-bcba-pas-zonas-7lwyom`, PR #_.** Ejecuta el prompt de §8 del plan
