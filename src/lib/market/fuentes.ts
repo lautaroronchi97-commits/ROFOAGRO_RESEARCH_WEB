@@ -100,6 +100,33 @@ export const getNotes = cache(async (): Promise<NoteRow[] | null> => {
 });
 
 /**
+ * `arg_bonds` — títulos públicos de data912 (misma forma de fila que `arg_notes`). Los BONCAPs
+ * (T15E7, T30A7, T31Y7, T30J7…) cotizan ACÁ, no en `arg_notes`: data912 los clasifica como
+ * "título" (bono), no como "letra" (nota) — a diferencia de las LECAP (S*), que sí son notas.
+ */
+export const getBonds = cache(async (): Promise<NoteRow[] | null> => {
+  const r = await fetchJson("https://data912.com/live/arg_bonds");
+  if (!r.ok) return null;
+  const arr = asArr(r.data);
+  if (!arr) return null;
+  const rows: NoteRow[] = [];
+  for (const it of arr) {
+    const o = asObj(it);
+    if (!o) continue;
+    const symbol = asStr(o.symbol);
+    if (!symbol) continue;
+    rows.push({
+      symbol,
+      c: asNum(o.c),
+      px_bid: asNum(o.px_bid),
+      px_ask: asNum(o.px_ask),
+      pct_change: asNum(o.pct_change),
+    });
+  }
+  return rows.length ? rows : null;
+});
+
+/**
  * Dólar oficial mayorista MAE = ticker "UST$T" en resumen/FOR, plazo "000" (T+0).
  * El resumen trae DOS filas UST$T (000 = contado inmediato, 001 = T+1); la referencia
  * es el T+0 (decisión de Lautaro, auditoría E2 21/07/2026).

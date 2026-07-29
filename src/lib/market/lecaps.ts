@@ -1,10 +1,10 @@
 import "server-only";
 import { cache } from "react";
 import type { Meta } from "./types";
-import { getNotes } from "./fuentes";
+import { getNotes, getBonds, type NoteRow } from "./fuentes";
 import { vencFromTicker } from "./tickers";
 
-/* ---------------- Módulo 6: LECAPs (data912) — base para sintéticos ---------------- */
+/* ---------------- Módulo 6: LECAPs + BONCAPs (data912) — base para sintéticos ---------------- */
 
 export type Lecap = {
   symbol: string;
@@ -16,12 +16,11 @@ export type Lecap = {
 
 export type LecapsData = { lecaps: Lecap[]; meta: Meta };
 
-export const getLecaps = cache(async (): Promise<LecapsData> => {
-  const notes = await getNotes();
-  const now = Date.now();
-
-  const lecaps: Lecap[] = (notes ?? [])
-    .filter((n) => /^S\d/.test(n.symbol) && !n.symbol.endsWith("D"))
+/** LECAP = "letra" en `arg_notes` (prefijo S); BONCAP = "título" en `arg_bonds` (prefijo T). */
+function mapearLetras(rows: NoteRow[] | null, prefijo: "S" | "T", now: number): Lecap[] {
+  const re = prefijo === "S" ? /^S\d/ : /^T\d/;
+  return (rows ?? [])
+    .filter((n) => re.test(n.symbol) && !n.symbol.endsWith("D"))
     .map((n) => {
       const px = n.c ?? (n.px_bid !== null && n.px_ask !== null ? (n.px_bid + n.px_ask) / 2 : null);
       if (px === null || px <= 0) return null;
@@ -29,18 +28,24 @@ export const getLecaps = cache(async (): Promise<LecapsData> => {
       const dias = venc ? Math.max(0, Math.round((venc - now) / 86400000)) : null;
       return { symbol: n.symbol, px, varPct: n.pct_change, dias, venc };
     })
-    .filter((x): x is Lecap => x !== null)
-    .sort((a, b) => (a.venc ?? 1e15) - (b.venc ?? 1e15));
+    .filter((x): x is Lecap => x !== null);
+}
+
+export const getLecaps = cache(async (): Promise<LecapsData> => {
+  const [notes, bonds] = await Promise.all([getNotes(), getBonds()]);
+  const now = Date.now();
+
+  const lecaps: Lecap[] = [...mapearLetras(notes, "S", now), ...mapearLetras(bonds, "T", now)].sort(
+    (a, b) => (a.venc ?? 1e15) - (b.venc ?? 1e15),
+  );
 
   return {
     lecaps,
     meta: {
       source: "Mercado de deuda local",
       updatedAt: now,
-      // parcial: TIR/sintético pendiente ("pago final por letra") — backlog C13
-      // (PLAN_BACKLOG.md P9), NO es alcance de este lote.
-      status: notes ? "parcial" : "parcial",
-      problemas: notes ? ["TIR y sintético pendientes (falta pago final por letra)"] : ["data912 caído"],
+      status: notes || bonds ? "real" : "parcial",
+      problemas: notes || bonds ? [] : ["data912 caído"],
     },
   };
 });
