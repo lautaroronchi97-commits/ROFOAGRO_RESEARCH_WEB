@@ -22,7 +22,8 @@
 ## Ahora (última actualización: 29/07/2026 — 📋 PLAN C23/C27: PAS por zona + condición de cultivos, CERRADO)
 
 **📋 C23/C27 — PLAN BCBA-PAS POR ZONA + CONDICIÓN DE CULTIVOS — PLAN CERRADO, SOLO DOCS +
-FIXTURES (cero código de producto) — rama `claude/plan-desarrollo-auditoria-yccgvw`, PR #_.**
+FIXTURES (cero código de producto) — rama `claude/plan-desarrollo-auditoria-yccgvw`, PR #105
+(mergeado).**
 C23 era el único ítem del backlog maestro sin prompt escrito (`auditoria/E7-sintesis.md` §4).
 Lautaro adjuntó los 5 exports reales de BCBA-PAS y el alcance quedó cerrado por `AskUserQuestion`
 (2 rondas, con los archivos llegando en el medio): **un plan, dos entregas** — Fase 1 = producción

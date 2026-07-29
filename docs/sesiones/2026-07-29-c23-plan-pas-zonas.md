@@ -1,6 +1,6 @@
 # Sesión 2026-07-29 — Plan C23/C27: BCBA-PAS por zona + condición de cultivos
 
-- **Rama:** `claude/plan-desarrollo-auditoria-yccgvw` · **PR:** #_ (base `main`)
+- **Rama:** `claude/plan-desarrollo-auditoria-yccgvw` · **PR:** #105 (base `main`, mergeado)
 - **Objetivo pedido por Lautaro:** cerrar C23 (único ítem del backlog maestro sin prompt escrito)
   — producción BCBA-PAS por zona agroecológica —, haciendo "toda la lógica y planificación con
   Fable" y pidiéndole todas las preguntas necesarias para un resultado 10/10. Sesión de
