@@ -70,6 +70,7 @@ const GRAFICOS: BibItem[] = [
 const PRODUCCION: BibItem[] = [
   { href: "/produccion/calendario", label: "Calendario de informes", desc: "Cuándo publica cada organismo (USDA, CONAB, BCR, BCBA, SAGyP)." },
   { href: "/produccion/estimaciones", label: "Estimaciones", desc: "Producción por país y grano, con la lectura de la mesa." },
+  { href: "/produccion/zonas", label: "Producción por zona", desc: "BCBA-PAS por zona agroecológica: foto de campaña y evolución de participación.", soloMesa: true },
 ];
 
 // "Informes" queda como un feed cronológico con anclas (decisión del plan): partirlo en
