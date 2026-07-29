@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/dal";
 import { createSupabaseServerClient } from "@/lib/auth/server";
 import { hoyCordobaISO } from "@/lib/dates";
+import { isoMenosDias, huecosHabiles } from "@/lib/monitoreo/manual";
 import { Uploader } from "./uploader";
 import { PromptAgrochat } from "./prompt-agrochat";
 import { UploaderCamiones } from "./uploader-camiones";
@@ -11,18 +12,6 @@ import { BcraManual, type PuntoReciente } from "./bcra-manual";
 import { DeaUploader } from "./dea-uploader";
 import { PasUploader } from "./pas-uploader";
 import { LecapUploader } from "./lecap-uploader";
-
-function isoMenosDias(iso: string, dias: number): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - dias);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Lunes a viernes (getUTCDay: 0=domingo..6=sábado). */
-function esHabil(iso: string): boolean {
-  const dia = new Date(`${iso}T00:00:00Z`).getUTCDay();
-  return dia >= 1 && dia <= 5;
-}
 
 /**
  * Pestaña DATOS del panel admin: actualizar series que se cargan a mano (sin cron), subiendo
@@ -74,16 +63,13 @@ export default async function DatosPage() {
   const bcraRecientes = (bcraRows ?? []) as { fecha: string; monto_musd: number; fuente: "manual" | "api" }[];
   const bcraPuntos: PuntoReciente[] = bcraRecientes.map((r) => ({ fecha: r.fecha, montoMusd: r.monto_musd, fuente: r.fuente }));
   const bcraFechas = new Set(bcraPuntos.map((p) => p.fecha));
-  const bcraFaltantes: string[] = [];
-  for (let d = isoMenosDias(fechaHoy, 1); d >= desde14; d = isoMenosDias(d, 1)) {
-    if (esHabil(d) && !bcraFechas.has(d)) bcraFaltantes.unshift(d);
-  }
+  const bcraFaltantes = huecosHabiles(fechaHoy, 14, bcraFechas);
   const bcraFechaDefault = bcraFaltantes.length > 0 ? bcraFaltantes[bcraFaltantes.length - 1]! : isoMenosDias(fechaHoy, 1);
   const lecapActuales = (lecapRows ?? []) as { ticker: string; pago_final: number; fecha_vencimiento: string | null }[];
 
   return (
     <section>
-      <div className="admin-hd">
+      <div id="agrochat" className="admin-hd">
         <h1 className="admin-h1">Datos · Serie de comercialización</h1>
         <p className="admin-sub">
           Subí el export semanal de Agrochat (compras por grano, sector y campaña, en toneladas) para
@@ -95,7 +81,7 @@ export default async function DatosPage() {
       <PromptAgrochat />
       <Uploader />
 
-      <div className="admin-hd" style={{ marginTop: 32 }}>
+      <div id="camiones" className="admin-hd" style={{ marginTop: 32 }}>
         <h2 className="admin-h1" style={{ fontSize: "1.3rem" }}>Datos · Camiones en puerto</h2>
         <p className="admin-sub">
           Subí el export de Williams Entregas (vía Agrochat) para actualizar{" "}
@@ -107,12 +93,20 @@ export default async function DatosPage() {
       <PromptCamiones />
       <UploaderCamiones />
 
-      <DatosDia fechaHoy={fechaHoy} dias={diasColor} />
-      <BcraManual fechaDefault={bcraFechaDefault} recientes={bcraPuntos.slice(0, 8)} faltantes={bcraFaltantes} />
-      <DeaUploader hoy={fechaHoy} />
-      <PasUploader hoy={fechaHoy} />
+      <div id="mesa-color">
+        <DatosDia fechaHoy={fechaHoy} dias={diasColor} />
+      </div>
+      <div id="bcra-manual">
+        <BcraManual fechaDefault={bcraFechaDefault} recientes={bcraPuntos.slice(0, 8)} faltantes={bcraFaltantes} />
+      </div>
+      <div id="dea">
+        <DeaUploader hoy={fechaHoy} />
+      </div>
+      <div id="pas">
+        <PasUploader hoy={fechaHoy} />
+      </div>
 
-      <div className="admin-hd" style={{ marginTop: 32 }}>
+      <div id="lecap" className="admin-hd" style={{ marginTop: 32 }}>
         <h2 className="admin-h1" style={{ fontSize: "1.3rem" }}>Datos · Pago final de letras (sintéticos)</h2>
         <p className="admin-sub">
           Cargá el pago final (importe al vencimiento) de cada LECAP/BONCAP para el panel{" "}

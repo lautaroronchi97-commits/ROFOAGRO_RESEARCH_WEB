@@ -415,6 +415,16 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   ~30-60s (medido con build real, comparado contra `main`); la cinta se dejó donde ya estaba (home).
   Detalle: [`sesiones/2026-07-28-c25-biblioteca-sidebar.md`](../sesiones/2026-07-28-c25-biblioteca-sidebar.md).
 
+- [x] **C26. Panel /admin/conexiones (monitoreo de crons, Routines y cargas manuales) — ✅ HECHO
+  29/07, PR #_.** Pedido nuevo de Lautaro: un lugar para ver de un vistazo qué carga manual falta,
+  qué cron corrió/no corrió, si las 3 Routines produjeron lo suyo y si A3 está trayendo datos en
+  vivo. Confirmado que **no existe ningún `ingest_log`** en el repo → el panel combina 3 fuentes
+  reales (API de GitHub Actions, opcional vía `GH_MONITOR_TOKEN`; frescura de Supabase, catálogo
+  único extraído a `src/lib/monitoreo/catalogo.ts` y reusado por `healthcheck-frescura.mjs`;
+  `informes_generados`/`views_mercado` para las Routines) en vez de un registro de corridas que
+  nunca se construyó. Solo lectura + links (sin "correr ahora", decisión de Lautaro). Detalle:
+  [`sesiones/2026-07-29-panel-conexiones.md`](../sesiones/2026-07-29-panel-conexiones.md).
+
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel

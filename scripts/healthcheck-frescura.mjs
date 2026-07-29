@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 import { canonShipper } from "../src/lib/lineup/shippers.ts";
+import {
+  CHECKS,
+  FUTURO,
+  MATVIEWS,
+  ULTIMO_SEED_CALENDARIO,
+  MIN_DIAS_SEED_CALENDARIO,
+  ROSTER_UMBRAL_OTROS_PCT,
+} from "../src/lib/monitoreo/catalogo.ts";
 
 // Healthcheck de frescura de las bases que alimenta ESTE repo (crons de GitHub Actions).
 //
@@ -44,73 +52,10 @@ async function ultimaFecha(tabla, col, filtro) {
   return j[0]?.[col] ?? null;
 }
 
-// Umbrales en días CALENDARIO, holgados para tolerar fines de semana + feriados/puentes (el mayor
-// hueco legítimo de una serie diaria es ~5 días: feriado + puente + finde) sin dejar de detectar un
-// freeze real (un parser roto se nota igual en < 1 semana). Ajustables.
-const CHECKS = [
-  { nombre: "futuros_cierres (A3/Matba)", tabla: "futuros_cierres", col: "fecha", maxDias: 7, cadencia: "diario hábil" },
-  { nombre: "cbot_cierres (CBOT)", tabla: "cbot_cierres", col: "fecha", maxDias: 7, cadencia: "diario hábil (T-1)" },
-  { nombre: "pizarra_historico (CAC)", tabla: "pizarra_historico", col: "fecha", maxDias: 7, cadencia: "diario hábil" },
-  { nombre: "lineup (buques ISA)", tabla: "lineup", col: "fecha_consulta", maxDias: 7, cadencia: "diario hábil (ISA tiene huecos)" },
-  { nombre: "djve (MAGyP)", tabla: "djve", col: "fecha_registro", maxDias: 5, cadencia: "diario" },
-  { nombre: "compras (SIO Granos)", tabla: "compras", col: "fecha", maxDias: 14, cadencia: "semanal (upload manual Agrochat)" },
-  // Camiones (C5): carga 100% MANUAL (Williams Entregas es un servicio pago sin API — Lautoro sube
-  // el CSV de /admin/datos cuando le queda cómodo, sin cadencia fija comprometida). El check acá
-  // NO significa "¿corrió el cron anoche?" (no hay cron) sino "¿hace cuánto que no sube un CSV
-  // nuevo?" — umbral laxo (3 semanas) a propósito, para no generar ruido de un proceso manual sin
-  // promesa de frecuencia; si se atrasa mucho más que eso sí vale la pena que Lautoro se acuerde.
-  { nombre: "camiones (Williams Entregas)", tabla: "camiones", col: "fecha", maxDias: 21, cadencia: "irregular (upload manual, sin cron)" },
-  // Camiones de Agroentregas (C24): ESTE sí tiene cron (2 corridas diarias, todos los días — los
-  // puertos reciben también los sábados). La fuente es una foto del día en curso sin backfill
-  // posible, así que un atraso de más de 2 días ya significa días perdidos para siempre: umbral
-  // corto a propósito, al revés que el de Williams.
-  { nombre: "camiones_plantas (Agroentregas)", tabla: "camiones_plantas", col: "fecha", maxDias: 3, cadencia: "diario (cron 2×/día)" },
-  { nombre: "noticias", tabla: "noticias", col: "fecha_pub", maxDias: 2, cadencia: "horario" },
-  // Compras netas BCRA / MULC (C4): la API v4 var 78 llega con ~3-4 días hábiles de rezago
-  // (docs/negocio/07) — umbral holgado para no enrojecer por el rezago normal + fin de semana;
-  // la carga manual de /admin/datos también cuenta acá (misma tabla), así que en la práctica
-  // rara vez debería quedar tan atrás.
-  { nombre: "compras_bcra (BCRA MULC)", tabla: "compras_bcra", col: "fecha", maxDias: 12, cadencia: "diario hábil (API, T-3/4) + manual" },
-  { nombre: "estimaciones USDA", tabla: "estimaciones_produccion", col: "fecha_publicacion", filtro: "&organismo=eq.USDA", maxDias: 45, cadencia: "mensual (WASDE)" },
-  { nombre: "estimaciones CONAB", tabla: "estimaciones_produccion", col: "fecha_publicacion", filtro: "&organismo=eq.CONAB", maxDias: 45, cadencia: "mensual" },
-  { nombre: "estimaciones BCR-GEA", tabla: "estimaciones_produccion", col: "fecha_publicacion", filtro: "&organismo=eq.BCR", maxDias: 45, cadencia: "mensual" },
-  { nombre: "estimaciones DEA-SAGyP", tabla: "estimaciones_produccion", col: "fecha_publicacion", filtro: "&organismo=eq.DEA", maxDias: 9, cadencia: "semanal" },
-  // views_mercado tiene RLS solo-admin → este check requiere la SERVICE key (la del workflow); con anon da 401.
-  { nombre: "views_mercado (view semanal MP3)", tabla: "views_mercado", col: "creado_en", maxDias: 10, cadencia: "semanal (Routine viernes)" },
-];
-
-// E5 #9: "seeds de futuro" — datos que no se atrasan hacia el pasado sino que se AGOTAN hacia
-// adelante (el ángulo ciego de los checks de frescura). Fallan con meses de anticipación.
-const FUTURO = [
-  {
-    nombre: "vencimientos con futuro suficiente",
-    tabla: "vencimientos",
-    col: "vencimiento",
-    minDiasFuturo: 180,
-    nota: "los refresca ingest-cierres.mjs desde el CEM cada noche hábil",
-  },
-];
-
-// Última fecha OFICIAL sembrada en src/lib/calendario.ts (CONAB_2026 termina el 15/12/2026).
-// ⚠️ Mantener EN SYNC al sembrar el seed del año siguiente (y subir SEED_ACTUAL en
-// refresh-calendario.mjs). Con <60 días de seed restante este check enrojece el healthcheck.
-const ULTIMO_SEED_CALENDARIO = "2026-12-15";
-
-// Erosión del roster de exportadores (lote L4, auditoría E7, 23/07/2026, decisión de Lautaro):
-// `shippers.ts` colapsa ~280 variantes de razón social a un puñado de jugadores estables + "OTROS".
-// Si "OTROS" crece (fusión, jugador nuevo, typo nuevo de ISA) el mapeo pierde representatividad
-// SIN que nada rompa — no es un problema de frescura, así que va aparte. Al 22/07 el share real era
-// 2,6% (sano); umbral de aviso 15% (~6× ese nivel). NO hace fallar el healthcheck (solo ::warning +
-// fila) porque un roster que erosiona no es una fuente caída, es una señal para actualizar shippers.ts.
-const ROSTER_UMBRAL_OTROS_PCT = 15;
-
-// Matviews de mesa: no tienen fecha de "hoy" propia; se controla que su última fila coincida con la de
-// su tabla base (si la base avanzó y la matview no, quedó sin refrescar y muestra datos viejos callada).
-const MATVIEWS = [
-  { nombre: "compras_avance_hist", mv: "compras_avance_hist", mvCol: "fecha", base: "compras", baseCol: "fecha" },
-  { nombre: "lineup_gap_hist", mv: "lineup_gap_hist", mvCol: "fecha", base: "lineup", baseCol: "fecha_consulta" },
-  { nombre: "lineup_densidad_hist", mv: "lineup_densidad_hist", mvCol: "fecha", base: "lineup", baseCol: "fecha_consulta" },
-];
+// CHECKS/FUTURO/MATVIEWS/ULTIMO_SEED_CALENDARIO/ROSTER_UMBRAL_OTROS_PCT viven en
+// src/lib/monitoreo/catalogo.ts (importado arriba) — es el catálogo único que también
+// consume el panel /admin/conexiones. Mantenerlos en un solo lugar evita que el
+// healthcheck (lo que corre solo) y el panel (lo que Lautaro mira) diverjan con el tiempo.
 
 /** Share de "OTROS" (shippers no reconocidos por shippers.ts) en la última rueda del line-up. */
 async function erosionRoster() {
@@ -215,11 +160,11 @@ async function main() {
 
   {
     const restantes = -diasDesde(ULTIMO_SEED_CALENDARIO);
-    const agotado = restantes < 60;
+    const agotado = restantes < MIN_DIAS_SEED_CALENDARIO;
     if (agotado) fallas++;
     console.log(
       `${agotado ? "✗ POR AGOTARSE" : "✓"}  seed calendario oficial: hasta ${ULTIMO_SEED_CALENDARIO} ` +
-        `(${restantes}d de futuro · mínimo 60d · sembrar el año próximo en src/lib/calendario.ts y actualizar ULTIMO_SEED_CALENDARIO acá)`,
+        `(${restantes}d de futuro · mínimo ${MIN_DIAS_SEED_CALENDARIO}d · sembrar el año próximo en src/lib/calendario.ts y subir ULTIMO_SEED_CALENDARIO en catalogo.ts)`,
     );
     detalle.push({ nombre: "seed calendario oficial", fecha: ULTIMO_SEED_CALENDARIO, restantes, atrasado: agotado });
   }

@@ -19,7 +19,52 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 28/07/2026 — 🗂️ C25: biblioteca + menú lateral, HECHO)
+## Ahora (última actualización: 29/07/2026 — 🖥️ panel /admin/conexiones, HECHO)
+
+**🖥️ PANEL /admin/conexiones (monitoreo de crons, Routines y cargas manuales) — HECHO — rama
+`claude/admin-crons-panel-9p8f62`, PR #_.** Pedido directo de Lautaro: un lugar dentro de `/admin`
+para ver de un vistazo qué carga manual falta (y desde cuándo), qué cron corrió o no, si las 3
+Routines produjeron lo suyo, y si el WebSocket de A3 está trayendo datos — hoy esa información
+vivía repartida (frescura solo en el mail de las 20:45, "¿corrió?" solo en la API de GitHub sin
+acceso desde la web, Routines detectables solo leyendo tablas a mano). **Confirmado por research:
+no existe ningún `ingest_log`** en el repo (solo mencionado como pendiente en `INFRAESTRUCTURA.md`)
+→ el panel combina 3 fuentes reales en vez de leer un registro de corridas: la API de GitHub
+Actions (run real, opcional vía `GH_MONITOR_TOKEN`), la frescura de Supabase (reusa el mismo
+catálogo que `healthcheck-frescura.mjs`, ahora extraído a **`src/lib/monitoreo/catalogo.ts`** para
+no duplicar) y `informes_generados`/`views_mercado` (qué produjeron las Routines).
+
+**Build**: catálogo único (`CHECKS`/`MATVIEWS`/`FUTURO` movidos desde el script + `WORKFLOWS`/
+`CARGAS_MANUALES`/`ROUTINES` nuevos) + libs en `src/lib/monitoreo/` separadas en pares lógica-pura
+(testeable) / wrapper-de-I/O (`server-only` — confirmado que el paquete `server-only` rompe Vitest
+apenas se lo importa, incluso bajo Node puro) + `a3Ping()` nuevo en `a3-live.ts` (ping barato a 1
+símbolo real, sin exponer `fetchPuntas`) + página `/admin/conexiones` (3 KPIs + 4 bloques: cargas
+manuales con link directo a cada sección de `/admin/datos` —que ahora tiene anclas `id=`—, crons
+con semáforo verde/dorado/rojo reusando `.estado-aprobado/.estado-pendiente/.estado-bloqueado`,
+Routines en cards `.sf-card`, y A3/Supabase/matviews/vencimientos/seed-calendario). **Solo lectura +
+links** (sin botón "correr ahora" — decisión de Lautaro por `AskUserQuestion`, menos superficie de
+riesgo). **Reglas de "última carga" por tabla** verificadas migración por migración: `compras`/
+`camiones` no refrescan su columna de auditoría al re-subir (se usa `fecha` del dato); DEA/PAS/BCRA-
+manual/LECAP sí (se usa `actualizado_en`/`actualizado`, porque `fecha_publicacion` puede ser de
+días atrás — ver `PLAN_INFORMES_V2.md`). `esHabil`/`isoMenosDias`/`huecosHabiles` de `/admin/datos`
+(antes duplicadas ahí) pasaron a ser la única definición, importada por ambos.
+
+**Verificado**: lint/tsc/build ✅ · **288/288 tests** (40 nuevos: lógica de huecos hábiles, ventana
+esperada de cada Routine, consistencia del catálogo) · `healthcheck-frescura.mjs` corrido real
+post-refactor, mismo output exacto que antes · Playwright real (claro/oscuro/mobile, con las
+credenciales públicas de Supabase — `NEXT_PUBLIC_*` pedidas por MCP para el sandbox): cero errores
+de consola, cero scroll horizontal, cruce independiente exacto entre el cálculo de huecos de BCRA
+del panel nuevo y el de `/admin/datos` (mismo resultado, confirma que el refactor no cambió
+comportamiento). **Hallazgo real durante la verificación** (no un bug): el panel marcó "View de
+mercado: ATRASADO" porque las 2 corridas reales en `views_mercado` (21/07 y 27/07) fueron ambas
+disparos manuales de sesiones de build/diagnóstico, ninguna cayó en viernes — el cron semanal real
+(creado 23/07) todavía no produjo una corrida propia; se confirma el 31/07 si corre sola.
+
+**Pendiente**: cargar `GH_MONITOR_TOKEN` en Vercel (fine-grained, Actions read-only — instrucciones
+en `.env.local.example`; sin él el panel degrada solo a frescura, no rompe nada) · primer vistazo
+real de Lautaro logueado (todo se verificó con bypass temporal, revertido antes de cerrar). Detalle:
+[`sesiones/2026-07-29-panel-conexiones.md`](sesiones/2026-07-29-panel-conexiones.md).
+
+## Anterior (28/07/2026 — 🗂️ C25: biblioteca + menú lateral (sidebar), HECHO)
 
 **🗂️ C25 — BIBLIOTECA + MENÚ LATERAL (SIDEBAR) — HECHO, ejecutando el prompt de
 `PLAN_SIDEBAR.md` §5 — rama `claude/c25-biblioteca-sidebar-hzrmsf`, PR #_.** La nav superior de 8

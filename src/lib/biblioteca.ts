@@ -117,6 +117,7 @@ export const BIBLIOTECA_ADMIN = {
     { href: "/admin/actividad", label: "Actividad", desc: "Historial de accesos por usuario y empresa." },
     { href: "/admin/datos", label: "Datos", desc: "Cargas manuales: DEA, PAS, camiones, LECAPs y más." },
     { href: "/admin/interpretaciones", label: "Interpretaciones", desc: "Borradores de la lectura de la mesa." },
+    { href: "/admin/conexiones", label: "Conexiones", desc: "Crons, Routines y cargas manuales: qué corrió y qué falta." },
   ] as BibItem[],
 };
 
