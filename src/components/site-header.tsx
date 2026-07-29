@@ -25,7 +25,6 @@ export function SiteHeader() {
             <span className="rf">ROFO</span>
             <span className="agro">AGRO</span>
           </span>
-          <span className="brand-sub">Pizarra electrónica · granos</span>
         </Link>
 
         <div className="head-tools">

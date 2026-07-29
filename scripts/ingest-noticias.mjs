@@ -161,7 +161,8 @@ function parseBcr(html) {
     }
     if (t.text.length > 25 && !seen.has(t.href)) {
       seen.add(t.href);
-      items.push({ titulo: t.text, fuente: `${fuente} (vía BCR)`, link: t.href, fecha_pub: null });
+      // Solo el nombre del medio: el puente (BCR) nunca se muestra (relevamiento 29/07, punto 15).
+      items.push({ titulo: t.text, fuente, link: t.href, fecha_pub: null });
     }
   }
   return items;
@@ -274,7 +275,7 @@ async function main() {
   });
 
   // dedup por link entre fuentes (BCR suele linkear notas que también vienen por RSS). Ante colisión
-  // gana el registro MÁS RICO: el que trae fecha_pub (y así el nombre de medio limpio, no "(vía BCR)"),
+  // gana el registro MÁS RICO: el que trae fecha_pub (y así el nombre de medio canónico del RSS),
   // para que la fecha/orden sea estable corrida a corrida, sin depender de qué fuente respondió esa hora.
   const byLink = new Map();
   for (const r of all) {

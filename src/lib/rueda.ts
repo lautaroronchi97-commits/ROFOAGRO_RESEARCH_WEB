@@ -10,8 +10,8 @@
 
 export type Rueda = { nombre: string; label: string; abre: number; cierra: number }; // abre/cierra = minutos desde 00:00
 
-export const RUEDA_DOLAR: Rueda = { nombre: "Dólar", label: "10–15", abre: 10 * 60, cierra: 15 * 60 };
-export const RUEDA_AGRO: Rueda = { nombre: "Agro", label: "10:30–17", abre: 10 * 60 + 30, cierra: 17 * 60 };
+export const RUEDA_DOLAR: Rueda = { nombre: "Dólar", label: "10:00–15:00", abre: 10 * 60, cierra: 15 * 60 };
+export const RUEDA_AGRO: Rueda = { nombre: "Agro", label: "10:30–17:00", abre: 10 * 60 + 30, cierra: 17 * 60 };
 export const RUEDAS: Rueda[] = [RUEDA_DOLAR, RUEDA_AGRO];
 
 /** Minutos desde medianoche y día de semana (0=Dom … 6=Sáb) en Córdoba. */

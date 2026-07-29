@@ -22,7 +22,7 @@ export async function NoticiasPanel() {
       <PanelHead
         glyph={<IconNews />}
         title="Noticias"
-        sub={`Portal del agro · ${data.nFuentes} fuentes · categorización propia`}
+        sub="Portal del agro"
         stamp={<SourceStamp meta={data.meta} />}
       />
       {data.total > 0 ? (

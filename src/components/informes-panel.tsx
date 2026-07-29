@@ -25,12 +25,13 @@ function porFecha(evs: EventoCalendario[]): Array<[string, EventoCalendario[]]> 
 }
 
 /**
- * Panel compacto de la home: próximos informes de alto/medio interés (10 días),
- * agrupados por día. El calendario completo (con contexto de mercado) vive en /produccion.
+ * Panel compacto de la home: próximos informes de alto/medio interés, agrupados por
+ * día. Ventana de 7 días — "solo una semana como máximo" (relevamiento 29/07, punto
+ * 22). El calendario completo (con contexto de mercado) vive en /produccion.
  */
 export function InformesPanel() {
   const hoy = hoyCordobaISO();
-  const hasta = ymd(sumarCorridos(parseYmd(hoy), 10));
+  const hasta = ymd(sumarCorridos(parseYmd(hoy), 7));
   const eventos = getEventos(hoy, hasta).filter((e) => e.importancia !== "baja");
   const grupos = porFecha(eventos);
 
@@ -39,7 +40,7 @@ export function InformesPanel() {
       <PanelHead
         glyph={<IconCal />}
         title="Próximos informes"
-        sub="Estimaciones de producción · 10 días"
+        sub="Estimaciones de producción · próximos 7 días"
         stamp={
           <Link href="/produccion" className="cal-more">
             Calendario completo →
@@ -48,7 +49,7 @@ export function InformesPanel() {
       />
       <div className="cal-list">
         {grupos.length === 0 && (
-          <div className="cal-empty">Sin informes de peso en los próximos 10 días.</div>
+          <div className="cal-empty">Sin informes de peso en los próximos 7 días.</div>
         )}
         {grupos.map(([fecha, evs]) => (
           <div className="cal-day" key={fecha}>

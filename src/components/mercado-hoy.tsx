@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getMonitorMercados, type MonitorRow } from "@/lib/monitor-mercados";
-import { nfmt, pfmt } from "@/lib/format";
+import { getArbitrajes } from "@/lib/arbitrajes-cierres";
+import { getFuturosLive } from "@/lib/a3-live";
+import { ruedaAgroCorrioHoy } from "@/lib/rueda";
+import { hoyCordobaISO } from "@/lib/dates";
+import { esModoOperado, referenciaDeFila } from "@/lib/referencia-futuro";
+import { nfmt, pfmt, sfmt } from "@/lib/format";
 import { Panel, PanelHead } from "./panel";
 import { GlyphSoja, GlyphMaiz, GlyphTrigo } from "./icons";
 import { SourceStamp } from "./source-stamp";
@@ -13,13 +18,13 @@ function IconMonitor() {
   );
 }
 
-function glyphFor(g: MonitorRow["glyph"]) {
+function glyphFor(g: MonitorRow["glyph"] | "soja" | "maiz" | "trigo" | null) {
   if (g === "soja") return <GlyphSoja />;
   if (g === "maiz") return <GlyphMaiz />;
   if (g === "trigo") return <GlyphTrigo />;
   return null;
 }
-function glyphColor(g: MonitorRow["glyph"]) {
+function glyphColor(g: MonitorRow["glyph"] | "soja" | "maiz" | "trigo" | null) {
   if (g === "soja") return "var(--brand-agro)";
   if (g === "maiz") return "var(--gold-text)";
   return "var(--brand-deep)";
@@ -28,25 +33,98 @@ function deltaClass(d: number | null) {
   return d == null ? "neu2" : d > 0 ? "pos" : d < 0 ? "neg" : "neu2";
 }
 
+/** Posiciones fijas del bloque Argentina (relevamiento 29/07, punto 20). */
+const POSICIONES_AR: { underlying: string; pos: string; nombre: string; glyph: "soja" | "maiz" | "trigo" }[] = [
+  { underlying: "MAI", pos: "JUL26", nombre: "Maíz", glyph: "maiz" },
+  { underlying: "SOJ", pos: "NOV26", nombre: "Soja", glyph: "soja" },
+  { underlying: "SOJ", pos: "MAY27", nombre: "Soja", glyph: "soja" },
+  { underlying: "TRI", pos: "DIC26", nombre: "Trigo", glyph: "trigo" },
+];
+
+type FilaAr = {
+  key: string;
+  nombre: string;
+  glyph: "soja" | "maiz" | "trigo";
+  pos: string;
+  valor: number | null;
+  variacion: number | null; // US$ vs ajuste anterior
+  refMode: "operado" | "ajuste";
+  vivo: boolean;
+};
+
 /**
- * "El mercado hoy" de la home: vistazo compacto a Chicago (soja + derivados,
- * maíz, trigo) en USD/tn con la variación del día. Reusa `getMonitorMercados()`
- * —la misma fuente del monitor completo de `/granos`— sin datos ni lógica nueva.
- * El dólar con su variación ya vive en la cinta de arriba, por eso acá no se
- * repite. El macro (petróleo, oro, real, SPY…) queda en el monitor completo.
+ * "El mercado hoy" de la home, en dos bloques (relevamiento 29/07, punto 20):
+ *   - ARGENTINA: las posiciones de referencia de A3 (Maíz JUL26 · Soja NOV26 y
+ *     MAY27 · Trigo DIC26) con la MISMA regla de referencia que Arbitrajes —
+ *     último operado del WebSocket si operó, sino el último ajuste
+ *     (`referencia-futuro.ts`, sin lógica duplicada).
+ *   - CHICAGO: los 5 de siempre en USD/tn (`getMonitorMercados()`).
+ * Ambas fuentes ya están cache()adas por render (la cinta también las usa).
  */
 export async function MercadoHoy() {
-  const data = await getMonitorMercados();
+  const [data, arb, live] = await Promise.all([getMonitorMercados(), getArbitrajes(), getFuturosLive()]);
+
+  const ruedaCorrio = ruedaAgroCorrioHoy();
+  const hoy = hoyCordobaISO();
+  const liveOk = live.respondidos > 0;
+
+  const filasAr: FilaAr[] = POSICIONES_AR.map(({ underlying, pos, nombre, glyph }) => {
+    const g = arb.granos.find((x) => x.underlying === underlying) ?? null;
+    const r = g?.rows.find((x) => x.pos === pos) ?? null;
+    const p = r ? live.puntas.get(r.symbol) : undefined;
+    const modoOperado = esModoOperado({ ruedaCorrio, ajusteEsDeHoy: g?.fecha === hoy, liveOk });
+    const rf = referenciaDeFila({
+      modoOperado,
+      last: p?.last ?? null,
+      ajuste: r?.ajuste ?? null,
+      variacionCierre: r?.variacion ?? null,
+      volLive: p?.vol ?? null,
+    });
+    return {
+      key: `${underlying}-${pos}`,
+      nombre,
+      glyph,
+      pos,
+      valor: rf.ref,
+      variacion: rf.variacion,
+      refMode: rf.refMode,
+      vivo: rf.vivo,
+    };
+  });
 
   return (
     <Panel id="mercado-hoy">
       <PanelHead
         glyph={<IconMonitor />}
         title="El mercado hoy"
-        sub="Chicago en USD/tn · futuros demorados ~10 min"
+        sub="Argentina (A3) y Chicago en USD/tn"
         stamp={<SourceStamp meta={data.meta} />}
       />
 
+      <div className="mh-sub-hd">Argentina — Matba Rofex</div>
+      <div className="mh-grid">
+        {filasAr.map((f) => (
+          <div className="mh-cell" key={f.key}>
+            <div className="mh-hd">
+              <span className="mh-glyph" style={{ color: glyphColor(f.glyph) }}>{glyphFor(f.glyph)}</span>
+              <span className="mh-name">{f.nombre}</span>
+              <span className="mh-pos">
+                {f.pos}
+                {f.vivo && <span className="mh-vivo" title="Último operado en vivo" aria-label="en vivo" />}
+              </span>
+            </div>
+            <div className="mh-val">
+              {f.valor != null ? nfmt(f.valor, 1) : "—"}
+              <span className="mh-unit">USD/tn</span>
+            </div>
+            <div className={`mh-delta ${deltaClass(f.variacion)}`} title={f.refMode === "operado" ? "vs ajuste anterior (en rueda)" : "vs cierre anterior"}>
+              {f.variacion != null ? `${sfmt(f.variacion, 2)} US$` : "—"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mh-sub-hd">Chicago — CBOT · futuros demorados ~10 min</div>
       <div className="mh-grid">
         {data.agro.map((r) => (
           <div className="mh-cell" key={r.yahoo}>
@@ -66,9 +144,10 @@ export async function MercadoHoy() {
 
       <div className="panel-note">
         <span>
-          <span className="k">Referencia internacional</span> el precio de Chicago que marca a tu grano,
-          pasado a dólares por tonelada. El detalle (posición operada, petróleo, oro, real, S&amp;P) está en{" "}
-          <Link href="/granos" className="cal-inline-link">Granos</Link>.
+          <span className="k">Referencia</span> Argentina: futuro A3 (último operado en rueda, ajuste fuera de rueda) —
+          el detalle está en <Link href="/granos/arbitrajes" className="cal-inline-link">Arbitrajes</Link>. Chicago: el precio
+          que marca a tu grano, en dólares por tonelada — el detalle (posición operada, petróleo, oro, real, S&amp;P) está en{" "}
+          <Link href="/granos/monitor" className="cal-inline-link">el monitor</Link>.
         </span>
       </div>
     </Panel>

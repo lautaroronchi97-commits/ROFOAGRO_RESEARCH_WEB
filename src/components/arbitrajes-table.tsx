@@ -3,13 +3,12 @@ import { getFuturosLive, mergeLiveMeta } from "@/lib/a3-live";
 import { ruedaAgroCorrioHoy } from "@/lib/rueda";
 import { hoyCordobaISO } from "@/lib/dates";
 import { CONTRATO_GRANO_TN } from "@/lib/futuros";
+import { esModoOperado, referenciaDeFila } from "@/lib/referencia-futuro";
 import { Panel, PanelHead } from "./panel";
 import { IconArb } from "./icons";
 import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
 import { ArbitrajesEditable, type ArbGranoClient } from "./arbitrajes-editable";
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * Referencia de la 1ª columna (pedido de Lautaro, 07/2026):
@@ -20,6 +19,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
  * Todo (spread / tasa directa / TNA) se recalcula sobre esa referencia, así el
  * arbitraje refleja el mercado del momento durante la rueda.
  * Sin A3 en vivo (Preview/sandbox o feed caído) cae al ajuste — no se queda en blanco.
+ * La regla vive en `src/lib/referencia-futuro.ts` (compartida con "El mercado hoy").
  */
 export async function ArbitrajesTable() {
   const [data, live] = await Promise.all([getArbitrajes(), getFuturosLive()]);
@@ -32,7 +32,7 @@ export async function ArbitrajesTable() {
   const granos: ArbGranoClient[] = data.granos.map((g) => {
     // El ajuste del día ya salió cuando el cierre guardado es de hoy.
     const ajusteEsDeHoy = g.fecha === hoy;
-    const modoOperado = ruedaCorrio && !ajusteEsDeHoy && liveOk;
+    const modoOperado = esModoOperado({ ruedaCorrio, ajusteEsDeHoy, liveOk });
     const rows = g.rows.flatMap((r) => {
       const p = live.puntas.get(r.symbol);
       const last = p?.last ?? null;
@@ -49,31 +49,21 @@ export async function ArbitrajesTable() {
       // del filtrado de posiciones vivas.
       const oi = r.openInterest;
       if (oi != null && oi < 100 && !operoHoy) return [];
-      // En rueda: el último operado (A3 LA) tal cual, como la pantalla de mercado
-      // (eTrader) — SIN filtrar por volumen del día: una posición poco líquida que
-      // no operó hoy igual muestra su último precio operado. Solo queda "—" si A3
-      // no tiene último operado. Fuera de rueda: el ajuste.
-      const ref = modoOperado ? last : r.ajuste;
-      // Var: en rueda se recalcula EN VIVO contra el WS (último operado − ajuste
-      // anterior), como pidió Lautoro — no alcanza con el `change` de CEM, que
-      // solo se actualiza una vez por día cuando sale el cierre oficial. Antes de
-      // la 1ª operación del día (last == null) queda en blanco, no se muestra el
-      // dato de ayer disfrazado de hoy. Fuera de rueda (o sin A3 en vivo) sí vale
-      // el `change` de CEM: en ese momento ES el oficial del último cierre.
-      const variacion = modoOperado
-        ? last != null && r.ajuste != null
-          ? round2(last - r.ajuste)
-          : null
-        : r.variacion;
+      // Referencia + variación + punto "en vivo": regla compartida (ver docstring).
+      const rf = referenciaDeFila({
+        modoOperado,
+        last,
+        ajuste: r.ajuste,
+        variacionCierre: r.variacion,
+        volLive,
+      });
       return [
         {
           pos: r.pos,
-          ref,
-          refMode: modoOperado ? ("operado" as const) : ("ajuste" as const),
-          // Punto verde en vivo SOLO en las que operaron hoy (distingue lo que se
-          // mueve ahora del último operado arrastrado de la rueda anterior).
-          vivo: modoOperado && operoHoy && last != null,
-          variacion,
+          ref: rf.ref,
+          refMode: rf.refMode,
+          vivo: rf.vivo,
+          variacion: rf.variacion,
           dias: r.dias,
           volume: volumeDelDia,
           bid: p?.bid ?? null,

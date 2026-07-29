@@ -205,6 +205,18 @@ button { font:inherit; color:inherit; background:none; border:none; }
 .site-shell .wrap { max-width:none; margin:0; padding:16px 0 44px; }
 .site-main { min-width:0; }
 
+/* La cinta de la home corre a lo ancho COMPLETO del shell (se alinea con el logo) en vez
+   de quedar cortada por la columna de la sidebar (relevamiento 29/07, punto 19). Vive
+   dentro de `.site-main` (no puede subir al layout — ver la nota de revalidate en
+   (site)/layout.tsx), así que en desktop "rompe" la columna con margen negativo y la
+   sidebar arranca debajo. --ribbon-h ≈ alto real de la banda (padding 10+10 + línea de
+   ~22px + bordes); si la cinta no está (otras páginas), el :has() no matchea y nada cambia. */
+:root { --ribbon-h: 44px; }
+@media (min-width:880.1px){
+  .site-main > .ribbon { margin-left:calc(-236px - 26px); }
+  .site-shell:has(> .site-main > .ribbon) > .sidebar { margin-top:calc(var(--ribbon-h) + 14px); }
+}
+
 .sidebar { position:sticky; top:64px; max-height:calc(100vh - 76px); overflow-y:auto;
   padding:18px 2px 24px 0; }
 .sidebar-nav { display:flex; flex-direction:column; gap:2px; }
@@ -410,10 +422,6 @@ table.tbl { width:100%; border-collapse:collapse; min-width:640px; }
 .foot-legal { flex-basis:100%; font-size:var(--fs-2xs); color:var(--ink-3); margin:-4px 0 0; }
 .foot-legal a { color:var(--ink-3); font-weight:600; }
 .foot-legal a:hover { color:var(--gold-text); text-decoration:underline; }
-.foot .maqueta { margin-left:auto; font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:var(--tr-caps);
-  color:var(--ink-3); font-weight:600; display:inline-flex; align-items:center; gap:6px; }
-.foot .maqueta .k { background:var(--gold); color:var(--gold-ink); padding:1px 6px; border-radius:3px; letter-spacing:.05em; }
-
 .sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
 
 /* ============================================================
@@ -650,6 +658,24 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .hp-link { display:inline-block; margin-top:10px; font-size:var(--fs-2xs); font-weight:800;
   text-transform:uppercase; letter-spacing:.06em; color:var(--gold-text); }
 .hp-link:hover { color:var(--ink); }
+/* Placa rotativa (punto 21): fecha de la pizarra en el label, pesos destacados
+   (más que el meta, menos que el USD) y puntos para elegir grano a mano. */
+.hp-fecha { margin-left:auto; font-size:var(--fs-2xs); font-weight:700; letter-spacing:.08em;
+  color:var(--ink-3); text-transform:uppercase; white-space:nowrap; }
+.hp-ars { font-family:var(--font-mono); font-weight:600; font-size:clamp(19px,2vw,25px);
+  color:var(--ink-2); font-variant-numeric:tabular-nums; margin:0 0 8px; }
+.hp-ars small { font-family:var(--font-ui); font-size:.55em; font-weight:600; color:var(--ink-3); }
+.hp-dots { display:flex; gap:8px; margin:2px 0 8px; }
+.hp-dot { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%; cursor:pointer; }
+.hp-dot::before { content:""; width:7px; height:7px; border-radius:50%;
+  background:var(--ink-3); opacity:.45; transition:opacity var(--t-fast) ease, transform var(--t-fast) ease; }
+.hp-dot:hover::before { opacity:.8; }
+.hp-dot.on::before { background:var(--gold); opacity:1; transform:scale(1.25); }
+@media (prefers-reduced-motion: no-preference){
+  .hp-rot { animation:hpRotIn .32s ease-out both; }
+  @keyframes hpRotIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+}
 @media (max-width:860px){
   .hero-dia { grid-template-columns:1fr; align-items:start; gap:22px; }
   .hero-placa { padding-left:0; border-top:1px solid var(--line); padding-top:16px; }
@@ -686,14 +712,22 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   color:var(--gold-text); border:1px solid color-mix(in srgb, var(--gold) 40%, var(--edge));
   border-radius:var(--r-chip); padding:1px 6px; white-space:nowrap; }
 
-/* Grid de paneles de la home (mercado hoy · informes · estimación) */
+/* Grid de paneles de la home (mercado hoy · informes) */
 .home-panels { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px;
   align-items:start; margin-top:6px; }
+/* "El mercado hoy" agrandado (relevamiento 29/07, punto 20): en pantallas anchas ocupa
+   dos columnas del grid; en angostas el auto-fit lo deja a fila completa solo. */
+@media (min-width:1000px){ .home-panels > #mercado-hoy { grid-column:span 2; } }
 
-/* "El mercado hoy" — grilla compacta de Chicago en USD/tn */
-.mh-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(96px, 1fr)); gap:8px; }
+/* "El mercado hoy" — dos grillas compactas (Argentina A3 · Chicago), USD/tn */
+.mh-sub-hd { font-size:var(--fs-2xs); font-weight:800; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--ink-3); margin:10px 2px 6px; }
+.mh-sub-hd:first-of-type { margin-top:2px; }
+/* min 132px: el valor mono de 22px ("1.520,5" + USD/TN) tiene que entrar SIEMPRE
+   dentro del mini-panel (los números no pueden desbordar — punto 20). */
+.mh-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(132px, 1fr)); gap:8px; }
 .mh-cell { display:flex; flex-direction:column; gap:3px; padding:12px 13px 11px; border:1px solid var(--edge);
-  border-radius:var(--r-ctl); background:var(--panel-2);
+  border-radius:var(--r-ctl); background:var(--panel-2); min-width:0; overflow:hidden;
   transition:border-color var(--t-fast) ease, transform var(--t-fast) ease; }
 .mh-cell:hover { border-color:var(--gold-hair); transform:translateY(-1px); }
 .mh-hd { display:flex; align-items:center; gap:5px; }
@@ -701,10 +735,12 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .mh-glyph svg { width:100%; height:100%; }
 .mh-name { font-family:var(--font-ui); font-size:var(--fs-2xs); font-weight:800; color:var(--ink-2);
   text-transform:uppercase; letter-spacing:.03em; }
-.mh-pos { font-size:9px; font-weight:700; color:var(--ink-3); margin-left:auto; white-space:nowrap; }
-.mh-val { font-family:var(--font-mono); font-size:22px; font-weight:600; color:var(--ink);
+.mh-pos { font-size:9px; font-weight:700; color:var(--ink-3); margin-left:auto; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:4px; }
+.mh-vivo { width:6px; height:6px; border-radius:50%; background:var(--pos); display:inline-block; }
+.mh-val { font-family:var(--font-mono); font-size:clamp(17px, 1.7vw, 22px); font-weight:600; color:var(--ink);
   font-variant-numeric:tabular-nums; letter-spacing:-.01em; line-height:1.1;
-  display:flex; align-items:baseline; gap:4px; }
+  display:flex; align-items:baseline; gap:4px; flex-wrap:wrap; min-width:0; }
 .mh-unit { font-family:var(--font-ui); font-size:9px; font-weight:700; color:var(--ink-3);
   text-transform:uppercase; letter-spacing:.03em; }
 .mh-delta { font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums; }
@@ -996,9 +1032,11 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .cal-empty { padding:16px; font-size:var(--fs-sm); color:var(--ink-3); text-align:center; }
 .cal-day { display:flex; gap:12px; padding:9px 16px; border-bottom:1px solid var(--line); }
 .cal-day:last-child { border-bottom:0; }
-.cal-date { flex:0 0 66px; padding-top:3px; }
+/* 88px + nowrap: "JUE 30 JUL" en UNA línea — el mes va al lado de la fecha, no
+   abajo (relevamiento 29/07, punto 22). */
+.cal-date { flex:0 0 88px; padding-top:3px; }
 .cal-date-txt { font-family:var(--font-mono); font-size:var(--fs-2xs); font-weight:700; text-transform:uppercase;
-  letter-spacing:.04em; color:var(--brand-deep); }
+  letter-spacing:.04em; color:var(--brand-deep); white-space:nowrap; }
 .cal-evs { display:flex; flex-direction:column; gap:7px; min-width:0; flex:1; }
 
 /* --- evento (compartido home + página) --- */
@@ -1178,22 +1216,6 @@ a.estim-inf:hover { color:var(--gold-text); }
 .estim-lectura-body p:last-child { margin-bottom:0; }
 .estim-lectura-body strong { color:var(--ink); }
 
-/* --- mini-tabla de la home --- */
-.estim-mini-wrap { overflow-x:auto; padding:6px 16px 4px; }
-.estim-mini { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
-.estim-mini th { font-family:var(--font-mono); font-size:var(--fs-2xs); font-weight:700; text-transform:uppercase;
-  letter-spacing:.04em; color:var(--ink-3); padding:5px 10px; border-bottom:1px solid var(--line-2); white-space:nowrap; }
-.estim-mini th.r, .estim-mini td.r { text-align:right; }
-.estim-mini th.l, .estim-mini td.l { text-align:left; }
-.estim-mini td { padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
-.estim-mini tbody tr:last-child td { border-bottom:0; }
-.estim-mini td.num { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
-.estim-mini-cell { display:inline-flex; align-items:baseline; gap:6px; justify-content:flex-end; }
-.estim-mini-val { font-weight:700; color:var(--ink); }
-.estim-mini-d { font-family:var(--font-mono); font-size:9px; font-weight:700; }
-.estim-mini-d.up { color:var(--pos); }
-.estim-mini-d.down { color:var(--neg); }
-
 @media (max-width:560px){
   .cal-day { flex-direction:column; gap:5px; }
   .cal-date { flex-basis:auto; padding-top:0; }
@@ -1287,7 +1309,7 @@ a.estim-inf:hover { color:var(--gold-text); }
   background-color:var(--ink);
   -webkit-mask-image:var(--wm-src); mask-image:var(--wm-src);
   -webkit-mask-repeat:repeat; mask-repeat:repeat;
-  -webkit-mask-size:400px 250px; mask-size:400px 250px;
+  -webkit-mask-size:520px 250px; mask-size:520px 250px;
   opacity:.05; }
 :root[data-theme="dark"] .wm { opacity:.06; }
 

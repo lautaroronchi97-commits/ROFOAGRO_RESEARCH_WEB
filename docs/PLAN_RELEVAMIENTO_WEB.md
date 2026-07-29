@@ -317,11 +317,16 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
 
 ## 5. Preguntas y decisiones para Lautaro (TODAS acá, como pediste)
 
+> **Contestadas el 29/07/2026 (por AskUserQuestion, antes de arrancar R1):** 1, 2, 5 y 8 —
+> la respuesta quedó anotada debajo de cada una. Las demás siguen abiertas.
+
 1. **Home (p20)** — Escribiste "Soja nov23 y mayo27". Asumo **NOV26 y MAY27**. ¿Correcto?
+   **✅ R: NOV26 y MAY27.**
 2. **BNA online (p25/40/47)** — El "dólar BNA online = oficial spot − 9": ¿el −9 es una constante
    fija que te sirve dejar en el código (editable solo por nosotros), o preferís poder cambiarla
    desde /admin? Y para el "TC BNA confirmado de las 15hs": CAC publica el BNA comprador del día
    y ya lo parseamos (`tcBna`, hoy sin usar) — ¿ese es el valor que querés como "confirmado"?
+   **✅ R: constante en código, y sí — el `tcBna` de CAC como valor confirmado.**
 3. **Sintéticos (p34)** — Antes de codear necesito **un ejemplo numérico del Excel REAL_TIME**
    (letra, precio, pago final, DLR del mes, resultado esperado de directa y TNA) para validar la
    fórmula 1:1 — regla de siempre. Y confirmame el criterio "vto cercano a fin de mes": ¿la letra
@@ -332,6 +337,7 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
    ("ROFO AGRO") para conservar el efecto anti-captura cuando haya clientes? Ojo: la marca de agua
    con el email de CADA usuario logueado era la protección anti-préstamo de cuentas del plan de
    login — hoy te muestra el tuyo porque sos el único logueado.
+   **✅ R: "ROFO AGRO · email" para los clientes; los admins la ven vacía (sin marca).**
 6. **Costos (p44)** — "Oculto solo para admin": ¿alcanza con que no aparezca en la sidebar ni en
    el índice de calculadoras y que la URL directa dé "sin acceso" para no-admins? (recomendado)
 7. **View exportable (p30)** — ¿Te alcanza un botón "descargar PNG" en cada card del view
@@ -339,6 +345,7 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
 8. **Cinta (p24)** — "Dejar todos los USD": hoy están Oficial (minorista), Mayorista, MEP, CCL y
    el futuro. Con "en el dólar oficial quiero el spot mayorista", ¿saco el minorista y "Oficial"
    pasa a ser el mayorista (queda una sola entrada), o dejo los dos?
+   **✅ R: una sola entrada — "Oficial" = spot mayorista MAE.**
 9. **Empresas 0 buques (p55)** — Al sacarlas se van también las que **declararon DJVE pero
    todavía no embarcaron** (hoy aparecen arriba porque son las que más "falta cubrir" tienen —
    dato de demanda futura). ¿Las sacamos igual, o dejamos solo las que no tienen NI buques NI

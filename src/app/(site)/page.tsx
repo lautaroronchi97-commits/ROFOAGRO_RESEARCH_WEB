@@ -5,12 +5,10 @@ import { getNoticias, type NoticiaItem } from "@/lib/noticias";
 import { getInterpretacionesPublicadas } from "@/lib/interpretaciones";
 import { ORG_LABEL, type Organismo } from "@/lib/calendario";
 import { hoyCordobaISO, fechaCordobaISO } from "@/lib/dates";
-import { nfmt } from "@/lib/format";
 import { Cinta } from "@/components/cinta";
-import { CountUp } from "@/components/count-up";
+import { HeroPlaca, type PlacaPizarra } from "@/components/hero-placa";
 import { MercadoHoy } from "@/components/mercado-hoy";
 import { InformesPanel } from "@/components/informes-panel";
-import { EstimacionesMini } from "@/components/estimaciones-mini";
 import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { getAcceso } from "@/lib/auth/dal";
 
@@ -34,9 +32,8 @@ const SECCIONES: { key: string; href: string; nombre: string; desc: string }[] =
 ];
 
 export default async function Home() {
-  // getPizarra() está cache()ada y getCintaData() ya la llama adentro → pedirla
-  // acá de nuevo NO agrega ningún request: es la misma promesa deduplicada.
-  // Alimenta la placa del hero (pizarra soja = el número que todo productor conoce).
+  // La cinta ya no lleva pizarras (R1, punto 24) — getPizarra() acá alimenta SOLO la
+  // placa rotativa del hero. Ambas fuentes están cache()adas por render.
   const [cinta, pizarra] = await Promise.all([getCintaData(), getPizarra()]);
   const [noticias, interpretaciones] = await Promise.all([getNoticias(), getInterpretacionesPublicadas()]);
 
@@ -87,14 +84,18 @@ export default async function Home() {
   }).format(new Date());
   const fechaLarga = fechaLargaRaw.charAt(0).toUpperCase() + fechaLargaRaw.slice(1);
 
-  // La placa del hero: pizarra soja como número protagonista (misma getPizarra()
-  // deduplicada que ya usa la cinta), con maíz/trigo + mayorista como contexto.
-  // Es dato de la sección "granos" → respeta el mismo permiso que "El mercado hoy".
-  const soja = pizarra.granos.SOJ ?? null;
-  const maiz = pizarra.granos.MAI ?? null;
-  const trigo = pizarra.granos.TRI ?? null;
-  const mayorista = cinta.items.find((i) => i.label === "Mayorista")?.value ?? null;
-  const conPlaca = puedeGranos && soja !== null;
+  // La placa del hero: la pizarra de cada grano va rotando (SOJ → MAI → TRI) con
+  // USD grande + pesos destacados + fecha (relevamiento 29/07, punto 21). Misma
+  // getPizarra() deduplicada que ya usa la cinta. Es dato de la sección "granos"
+  // → respeta el mismo permiso que "El mercado hoy".
+  const NOMBRES: Record<string, string> = { SOJ: "Soja", MAI: "Maíz", TRI: "Trigo" };
+  const placas: PlacaPizarra[] = ["SOJ", "MAI", "TRI"].flatMap((u) => {
+    const p = pizarra.granos[u];
+    if (!p || p.usd == null) return [];
+    return [{ underlying: u, nombre: NOMBRES[u] ?? u, usd: p.usd, ars: p.ars, estimativo: p.estimativo }];
+  });
+  const oficial = cinta.items.find((i) => i.label === "Oficial")?.value ?? null;
+  const conPlaca = puedeGranos && placas.length > 0;
 
   return (
     <>
@@ -151,41 +152,15 @@ export default async function Home() {
                 )}
               </div>
 
-              {puedeGranos && soja && (
-                <aside className="hero-placa" aria-label="Pizarra Rosario — soja disponible">
-                  <div className="hp-lbl">
-                    Pizarra Rosario · Soja
-                    {soja.estimativo && (
-                      <span className="pz-estim" title="Valor estimado (CAC sin publicar todavía)">
-                        est.
-                      </span>
-                    )}
-                  </div>
-                  <div className="hp-big">
-                    <CountUp value={soja.usd} decimals={1} />
-                    <small> US$/tn</small>
-                  </div>
-                  <p className="hp-ctx">
-                    Maíz <b>{maiz ? nfmt(maiz.usd, 1) : "—"}</b> · Trigo <b>{trigo ? nfmt(trigo.usd, 1) : "—"}</b>
-                    {mayorista !== null && (
-                      <>
-                        {" "}
-                        · Mayorista <b>$ {nfmt(mayorista, 2)}</b>
-                      </>
-                    )}
-                  </p>
-                  <Link href="/granos" className="hp-link">
-                    Arbitrajes y pases →
-                  </Link>
-                </aside>
-              )}
+              {conPlaca && <HeroPlaca placas={placas} fecha={pizarra.fecha} oficial={oficial} />}
             </section>
           )}
 
+          {/* "Última estimación de producción" se retiró de la home (relevamiento
+              29/07, punto 23) — vive completa en /produccion/estimaciones. */}
           <div className="home-panels">
             {puedeGranos && <MercadoHoy />}
             {puedeProduccion && <InformesPanel />}
-            {puedeProduccion && <EstimacionesMini />}
           </div>
 
           <h2 className="sec-title">Explorá el sitio</h2>

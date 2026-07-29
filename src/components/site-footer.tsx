@@ -16,9 +16,6 @@ export function SiteFooter() {
         <b>ROFO AGRO</b>
         <span className="src-chip">Elaboración propia · datos de mercado</span>
       </div>
-      <span className="maqueta">
-        <span className="k">v0</span> datos de cierre · algunos provisorios
-      </span>
       <p className="disc">
         Información de mercado con fines informativos. No constituye recomendación ni
         asesoramiento de inversión. Las decisiones y su resultado son responsabilidad del usuario.
