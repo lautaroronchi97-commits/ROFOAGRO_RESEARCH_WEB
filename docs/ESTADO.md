@@ -64,6 +64,31 @@ en `.env.local.example`; sin él el panel degrada solo a frescura, no rompe nada
 real de Lautaro logueado (todo se verificó con bypass temporal, revertido antes de cerrar). Detalle:
 [`sesiones/2026-07-29-panel-conexiones.md`](sesiones/2026-07-29-panel-conexiones.md).
 
+## Anterior (29/07/2026 — 💱 BONCAPs en vivo + girasol industria descartado)
+
+**💱 BONCAPs (T) EN VIVO en `/dolar/sinteticos` + 🌻 GIRASOL (INDUSTRIA) DESCARTADO — HECHO —
+rama `claude/modelo-flujo-trabajo-r1111q`, PR #_.** Cierra 2 follow-ups chicos que habían
+quedado del C16/C13 (24/07). Pista clave de Lautaro: los BONCAPs cotizan en data912 como
+**"título" (`/live/arg_bonds`)**, no como "letra" (`/live/arg_notes`, donde están las LECAP) —
+por eso el filtro `T` que se había anotado como pendiente sobre `getLecaps` nunca iba a
+funcionar (esa función solo leía `arg_notes`). `src/lib/market/fuentes.ts` suma `getBonds()`
+(mismo patrón que `getNotes()`, contra `arg_bonds`); `tickers.ts` suma el prefijo `T` a
+`vencFromTicker` (mismo formato de ticker día+mes-letra+año que LECAP/dólar linked, solo cambia
+el prefijo); `lecaps.ts` junta ambas fuentes en el mismo array — `sinteticos.ts` (el único
+consumidor) no necesitó cambios, ya trataba la lista como "letras a emparejar con DLR" genérico.
+Panel con copy actualizado (título, columna, tooltips). Test nuevo `tickers.test.ts` (D/S/T +
+rechazos). **Girasol (industria)**: Lautaro contestó "descartalo, no me interesa" — cero código
+que tocar (nunca se había construido una fila visible para girasol industria; el valor que
+`parseBcrIndustria` parsea internamente sigue haciendo falta para el chequeo de columnas que
+blinda el parseo de soja contra el typo real de BCR de esa misma fila — no se tocó). Cerrado
+como decisión de alcance, no como deuda técnica.
+
+**Verificado**: lint/tsc/build ✅ · 261/261 tests (4 nuevos) ✅ · `npm run start` real con las
+env vars de Supabase del entorno: `/dolar/sinteticos` muestra las 12 filas (8 LECAP + 4 BONCAP),
+los 4 BONCAP emparejados 1:1 con su DLR del mismo mes (T15E7→ENE27 · T30A7→ABR27 · T31Y7→MAY27 ·
+T30J7→JUN27) con TNA sintético/futuro/ventaja calculados (ya no "—"). Detalle:
+[`sesiones/2026-07-29-boncaps-live.md`](sesiones/2026-07-29-boncaps-live.md).
+
 ## Anterior (28/07/2026 — 🗂️ C25: biblioteca + menú lateral (sidebar), HECHO)
 
 **🗂️ C25 — BIBLIOTECA + MENÚ LATERAL (SIDEBAR) — HECHO, ejecutando el prompt de

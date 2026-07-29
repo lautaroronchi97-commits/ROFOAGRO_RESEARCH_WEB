@@ -6,7 +6,7 @@ import { MESES_ES } from "../dates";
  *    día CALENDARIO del mes; A3 liquida el último día HÁBIL — para precisión real
  *    usar la tabla `vencimientos`, ej. curva.ts).
  *  - `vencFromTicker`: vencimiento inferido del propio ticker de bonos AR
- *    (ej. "D30S6" → 30/sep/2026).
+ *    (ej. "D30S6" → 30/sep/2026; "S31L6" → LECAP; "T30J7" → BONCAP, mismo formato de ticker).
  */
 
 export function parseDdf(ticker: string): { label: string; venc: Date } | null {
@@ -26,7 +26,8 @@ const MONTH_LETTER: Record<string, number> = {
 };
 
 export function vencFromTicker(sym: string): number | null {
-  const m = /^[DS](\d{2})([EFMAYJLGSOND])(\d)$/.exec(sym);
+  // D = dólar linked, S = LECAP, T = BONCAP (bono capitalizable del Tesoro).
+  const m = /^[DST](\d{2})([EFMAYJLGSOND])(\d)$/.exec(sym);
   if (!m) return null;
   const day = Number(m[1]);
   if (day < 1 || day > 31) return null;
