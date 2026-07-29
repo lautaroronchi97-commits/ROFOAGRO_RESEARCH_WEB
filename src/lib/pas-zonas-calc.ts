@@ -163,22 +163,29 @@ export function evolucionParticipacion(filas: FilaZonaDB[], grano: string): Evol
     }
     m.set(f.zona, f);
   }
-  const campanias = [...porCampania.keys()].sort();
+  // Solo campañas con desglose zonal REAL (TOTAL con producción + al menos 1 zona) — una campaña
+  // "solo TOTAL" (ej. maíz/sorgo 2025/26 todavía sin cosechar, §2.a) no entra al eje: incluirla
+  // con 0% en todas las series dibujaría una caída falsa a cero en el último punto del gráfico.
+  const campanias = [...porCampania.keys()].sort().filter((campania) => {
+    const porZona = porCampania.get(campania)!;
+    const total = porZona.get("TOTAL");
+    return total != null && total.produccion_tn != null && total.produccion_tn > 0 && [...porZona.keys()].some((z) => z !== "TOTAL");
+  });
   if (campanias.length === 0) return { campanias: [], series: [] };
 
   // Solo zonas que realmente aparecen en el archivo para este grano (nunca las 15 canónicas fijas
   // — si el grano tiene menos zonas con datos, no hay que rellenar con series fantasma en 0%).
   const zonasConDatos = ZONAS_PRODUCTIVAS.filter((z) =>
-    [...porCampania.values()].some((m) => m.has(z)),
+    campanias.some((campania) => porCampania.get(campania)!.has(z)),
   );
 
   const pctPorZona = new Map<string, Map<string, number>>(); // zona -> campania -> pct
   for (const campania of campanias) {
     const porZona = porCampania.get(campania)!;
-    const total = porZona.get("TOTAL");
-    if (!total || total.produccion_tn == null || total.produccion_tn <= 0) continue;
+    const total = porZona.get("TOTAL")!; // garantizado por el filtro de arriba
+    const totalProd = total.produccion_tn!; // ídem: > 0 garantizado por el filtro de arriba
     for (const zona of zonasConDatos) {
-      const pct = ((porZona.get(zona)?.produccion_tn ?? 0) / total.produccion_tn) * 100;
+      const pct = ((porZona.get(zona)?.produccion_tn ?? 0) / totalProd) * 100;
       let m = pctPorZona.get(zona);
       if (!m) {
         m = new Map();

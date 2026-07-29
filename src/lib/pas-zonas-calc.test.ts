@@ -161,4 +161,18 @@ describe("evolucionParticipacion — top-6 + Resto", () => {
   it("devuelve vacío si el grano no tiene datos", () => {
     expect(evolucionParticipacion([], "soja")).toEqual({ campanias: [], series: [] });
   });
+
+  it("excluye del eje una campaña 'solo TOTAL' sin desglose zonal (nunca una caída falsa a 0%)", () => {
+    // Mismo caso real que maíz/sorgo 2025/26 (§2.a): la campaña en curso todavía sin cosechar
+    // trae SOLO la fila TOTAL, sin ninguna zona — no debe aparecer en el eje del gráfico.
+    const filas: FilaZonaDB[] = [
+      fila("2020/21", "TOTAL", 1000, 900, 3000),
+      fila("2020/21", "NOA", 500, 450, 1800),
+      fila("2020/21", "Otras", 500, 450, 1200),
+      fila("2021/22", "TOTAL", 1100, 0, null), // campaña proyectada, sin cosecha ni zonas
+    ];
+    const { campanias, series } = evolucionParticipacion(filas, "soja");
+    expect(campanias).toEqual(["2020/21"]);
+    for (const s of series) for (const p of s.puntos) expect(p.campania).not.toBe("2021/22");
+  });
 });

@@ -112,6 +112,15 @@ function EvolucionParticipacionChart({ filas, grano }: { filas: FilaZonaDB[]; gr
     return Math.min(campanias.length - 1, Math.max(0, idx));
   });
 
+  // Índices de etiqueta del eje X: como máximo 9, parejo en todo el rango (nunca dos adyacentes
+  // — round() sobre un paso fijo puede juntar el último tick "forzado" con el anterior si no
+  // caen exactos, por eso se generan los 9 de una sola pasada en vez de "cada N + el último").
+  const MAX_TICKS = 9;
+  const tickIndices =
+    campanias.length <= MAX_TICKS
+      ? campanias.map((_, i) => i)
+      : [...new Set(Array.from({ length: MAX_TICKS }, (_, k) => Math.round((k * (campanias.length - 1)) / (MAX_TICKS - 1))))];
+
   const columnas: ChartTablaColumna[] = [
     { key: "campania", label: "Campaña", align: "left" },
     ...series.map((s) => ({ key: s.zona, label: `${s.zona} (%)` })),
@@ -162,8 +171,9 @@ function EvolucionParticipacionChart({ filas, grano }: { filas: FilaZonaDB[]; gr
           </>
         }
       >
-        {campanias.map((c, i) => {
-          if (campanias.length > 12 && i % Math.ceil(campanias.length / 10) !== 0 && i !== campanias.length - 1) return null;
+        {tickIndices.map((i) => {
+          const c = campanias[i];
+          if (!c) return null;
           return (
             <text key={c} className="cv-axis" x={X(i)} y={H - 8} textAnchor="middle">
               {c}
