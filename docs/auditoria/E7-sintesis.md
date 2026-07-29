@@ -368,20 +368,21 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   real de las 4 Routines NO se pudo completar**: esa telemetría no es visible desde este entorno
   de código (vive del lado de la cuenta de Lautoro) — queda pendiente real, no bloqueante.
   Mismo detalle de sesión que C21.
-- [ ] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (nuevo, 27/07)** — al probar el uploader
-  de BCBA-PAS (A6) Lautaro pasó un export alternativo (`reporte.xlsx`, hoja "Reporte base de
-  datos") con las mismas 27 campañas 2000/01→2026/27 pero desglosadas por **zona** (NOA, NEA,
-  Núcleo Norte/Sur, Centro/S Bs As, SE BA, Cuenca del Salado, etc.), no solo el total país que ya
-  carga `historico_pas_datasets.csv`. **Verificado 27/07**: la columna `Producción(MTn)` de ese
-  archivo son toneladas CRUDAS igual que el CSV (soja 2024/25 = 50.300.000 = 50,3 Mt, maíz 2024/25
-  = 49.000.000 = 49,0 Mt, ambos coinciden con lo publicado) — resuelve la duda de escala que había
-  quedado abierta en `sesiones/2026-07-23-mp2-skill-y-alta-srl.md` sobre el `reporte_1.xlsx`
-  original (ese SÍ seguía sin poder verificarse, nunca trajo un valor >0). Hoy la web solo modela
-  el total nacional; esto habilitaría un panel nuevo (¿qué zona explica una caída de producción:
-  rinde flojo en el Núcleo o menos hectáreas en el NOA?). Alcance a definir cuando se ejecute:
-  tabla nueva (no encaja en `estimaciones_produccion`, que es por país no por zona) + parser XLSX
-  (columnas en OTRO ORDEN que el CSV: Campaña,Zona,Cultivo,... — no es un simple alias) + panel de
-  visualización. Sin prompt escrito todavía.
+- [ ] **C23. Estimaciones BCBA-PAS por ZONA agroecológica (anotado 27/07 — PLAN CERRADO 29/07)** —
+  al probar el uploader de BCBA-PAS (A6) Lautaro pasó un export alternativo (`reporte.xlsx`, hoja
+  "Reporte base de datos") desglosado por **zona agroecológica**, no solo el total país que ya
+  carga `historico_pas_datasets.csv`. **29/07: archivo real analizado a fondo y plan cerrado con
+  Lautaro** — es la **Fase 1 de [`PLAN_PAS_ZONAS.md`](../PLAN_PAS_ZONAS.md)** (prompt de ejecución
+  autocontenido en **§8**; build sugerido con Sonnet). Lo verificado: 15 zonas + TOTAL (nombres
+  exactos en el plan §2.a), 6 cultivos × 27 campañas 2000/01→2026/27, `Producción(MTn)` = toneladas
+  CRUDAS (soja 24/25 = 50,3 Mt ✓, maíz = 49,0 Mt ✓), typo real "Perdído" en el header, y el
+  hallazgo que define el diseño: la identidad suma-zonas = TOTAL **cierra ≤0,5% solo desde
+  2008/09** (antes las zonas cubren ~50%). Decisiones: tabla nueva `pas_zonas` ancha sin vintages ·
+  **solo-mesa con RLS cerrada de verdad** (patrón `views_mercado`) · panel `/produccion/zonas` =
+  foto de campaña (Δ descompuesto en efecto área/efecto rinde) + evolución histórica (top-6+Resto,
+  desde 2008/09) · uploader con guard de identidad "forzar" · registro en el catálogo de monitoreo
+  del PR #104. El archivo real quedó **versionado en `data/pas/`** (fixture del build, no depende
+  de volver a pedirlo).
 - [x] **C24. Camiones de Agroentregas** — ✅ **hecho 28/07**, y **salió mejor que el pedido**: el
   ítem estaba escrito como "carga diaria MANUAL desde la cuenta de X, mismo patrón que Compras
   BCRA", con el research de qué publica esa cuenta como paso 1. Ese research (28/07, con requests
@@ -416,14 +417,32 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   Detalle: [`sesiones/2026-07-28-c25-biblioteca-sidebar.md`](../sesiones/2026-07-28-c25-biblioteca-sidebar.md).
 
 - [x] **C26. Panel /admin/conexiones (monitoreo de crons, Routines y cargas manuales) — ✅ HECHO
-  29/07, PR #_.** Pedido nuevo de Lautaro: un lugar para ver de un vistazo qué carga manual falta,
-  qué cron corrió/no corrió, si las 3 Routines produjeron lo suyo y si A3 está trayendo datos en
-  vivo. Confirmado que **no existe ningún `ingest_log`** en el repo → el panel combina 3 fuentes
-  reales (API de GitHub Actions, opcional vía `GH_MONITOR_TOKEN`; frescura de Supabase, catálogo
-  único extraído a `src/lib/monitoreo/catalogo.ts` y reusado por `healthcheck-frescura.mjs`;
-  `informes_generados`/`views_mercado` para las Routines) en vez de un registro de corridas que
-  nunca se construyó. Solo lectura + links (sin "correr ahora", decisión de Lautaro). Detalle:
+  29/07, PR #104 (mergeado).** Pedido nuevo de Lautaro: un lugar para ver de un vistazo qué carga
+  manual falta, qué cron corrió/no corrió, si las 3 Routines produjeron lo suyo y si A3 está
+  trayendo datos en vivo. Confirmado que **no existe ningún `ingest_log`** en el repo → el panel
+  combina 3 fuentes reales (API de GitHub Actions, opcional vía `GH_MONITOR_TOKEN`; frescura de
+  Supabase, catálogo único extraído a `src/lib/monitoreo/catalogo.ts` y reusado por
+  `healthcheck-frescura.mjs`; `informes_generados`/`views_mercado` para las Routines) en vez de un
+  registro de corridas que nunca se construyó. Solo lectura + links (sin "correr ahora", decisión
+  de Lautaro). Detalle:
   [`sesiones/2026-07-29-panel-conexiones.md`](../sesiones/2026-07-29-panel-conexiones.md).
+
+- [ ] **C27. Condición de cultivos semanal BCBA-PAS (nuevo, 29/07)** — al cerrar el plan de C23,
+  Lautaro adjuntó además los exports de **condición de cultivos** de la misma web de BCBA (uno por
+  cultivo, hoja "Reporte base de datos"): serie **semanal** de condición de cultivo
+  (Mala→Excelente %), condición hídrica (Sequía→Exceso %) y avance fenológico (% por etapa, con
+  **nombres de etapa que cambian por cultivo** — verificado con los 4 reales, headers dinámicos
+  obligatorios). **Cobertura confirmada: solo soja, maíz, trigo y girasol** (sin cebada/sorgo, BCBA
+  no publica este reporte para esos 2). Soja y maíz vienen desglosados en total/1ra/2da, trigo y
+  girasol no; `Semana` = 0-53 dentro de la campaña, **sin fecha real** (el eje es "semana de
+  campaña", habilita overlay campaña vs previas); trigo llega con la campaña 2026/27 YA en curso.
+  Es el panel de "condición de cultivos" que había quedado fasado a propósito el 23/07
+  (`reporte_2-5`). **Fase 2 de [`PLAN_PAS_ZONAS.md`](../PLAN_PAS_ZONAS.md)** (prompt autocontenido
+  en **§9**; requiere C23 mergeado — comparte `xlsx-lite.ts`). Tabla `pas_condicion` (fenología en
+  jsonb array ordenado), solo-mesa con RLS cerrada, panel `/produccion/condicion` (selector
+  acotado a los 4 cultivos reales), uploader manual semanal + registro en el monitoreo. Los 4
+  archivos reales (soja/maíz/trigo/girasol) ya quedaron versionados en `data/pas/` — el build no
+  depende de volver a pedirle nada a Lautaro.
 
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 

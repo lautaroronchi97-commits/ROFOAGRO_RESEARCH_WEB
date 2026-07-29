@@ -19,10 +19,53 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 🖥️ panel /admin/conexiones, HECHO)
+## Ahora (última actualización: 29/07/2026 — 📋 PLAN C23/C27: PAS por zona + condición de cultivos, CERRADO)
+
+**📋 C23/C27 — PLAN BCBA-PAS POR ZONA + CONDICIÓN DE CULTIVOS — PLAN CERRADO, SOLO DOCS +
+FIXTURES (cero código de producto) — rama `claude/plan-desarrollo-auditoria-yccgvw`, PR #_.**
+C23 era el único ítem del backlog maestro sin prompt escrito (`auditoria/E7-sintesis.md` §4).
+Lautaro adjuntó los 5 exports reales de BCBA-PAS y el alcance quedó cerrado por `AskUserQuestion`
+(2 rondas, con los archivos llegando en el medio): **un plan, dos entregas** — Fase 1 = producción
+por zona agroecológica (C23 original) · Fase 2 = condición de cultivos semanal (**C27 nuevo**,
+salió de un archivo que Lautaro pasó "de paso" al probar C23). Los 2 paneles **solo-mesa** con RLS
+cerrada de verdad (patrón `views_mercado`, no solo gate de página); carga manual (Cloudflare
+bloquea bots, confirmado de nuevo) con cadencia semanal (PAS del jueves); las 2 cargas quedan
+registradas en el **monitoreo de ingestas** (PR #104, `/admin/conexiones`, mergeado en paralelo).
+
+**Los 5 archivos reales fueron parseados a fondo en esta sesión** (regex sobre el XML crudo del
+XLSX, sin depender de ninguna librería — el sandbox no tenía `openpyxl`) y quedaron **versionados
+en `data/pas/`** (fixtures del build, no hace falta volver a pedírselos a Lautaro):
+`reporte_zonas_2026-07-29.xlsx` (producción, 1.900 filas) y 4 de condición —
+`reporte_condicion_{girasol,soja,maiz,trigo}_2026-07-29.xlsx`. Hallazgos que definieron el
+diseño: la identidad "suma de zonas = TOTAL" en producción **cierra ≤0,5% solo desde 2008/09**
+(antes las zonas cubren ~50% del total, BCBA no zonificaba todo al principio) → constante de era
+en vez de inventar dato; "Producción(MTn)" son toneladas CRUDAS pese al rótulo "M" (verificado:
+soja 24/25 = 50,3 Mt); las columnas de **fenología cambian de nombre por cultivo** en los 4
+exports de condición (girasol/soja/maíz/trigo, los 4 con vocabulario agronómico propio) → parser
+con headers dinámicos, nunca hardcodeados; soja Y maíz se desdoblan en total/1ra/2da, trigo y
+girasol no; `Semana` es 0-53 dentro de la campaña sin fecha real (eje "semana de campaña"); la
+cobertura de condición es **solo 4 cultivos** (sin cebada/sorgo, confirmado por Lautaro — no hay
+que dejarles un hueco en el selector).
+
+**Entregable: [`docs/PLAN_PAS_ZONAS.md`](../PLAN_PAS_ZONAS.md)** (mismo formato que
+`PLAN_SIDEBAR.md`): DDL de las 2 tablas nuevas (`pas_zonas` ancha sin vintages, `pas_condicion`
+con fenología en jsonb array ordenado) + RPCs + parsers con su tabla completa de defensas
+(error/descarte/warning) + extracción de `xlsx-lite.ts` compartido desde `parse-agrochat.ts` (move
+byte-a-byte, sus tests quedan de red) + diseño de los 2 paneles (`/produccion/zonas`: foto de
+campaña con Δ descompuesto en efecto área/efecto rinde + evolución top-6 zonas+Resto desde
+2008/09; `/produccion/condicion`: overlay semanal de condición/hídrica/fenología) + **2 prompts de
+ejecución autocontenidos** (§8 Fase 1, §9 Fase 2) para sesiones de build futuras (Sonnet, regla de
+`PLAN_BACKLOG.md`). `E7-sintesis.md` §4 actualizado (C23 con el plan cerrado, C27 nuevo).
+
+**Pendiente para las próximas sesiones**: ejecutar el prompt de Fase 1 (§8) y, una vez mergeada,
+el de Fase 2 (§9) — que depende de `xlsx-lite.ts` de la Fase 1. El catálogo de monitoreo del
+PR #104 ya mergeó (los checks nuevos van en `src/lib/monitoreo/catalogo.ts`). Detalle:
+[`sesiones/2026-07-29-c23-plan-pas-zonas.md`](sesiones/2026-07-29-c23-plan-pas-zonas.md).
+
+## Anterior (29/07/2026 — 🖥️ panel /admin/conexiones, HECHO)
 
 **🖥️ PANEL /admin/conexiones (monitoreo de crons, Routines y cargas manuales) — HECHO — rama
-`claude/admin-crons-panel-9p8f62`, PR #_.** Pedido directo de Lautaro: un lugar dentro de `/admin`
+`claude/admin-crons-panel-9p8f62`, PR #104 (mergeado).** Pedido directo de Lautaro: un lugar dentro de `/admin`
 para ver de un vistazo qué carga manual falta (y desde cuándo), qué cron corrió o no, si las 3
 Routines produjeron lo suyo, y si el WebSocket de A3 está trayendo datos — hoy esa información
 vivía repartida (frescura solo en el mail de las 20:45, "¿corrió?" solo en la API de GitHub sin
