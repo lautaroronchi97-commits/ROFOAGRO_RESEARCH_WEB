@@ -38,7 +38,9 @@ export type FilaEstimacion = {
 
 export type Descarte = { grano: string; campania: string; motivo: string };
 
-const CULTIVO: Record<string, string> = {
+// Exportados (C23, docs/PLAN_PAS_ZONAS.md §4.b): `parse-pas-zonas.ts` reusa el mismo mapa de
+// cultivos y los mismos rangos de plausibilidad — cero comportamiento nuevo, solo visibilidad.
+export const CULTIVO: Record<string, string> = {
   Soja: "soja",
   "Maíz": "maiz",
   Maiz: "maiz",
@@ -50,7 +52,7 @@ const CULTIVO: Record<string, string> = {
 
 // Rangos de plausibilidad de la producción nacional AR (Mt) — mismos que scripts/ingest-pas.mjs,
 // cota anti-basura para cuando el origen cambie de escala sin avisar.
-const RANGO_MT: Record<string, [number, number]> = {
+export const RANGO_MT: Record<string, [number, number]> = {
   soja: [15, 70],
   maiz: [10, 95],
   trigo: [5, 40],
