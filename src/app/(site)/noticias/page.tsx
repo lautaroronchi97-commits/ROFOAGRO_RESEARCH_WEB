@@ -16,7 +16,7 @@ export default async function NoticiasPage() {
     <>
       <main className="wrap">
         <div className="col">
-          <PageHead kicker="Portal del agro · 30 fuentes" title="Noticias" />
+          <PageHead kicker="Portal del agro" title="Noticias" />
           <NoticiasPanel />
         </div>
       </main>

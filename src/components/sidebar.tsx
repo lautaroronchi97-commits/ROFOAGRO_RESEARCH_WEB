@@ -9,20 +9,27 @@ import { useSidebarShell } from "./sidebar-provider";
 
 const LS_KEY = "rofoagro-sidebar-abiertos";
 
-function leerAbiertosGuardados(): string[] {
+/**
+ * Acordeón excluyente (relevamiento 29/07, punto 16): hay a lo sumo UN grupo abierto a
+ * mano. Se persiste igual que antes (array JSON en localStorage) para tolerar el formato
+ * viejo — de una visita anterior con varios abiertos se conserva solo el primero.
+ */
+function leerAbiertoGuardado(): string | null {
   try {
     const raw = window.localStorage.getItem(LS_KEY);
-    if (!raw) return [];
+    if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+    if (!Array.isArray(parsed)) return null;
+    const primero = parsed.find((v): v is string => typeof v === "string");
+    return primero ?? null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-function guardarAbiertos(keys: Set<string>) {
+function guardarAbierto(key: string | null) {
   try {
-    window.localStorage.setItem(LS_KEY, JSON.stringify([...keys]));
+    window.localStorage.setItem(LS_KEY, JSON.stringify(key === null ? [] : [key]));
   } catch {
     /* localStorage no disponible (privado/bloqueado) — el estado sigue en memoria. */
   }
@@ -67,24 +74,25 @@ export function Sidebar({
   const grupoActivo = seccionDeRuta(pathname);
   const enAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
 
-  // Grupos que el usuario abrió/cerró a mano. El grupo (o Admin) de la ruta activa se
-  // suma en el render — abajo, `expandido`/`expandidoAdmin` — en vez de sincronizarlo acá
-  // con un efecto: es puro derivado de `pathname`, no un dato externo que haya que traer.
-  const [abiertos, setAbiertos] = useState<Set<string>>(() => new Set());
+  // Único grupo abierto a mano (acordeón excluyente — abrir uno cierra el anterior).
+  // El grupo (o Admin) de la ruta activa se suma en el render — abajo, `expandido`/
+  // `expandidoAdmin` — sin sincronizarlo acá con un efecto: es puro derivado de
+  // `pathname`, no un dato externo. Ese grupo activo queda expandido AUNQUE se abra
+  // otro a mano (colapsar la sección de la página en la que estás sería peor que la
+  // excepción al acordeón).
+  const [abierto, setAbierto] = useState<string | null>(null);
 
   // Tras montar, reemplazar por lo que quedó abierto en una visita anterior
   // (localStorage — un dato externo real, no algo derivable en el render).
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAbiertos(new Set(leerAbiertosGuardados()));
+    setAbierto(leerAbiertoGuardado());
   }, []);
 
   function toggleGrupo(key: string) {
-    setAbiertos((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      guardarAbiertos(next);
+    setAbierto((prev) => {
+      const next = prev === key ? null : key;
+      guardarAbierto(next);
       return next;
     });
   }
@@ -134,7 +142,7 @@ export function Sidebar({
           {grupos.map((g) => {
             // El grupo de la ruta activa siempre queda expandido (no se auto-colapsa
             // al navegar) — derivado en el render, sin sincronizar estado con un efecto.
-            const expandido = abiertos.has(g.key) || grupoActivo === g.key;
+            const expandido = abierto === g.key || grupoActivo === g.key;
             const activos = marcarActivos(g.items, pathname);
             const items = g.items.filter((it) => !it.soloMesa || esAdmin);
             return (
@@ -178,7 +186,7 @@ export function Sidebar({
           })}
 
           {esAdmin && adminItems.length > 0 && (() => {
-            const expandidoAdmin = abiertos.has("admin") || enAdmin;
+            const expandidoAdmin = abierto === "admin" || enAdmin;
             return (
               <div className="sb-grupo sb-grupo-admin">
                 <div className="sb-grupo-hd">

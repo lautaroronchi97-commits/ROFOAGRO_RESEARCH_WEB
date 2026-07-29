@@ -1,8 +1,8 @@
 import "server-only";
 import { cache } from "react";
-import { getPizarra, GRANOS_REQUERIDOS } from "../pizarra";
+import { getMonitorMercados } from "../monitor-mercados";
 import type { Meta } from "./types";
-import { getDolarApi, getCriptoya, getMaeResumen, getMaeOficial, type MaeResumenRow } from "./fuentes";
+import { getDolarApi, getMaeResumen, getMaeOficial, type MaeResumenRow } from "./fuentes";
 import { parseDdf } from "./tickers";
 
 /* ---------------- Módulo 0: Cinta ---------------- */
@@ -19,22 +19,44 @@ export type CintaItem = {
 export type CintaData = { items: CintaItem[]; meta: Meta };
 
 export const getCintaData = cache(async (): Promise<CintaData> => {
-  const [dolar, cripto, ddf, mae, pizarra] = await Promise.all([
+  // Relevamiento 29/07 (punto 24): sin pizarras en la cinta; UNA sola entrada de
+  // oficial = spot mayorista MAE; + macro del monitor (petróleo/oro/plata/real/S&P/
+  // Merval). `getMonitorMercados()` ya está cacheado por render → cero fetch extra
+  // cuando la home también lo usa.
+  const [dolar, ddf, mae, monitor] = await Promise.all([
     getDolarApi(),
-    getCriptoya(),
     getMaeResumen("DDF"),
     getMaeOficial(),
-    getPizarra(),
+    getMonitorMercados(),
   ]);
 
   const problemas: string[] = [];
-  if (!cripto) problemas.push("criptoya caído (oficial)");
   if (!dolar) problemas.push("dolarapi caído (MEP/CCL)");
-  if (mae.valor === null) problemas.push("MAE caído (mayorista)");
+  if (mae.valor === null) problemas.push("MAE caído (oficial mayorista)");
   if (!ddf) problemas.push("MAE caído (dólar futuro)");
-  if (!GRANOS_REQUERIDOS.every((u) => pizarra.granos[u] != null)) problemas.push("CAC caído (pizarra)");
 
   const byCasa = (casa: string) => dolar?.find((d) => d.casa === casa) ?? null;
+
+  // Macro/referencias del monitor, por símbolo (label corto para la banda).
+  const MACRO_CINTA: Array<{ yahoo: string; label: string }> = [
+    { yahoo: "CL=F", label: "Petróleo" },
+    { yahoo: "GC=F", label: "Oro" },
+    { yahoo: "SI=F", label: "Plata" },
+    { yahoo: "BRL=X", label: "Real" },
+    { yahoo: "SPY", label: "S&P 500" },
+    { yahoo: "^MERV", label: "Merval" },
+  ];
+  const macroItems: CintaItem[] = MACRO_CINTA.map(({ yahoo, label }) => {
+    const r = monitor.macro.find((m) => m.yahoo === yahoo) ?? null;
+    return {
+      label,
+      value: r?.ultimo ?? null,
+      decimals: r?.unidadDec ?? 2,
+      change: r?.deltaPct ?? null,
+      source: r?.mercado ?? "Mercados internacionales",
+    };
+  });
+  if (macroItems.every((i) => i.value === null)) problemas.push("monitor caído (referencias)");
 
   // Posición de dólar futuro más cercana (a hoy) del resumen DDF
   const now = Date.now();
@@ -46,14 +68,8 @@ export const getCintaData = cache(async (): Promise<CintaData> => {
 
   const items: CintaItem[] = [
     {
+      // "Oficial" = spot mayorista MAE (UST$T), la referencia de las fórmulas del sitio.
       label: "Oficial",
-      value: cripto?.oficial?.price ?? null,
-      decimals: 2,
-      change: cripto?.oficial?.variation ?? null,
-      source: "Mercado de cambios",
-    },
-    {
-      label: "Mayorista",
       value: mae.valor,
       decimals: 2,
       change: mae.varPct,
@@ -68,11 +84,7 @@ export const getCintaData = cache(async (): Promise<CintaData> => {
       change: fut?.row.variacion ?? null,
       source: "MAE",
     },
-    // Pizarra (disponible) USD de CAC-BCR, ya real (`pizarra.ts`). Sin variación diaria
-    // disponible en la fuente → change null (E3 H4). Degrada a "—" si CAC no responde.
-    { label: "Soja pizarra USD", value: pizarra.granos.SOJ?.usd ?? null, decimals: 1, change: null, source: "Bolsa de Comercio de Rosario" },
-    { label: "Maíz pizarra USD", value: pizarra.granos.MAI?.usd ?? null, decimals: 1, change: null, source: "Bolsa de Comercio de Rosario" },
-    { label: "Trigo pizarra USD", value: pizarra.granos.TRI?.usd ?? null, decimals: 1, change: null, source: "Bolsa de Comercio de Rosario" },
+    ...macroItems,
   ];
 
   return {

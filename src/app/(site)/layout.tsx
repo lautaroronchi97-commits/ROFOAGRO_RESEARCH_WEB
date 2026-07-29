@@ -61,8 +61,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       </div>
       <div className="awn" aria-hidden="true" />
       <SiteFooter />
-      {/* Marca de agua sutil con el email del usuario: solo con login activo. */}
-      {AUTH_ENFORCED && email && <Watermark email={email} />}
+      {/* Marca de agua sutil ("ROFO AGRO · email"): solo con login activo y solo para
+          clientes — los admins no la ven (relevamiento 29/07, punto 14). */}
+      {AUTH_ENFORCED && email && !esAdmin && <Watermark email={email} />}
       {/* Registro de visita por sección: solo con login activo (beacon liviano). */}
       {AUTH_ENFORCED && <SeccionBeacon />}
     </SidebarProvider>

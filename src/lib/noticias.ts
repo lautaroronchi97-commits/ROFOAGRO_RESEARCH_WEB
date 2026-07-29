@@ -73,7 +73,6 @@ export type NoticiasData = {
   destacados: NoticiaItem[]; // "Lo importante hoy" (briefing transversal, priorizado)
   categorias: NoticiaCategoria[];
   total: number;
-  nFuentes: number;
   generadoMs: number; // "ahora" para las horas relativas del panel (Date.now() vive acá, no en el render)
   meta: Meta;
 };
@@ -190,10 +189,6 @@ function armar(items: ItemCat[], corteMs: number): { destacados: NoticiaItem[]; 
   return { destacados, categorias };
 }
 
-function contarFuentes(cats: NoticiaCategoria[], destacados: NoticiaItem[]): number {
-  return new Set([...destacados, ...cats.flatMap((c) => c.items)].map((i) => i.fuente)).size;
-}
-
 /* ---------------- fuente primaria: Supabase (cron horario) ---------------- */
 
 type RawRow = {
@@ -237,7 +232,6 @@ function desdeSupabase(rows: RawRow[]): NoticiasData | null {
     destacados,
     categorias,
     total: categorias.reduce((n, c) => n + c.items.length, 0),
-    nFuentes: contarFuentes(categorias, destacados),
     generadoMs: Date.now(),
     meta: {
       source: "Portal ROFO AGRO",
@@ -301,7 +295,8 @@ function parseBcr(html: string): ItemCat[] {
       seen.add(t.href);
       items.push({
         titulo: t.text,
-        fuente: `${fuente} (vía BCR)`,
+        // Solo el nombre del medio: el puente (BCR) nunca se muestra (relevamiento 29/07, punto 15).
+        fuente,
         link: t.href,
         fechaMs: null,
         categoria: clasificar(t.text, "mercados"),
@@ -347,7 +342,7 @@ async function fetchText(url: string): Promise<string | null> {
 async function enVivo(problema: string): Promise<NoticiasData> {
   const [bcr, ...feeds] = await Promise.all([fetchText(BCR_URL), ...FEEDS_VIVO.map((f) => fetchText(f.url))]);
   // RSS primero, BCR al final: si una nota llega por RSS y por BCR, la dedup de `agrupar` (primero gana)
-  // conserva el registro RSS, que trae fecha real y nombre de medio limpio (no el "(vía BCR)").
+  // conserva el registro RSS, que trae fecha real y nombre de medio canónico.
   const items: ItemCat[] = [];
   FEEDS_VIVO.forEach((f, i) => {
     const xml = feeds[i];
@@ -367,7 +362,6 @@ async function enVivo(problema: string): Promise<NoticiasData> {
     destacados,
     categorias,
     total: categorias.reduce((n, c) => n + c.items.length, 0),
-    nFuentes: contarFuentes(categorias, destacados),
     generadoMs: Date.now(),
     meta: {
       source: "Portal ROFO AGRO",

@@ -19,7 +19,47 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 📝 C28: PLAN del relevamiento web de Lautaro (56 puntos), CERRADO)
+## Ahora (última actualización: 29/07/2026 — 🎛️ C28/R1: shell + home + cinta, HECHO)
+
+**🎛️ C28 — LOTE R1 (SHELL + HOME + CINTA) — HECHO — rama `claude/website-changes-review-ttqsq4`
+(reiniciada desde `main` tras mergear el PR #109 del plan), PR #_.** Ejecuta el prompt R1 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 13–24 + 15 + 37 + 46), con las 4 preguntas que lo gateaban
+contestadas por Lautaro el mismo día (registradas en §5 del plan): soja de la home = NOV26+MAY27 ·
+watermark = "ROFO AGRO · email" para clientes y NADA para admins · cinta con UNA entrada de
+oficial = spot mayorista · BNA −9 constante en código (con `tcBna` de CAC como confirmado).
+**Build**: strings (badge V0, brand-sub, minutos de rueda, toggle "Modo claro/oscuro", noticias
+sin "30 fuentes"/"categorización propia") · "(vía BCR)" eliminado del código (2 lugares espejo) Y
+de la base (UPDATE por MCP, corrido dos veces porque el cron sumó filas nuevas en el medio → 0
+filas al cierre) · watermark nueva gateada por `!esAdmin` · sidebar
+**acordeón excluyente** (un grupo abierto a mano, persistencia compatible; el grupo activo sigue
+siempre expandido — excepción documentada) · **cinta a lo ancho completo** del shell sin mover
+`getCintaData()` (breakout CSS + `:has()`, guarda de revalidate de C25 intacta) ·
+`rofoagro-logo-marca.svg` limpiado DE VERDAD (era copia byte a byte del logo; filtro saturación
+<18 + luminancia >180 saca los halos y conserva los amarillos del trigo — fin del blanco en modo
+oscuro en TODOS los charts) · cinta nueva (Oficial=mayorista MAE · MEP · CCL · Fut + Petróleo/
+Oro/Plata/Real/S&P/Merval con variación, reusa `getMonitorMercados()` cacheado) · home:
+`mercado-hoy` partido **Argentina (A3: Maíz JUL26 · Soja NOV26 · Soja MAY27 · Trigo DIC26) |
+Chicago**, con la regla operado/ajuste extraída a **`src/lib/referencia-futuro.ts`** (lib pura +
+tests, ahora compartida con Arbitrajes) · **placa hero rotativa** (`hero-placa.tsx`: SOJ→MAI→TRI
+con fade cada 6s, pausa en hover, puntos manuales, USD grande + pesos destacados + fecha de
+pizarra, reduced-motion=estática) · Próximos informes a **7 días** con "JUE 30 JUL" en una línea ·
+`EstimacionesMini` fuera de la home y borrada (sin importadores).
+
+**Verificado de punta a punta** (lint/tsc/374 tests/build ✅ + Playwright real contra
+`npm run start` con datos de Supabase del entorno, claro/oscuro/mobile 390px, cero errores de
+consola/scroll horizontal): geometría cinta/sidebar medida con `getBoundingClientRect()` (el
+primer ítem de la cinta queda exacto bajo el logo, con `prefers-reduced-motion` para descartar el
+marquee en curso) · acordeón de sidebar con interacción real (abrir un grupo cierra el otro,
+persiste tras reload) · watermark con bypass temporal (revertido, `git diff` limpio): cliente ve
+"ROFO AGRO · email", admin ve 0 marcas · logo limpio comparado lado a lado con el original sobre
+oscuro (el bug exacto —"ROFO" en blanco— desaparece) y en un chart real (`/dolar/oficial`).
+
+**Próximo paso**: seguir con **R3 (granos)** según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10); las preguntas 3/4/6/7/9/10 de §5 siguen abiertas y gatean
+partes de R3/R4/R6. Detalle:
+[`sesiones/2026-07-29-r1-shell-home-cinta.md`](sesiones/2026-07-29-r1-shell-home-cinta.md).
+
+## Anterior (29/07/2026 — 📝 C28: PLAN del relevamiento web de Lautaro (56 puntos), CERRADO)
 
 **📝 C28 — RELEVAMIENTO WEB DE LAUTARO (56 PUNTOS) → PLAN CERRADO, SOLO DOCS — rama
 `claude/website-changes-review-ttqsq4`, PR #_.** Lautaro relevó a mano TODA la web (docx con 56
