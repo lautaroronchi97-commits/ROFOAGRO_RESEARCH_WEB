@@ -3,7 +3,7 @@ import { WORKFLOWS, CHECKS, CARGAS_MANUALES } from "./catalogo";
 
 // Anclas reales sembradas en src/app/admin/datos/page.tsx (id="..." de cada bloque). Si se
 // renombra una acá, hay que renombrarla también ahí — este test avisa si se desincronizan.
-const ANCLAS_ADMIN_DATOS = new Set(["agrochat", "camiones", "mesa-color", "bcra-manual", "dea", "pas", "pas-zonas", "lecap"]);
+const ANCLAS_ADMIN_DATOS = new Set(["agrochat", "camiones", "mesa-color", "bcra-manual", "dea", "pas", "pas-zonas", "pas-condicion", "lecap"]);
 
 describe("catalogo.ts — consistencia interna", () => {
   it("todo WORKFLOWS[].checkNombres referencia un CHECKS[].nombre real", () => {

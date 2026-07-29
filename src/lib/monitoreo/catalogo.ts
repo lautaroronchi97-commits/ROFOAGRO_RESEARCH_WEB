@@ -61,6 +61,10 @@ export const CHECKS: Check[] = [
   // mueve de verdad en ventanas de siembra/cosecha, la cadencia real es "cuando sale el PAS del
   // jueves" sin fecha fija comprometida — no hay cron, es 100% carga manual de Lautaro.
   { nombre: "pas_zonas (BCBA zonal)", tabla: "pas_zonas", col: "actualizado_en", maxDias: 21, cadencia: "manual (PAS jueves; el zonal cambia fuerte solo en siembra/cosecha)" },
+  // pas_condicion (C27): misma RLS solo-admin, misma SERVICE key. Umbral corto (14d = 2 PAS
+  // perdidos, como compras/Agrochat) porque la condición semanal SÍ envejece rápido — a
+  // diferencia del zonal, esta serie se mueve todas las semanas de la campaña en curso.
+  { nombre: "pas_condicion (BCBA condición)", tabla: "pas_condicion", col: "actualizado_en", maxDias: 14, cadencia: "manual (PAS semanal; 2 jueves de gracia)" },
 ];
 
 // E5 #9: "seeds de futuro" — datos que no se atrasan hacia el pasado sino que se AGOTAN hacia
@@ -165,6 +169,7 @@ export const CARGAS_MANUALES: CargaManual[] = [
   { id: "dea", nombre: "Estimaciones DEA-SAGyP", href: "/admin/datos#dea", cadenciaTexto: "semanal" },
   { id: "pas", nombre: "Estimaciones BCBA-PAS", href: "/admin/datos#pas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
   { id: "pas-zonas", nombre: "Estimaciones BCBA-PAS por zona", href: "/admin/datos#pas-zonas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
+  { id: "pas-condicion", nombre: "Condición de cultivos BCBA-PAS", href: "/admin/datos#pas-condicion", cadenciaTexto: "semanal (4 archivos, uno por cultivo)" },
   { id: "lecap", nombre: "Pago final de letras (LECAP)", href: "/admin/datos#lecap", cadenciaTexto: "esporádica (~cada 1-2 meses)" },
   { id: "interpretaciones", nombre: "Revisar interpretaciones", href: "/admin/interpretaciones", cadenciaTexto: "cuando hay un borrador esperando" },
   { id: "view-feedback", nombre: "Calificar el view de mercado", href: "/granos/view", cadenciaTexto: "semanal, tras la Routine del viernes" },
