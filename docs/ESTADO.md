@@ -19,7 +19,35 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 🌱 C27 FASE 2: condición de cultivos BCBA-PAS, HECHA Y DE PUNTA A PUNTA CON DATOS REALES)
+## Ahora (última actualización: 29/07/2026 — 📝 C28: PLAN del relevamiento web de Lautaro (56 puntos), CERRADO)
+
+**📝 C28 — RELEVAMIENTO WEB DE LAUTARO (56 PUNTOS) → PLAN CERRADO, SOLO DOCS — rama
+`claude/website-changes-review-ttqsq4`, PR #_.** Lautaro relevó a mano TODA la web (docx con 56
+puntos + 73 capturas) y pidió los pasos para implementar todo, con las preguntas juntas al final
+y el backlog de lo que no llegó a ver. Se extrajo el docx completo, **cada captura quedó mapeada
+a su punto** (imprescindible: varios puntos eran solo "eliminalo" + imagen), y 3 agentes de
+exploración anclaron los 56 puntos a archivo:línea real. **Entregable:
+[`PLAN_RELEVAMIENTO_WEB.md`](PLAN_RELEVAMIENTO_WEB.md)** — §2 los 56 puntos interpretados y
+mapeados · §3 **10 lotes con prompt autocontenido** (R1 shell+home+cinta · R2 landing · R3 granos
+· R4 calculadoras patrón+7 · R5 estrategias+planta · R6 dólar · R7 gráficos+producción · R8
+DJVE+empresas · R9 camiones · R10 puertos; orden sugerido R1→R3→R4→R6→R2→R5→R7→R8→R9→R10, builds
+con Sonnet + `ui-ux-pro-max`, copy con `voz-lautaro`) · §4 respuestas directas (3 pedidos ya
+funcionan así o tienen respuesta: Admin ya solo-admin, dólar linked ya dinámico, el spread de
+gráficos usa la pizarra histórica de cada momento) · **§5 las 10 preguntas para Lautaro, todas
+juntas** (varias gatean lotes: ejemplo numérico del Excel para sintéticos, el −9 del BNA,
+watermark, cinta, posiciones ambiguas) · §6 backlog. Hallazgos de exploración que achican el
+trabajo: `rofoagro-logo-marca.svg` es copia idéntica del logo con ~20 fills casi-blancos (el
+punto 46 se arregla limpiando UN svg), `pizarraArs` y `tcBna` ya se parsean y están sin usar
+(los puntos 25/40 tienen el dato servido), "(vía BCR)" vive en 2 lugares espejo + filas ya
+guardadas. Registrado como **C28** en el backlog maestro (`auditoria/E7-sintesis.md` §4), con el
+backlog derivado (mail de la empresa para el form de contacto, tanda 2 del relevamiento —
+páginas de mesa 🔒/Informes//admin —, verificación visual de zonas, aviso DL opcional).
+
+**Próximo paso: Lautaro contesta las 10 preguntas de §5 → ejecutar los lotes R1→R10** (un PR por
+sesión, prompts en §3). Detalle:
+[`sesiones/2026-07-29-plan-relevamiento-web.md`](sesiones/2026-07-29-plan-relevamiento-web.md).
+
+## Anterior (29/07/2026 — 🌱 C27 FASE 2: condición de cultivos BCBA-PAS, HECHA Y DE PUNTA A PUNTA CON DATOS REALES)
 
 **🌱 C27 FASE 2 — CONDICIÓN DE CULTIVOS SEMANAL BCBA-PAS — HECHA, migración aplicada y los 4
 archivos reales cargados por Lautaro — rama `claude/determined-ptolemy-47adgf`, PR #107

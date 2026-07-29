@@ -453,6 +453,20 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   acotado a los 4 cultivos reales), uploader manual semanal + registro en el monitoreo. Los 4
   archivos reales (soja/maíz/trigo/girasol) ya quedaron versionados en `data/pas/` — el build no
   depende de volver a pedirle nada a Lautaro.
+- [ ] **C28. Relevamiento web 29/07 (56 puntos de Lautaro → lotes R1–R10) — PLAN CERRADO 29/07.**
+  Lautaro relevó a mano TODA la web (docx con 56 puntos + 73 capturas) y pidió los pasos para
+  implementar todo. Plan completo en **[`PLAN_RELEVAMIENTO_WEB.md`](../PLAN_RELEVAMIENTO_WEB.md)**:
+  transcripción interpretada punto por punto con mapeo a archivos (§2), **10 lotes con prompt
+  autocontenido cada uno** (§3: R1 shell+home+cinta · R2 landing · R3 granos · R4 calculadoras
+  patrón+7 · R5 estrategias+planta · R6 dólar · R7 gráficos+producción · R8 DJVE+empresas ·
+  R9 camiones · R10 puertos), respuestas directas sin código (§4), **10 preguntas para Lautaro
+  juntas al final** (§5 — varias gatean lotes: fórmula de sintéticos con ejemplo del Excel,
+  posiciones ambiguas, el −9 del BNA, watermark, cinta) y backlog derivado (§6). Orden sugerido:
+  R1 → R3 → R4 → R6 → R2 → R5 → R7 → R8 → R9 → R10. Backlog derivado del mismo relevamiento:
+  cambiar el mail de contacto a la casilla de la empresa cuando exista (hoy `ADMIN_EMAILS` →
+  lautaroronchi97@gmail.com) + relevamiento pendiente de las páginas de mesa 🔒, Informes y
+  /admin (tanda 2) + verificación visual de `/produccion/zonas` + aviso opcional de instrumento
+  dólar linked no parseable.
 
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 
