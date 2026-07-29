@@ -87,8 +87,12 @@ function splitSemicolon(line: string): string[] {
   return out.map((s) => s.trim());
 }
 
-/** "2000/2001" → "2000/01"; ya-corto "2000/01" pasa igual. Cualquier otra cosa → null. */
-function normalizarCampania(raw: string): string | null {
+/**
+ * "2000/2001" → "2000/01"; ya-corto "2000/01" pasa igual. Cualquier otra cosa → null.
+ * Exportada (C23, docs/PLAN_PAS_ZONAS.md §4.a): `parse-pas-zonas.ts` la reusa — su export
+ * (`reporte_zonas_*.xlsx`) trae la campaña en formato largo "2000/2001" siempre.
+ */
+export function normalizarCampania(raw: string): string | null {
   const c = raw.trim();
   const largo = c.match(/^(\d{4})\/(\d{4})$/);
   if (largo) return `${largo[1]}/${largo[2]!.slice(2)}`; // grupos obligatorios del regex
