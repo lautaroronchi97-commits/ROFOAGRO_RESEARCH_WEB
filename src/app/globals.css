@@ -1817,6 +1817,19 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lu-cambios-ref .lu-h3 { color:var(--ink-2); }
 .lu-mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 
+/* R10: drill-down por empresa en "Por producto"/"Por zona" (foto-operativa-client.tsx) */
+.lu-clickable { cursor:pointer; }
+.lu-clickable:hover td { background:var(--panel-2); }
+.lu-clic-ico { display:inline-block; width:1em; font-size:.8em; color:var(--gold-text); }
+.lu-drill td { background:var(--panel-2); font-size:var(--fs-xs); color:var(--ink-2);
+  border-top:none; padding-top:4px; padding-bottom:4px; }
+.lu-drill td.l { padding-left:26px; }
+
+/* R10: total por zona sobre el resultado filtrado de la tabla de buques */
+.lu-totzona { display:flex; flex-wrap:wrap; gap:8px 18px; margin:0 0 10px; font-size:var(--fs-xs);
+  color:var(--ink-2); }
+.lu-totzona-item b { color:var(--ink); font-weight:700; }
+
 .tbl tbody td.pos { color:var(--pos); font-variant-numeric:tabular-nums; }
 .tbl tbody td.neg { color:var(--neg); font-variant-numeric:tabular-nums; }
 

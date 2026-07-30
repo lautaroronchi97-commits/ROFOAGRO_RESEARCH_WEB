@@ -1,9 +1,8 @@
 import { getFotoOperativa } from "@/lib/lineup/foto";
-import { nfmt, sfmt } from "@/lib/format";
 import { Panel, PanelHead } from "../panel";
 import { SourceStamp } from "../source-stamp";
 import { QueEsEsto } from "../que-es-esto";
-import { BuquesTabla } from "./buques-tabla";
+import { FotoOperativaClient } from "./foto-operativa-client";
 
 function IconShip() {
   return (
@@ -21,12 +20,6 @@ function ddmm(iso: string | null): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 }
 
-function DeltaCell({ d }: { d: number | null }) {
-  if (d === null) return <td className="dim">—</td>;
-  if (Math.abs(d) < 1) return <td className="dim">=</td>;
-  return <td className={d > 0 ? "pos" : "neg"}>{sfmt(d, 0)}</td>;
-}
-
 export async function FotoOperativaPanel() {
   const data = await getFotoOperativa();
 
@@ -39,145 +32,20 @@ export async function FotoOperativaPanel() {
     );
   }
 
-  const { fecha, fechaPrev, productos, zonas, buques, nuevos, salidos, referencia, totalTon, totalBuques } = data;
-
   return (
     <Panel id="lineup-foto">
       <PanelHead
         glyph={<IconShip />}
         title="Line-up de buques"
-        sub={`Foto del ${ddmm(fecha)} · exportaciones (carga)`}
+        sub={`Foto del ${ddmm(data.fecha)} · exportaciones (carga)`}
         stamp={<SourceStamp meta={data.meta} />}
       />
 
-      <div className="lu-kpis">
-        <div className="lu-kpi">
-          <span className="lu-kpi-v">{nfmt(totalBuques, 0)}</span>
-          <span className="lu-kpi-l">buques cargando</span>
-        </div>
-        <div className="lu-kpi">
-          <span className="lu-kpi-v">{nfmt(totalTon, 0)}</span>
-          <span className="lu-kpi-l">toneladas al embarque</span>
-        </div>
-        <div className="lu-kpi">
-          <span className="lu-kpi-v">{productos.length}</span>
-          <span className="lu-kpi-l">productos activos</span>
-        </div>
-      </div>
-
-      {(nuevos.length > 0 || salidos.length > 0) && fechaPrev && (
-        <div className="lu-cambios">
-          <h3 className="lu-h3">Qué cambió vs el {ddmm(fechaPrev)}</h3>
-          <ul className="lu-nuevos">
-            {nuevos.map((n) => (
-              <li key={`n-${n.vessel}`}>
-                <span className="lu-nuevo-badge">nuevo</span>
-                <b>{n.vessel}</b> · {n.empresa} · {n.productos.join(", ")} ·{" "}
-                <span className="lu-mono">{nfmt(n.toneladas, 0)} t</span> · {n.zona}
-                {n.etb ? ` · ETB ${ddmm(n.etb)}` : ""}
-              </li>
-            ))}
-            {salidos.map((n) => (
-              <li key={`s-${n.vessel}`}>
-                <span className="lu-salido-badge">salió</span>
-                <b>{n.vessel}</b> · {n.empresa} · {n.productos.join(", ")} ·{" "}
-                <span className="lu-mono">{nfmt(n.toneladas, 0)} t</span> · {n.zona}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {referencia && (
-        <div className="lu-cambios lu-cambios-ref">
-          <h3 className="lu-h3">Vs hace {referencia.diasAtras} días ({ddmm(referencia.fecha)})</h3>
-          <div className="lu-kpis" style={{ margin: "0 0 8px" }}>
-            <div className="lu-kpi">
-              <span className={`lu-kpi-v ${referencia.deltaBuques === 0 ? "" : referencia.deltaBuques > 0 ? "pos" : "neg"}`}>
-                {referencia.deltaBuques > 0 ? "+" : ""}{nfmt(referencia.deltaBuques, 0)}
-              </span>
-              <span className="lu-kpi-l">buques ({nfmt(referencia.totalBuquesRef, 0)} entonces)</span>
-            </div>
-            <div className="lu-kpi">
-              <span className={`lu-kpi-v ${Math.abs(referencia.deltaTon) < 1 ? "" : referencia.deltaTon > 0 ? "pos" : "neg"}`}>
-                {referencia.deltaTon > 0 ? "+" : ""}{nfmt(referencia.deltaTon, 0)}
-              </span>
-              <span className="lu-kpi-l">toneladas ({nfmt(referencia.totalTonRef, 0)} entonces)</span>
-            </div>
-          </div>
-          {referencia.productos.length > 0 && (
-            <ul className="lu-nuevos">
-              {referencia.productos.map((p) => (
-                <li key={p.codigo}>
-                  <b>{p.display}</b>{" "}
-                  <span className={Math.abs(p.deltaTon) < 1 ? "dim" : p.deltaTon > 0 ? "pos" : "neg"}>
-                    {p.deltaTon > 0 ? "+" : ""}{nfmt(p.deltaTon, 0)} t
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      <h3 className="lu-h3">Por producto</h3>
-      <div className="table-scroll">
-        <table className="tbl" style={{ minWidth: 460 }}>
-          <thead>
-            <tr>
-              <th className="l" scope="col">Producto</th>
-              <th scope="col">Buques</th>
-              <th scope="col">Toneladas</th>
-              <th scope="col">Δ vs {ddmm(fechaPrev)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productos.map((p) => (
-              <tr key={p.codigo}>
-                <td className="l sym">{p.display}</td>
-                <td>{nfmt(p.buques, 0)}</td>
-                <td>{nfmt(p.toneladas, 0)}</td>
-                <DeltaCell d={p.deltaTon} />
-              </tr>
-            ))}
-            <tr className="tot">
-              <td className="l">TOTAL</td>
-              <td>{nfmt(totalBuques, 0)}</td>
-              <td>{nfmt(totalTon, 0)}</td>
-              <td className="dim" />
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3 className="lu-h3">Por zona</h3>
-      <div className="table-scroll">
-        <table className="tbl" style={{ minWidth: 380 }}>
-          <thead>
-            <tr>
-              <th className="l" scope="col">Zona</th>
-              <th scope="col">Buques</th>
-              <th scope="col">Toneladas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {zonas.map((z) => (
-              <tr key={z.zona}>
-                <td className="l sym">{z.zona}</td>
-                <td>{nfmt(z.buques, 0)}</td>
-                <td>{nfmt(z.toneladas, 0)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <h3 className="lu-h3">Buques en el line-up</h3>
-      <BuquesTabla buques={buques} fecha={fecha} />
+      <FotoOperativaClient data={data} />
 
       <QueEsEsto
-        paraQue="Es la foto del último line-up de buques en puertos argentinos: qué barcos vienen a cargar granos y subproductos para exportar, cuánto, de qué empresa y a qué destino. Sirve para leer la demanda física de exportación antes de la rueda."
-        comoSeCalcula="Toma la última rueda del line-up de buques (exportaciones = carga), agrupa por producto y por zona portuaria (Up River Norte/Sur y Bahía Blanca, clasificadas por el muelle), normaliza los nombres de los exportadores y compara contra la rueda anterior para marcar los buques nuevos y los que salieron (embarcaron o se cayeron del programa). Además compara contra la rueda más cercana a una semana atrás, para distinguir tendencia de movimiento puntual."
+        paraQue="Es la foto del último line-up de buques en puertos argentinos: qué barcos vienen a cargar granos y subproductos para exportar, cuánto, de qué empresa y a qué destino. Sirve para leer la demanda física de exportación antes de la rueda y quién está detrás de cada movimiento."
+        comoSeCalcula="Toma la última rueda del line-up de buques (exportaciones = carga), agrupa por producto y por zona portuaria (Up River Norte/Sur y Bahía Blanca, clasificadas por el muelle), normaliza los nombres de los exportadores y compara contra la rueda anterior para marcar los buques nuevos y los que salieron (embarcaron o se cayeron del programa). El Δ semana compara contra la rueda más cercana a 7 días atrás. Click en un producto o una zona abre el detalle por empresa."
       />
     </Panel>
   );

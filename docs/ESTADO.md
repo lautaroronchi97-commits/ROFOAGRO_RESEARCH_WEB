@@ -19,7 +19,43 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 🚚 C28/R9: comercio (camiones), HECHO — maqueta en el PR para el OK de Lautoro)
+## Ahora (última actualización: 30/07/2026 — 🚢 C28/R10: comercio (puertos), HECHO — cierra el relevamiento web completo R1→R10)
+
+**🚢 C28 — LOTE R10 (COMERCIO: PUERTOS) — HECHO, propuesta+capturas posteadas en el PR para el
+OK de Lautoro — misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose —
+R3/R4/R6/R2/R5/R7/R8/R9 seguían sin mergear al arrancar R10, ver bitácora; Lautaro confirmó otra
+vez explícitamente que NO va a mergear todavía).** Ejecuta el prompt R10 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (punto 54), rediseño de `/comercio/puertos` — **último lote del
+orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→R9→R10): el relevamiento de 56 puntos queda completo**,
+salvo lo explícitamente gateado por preguntas de §5 sin contestar (sintéticos Q3/R6, empresas 0
+buques Q9/R8).
+**Este prompt pedía más que una maqueta**: *"Lautaro pidió explícito chequear redundancias y
+preguntar ante dudas: antes de codear, armá la propuesta de layout... y pasásela por el PR"* —
+se hizo el chequeo de redundancias POR ESCRITO antes de tocar código (¿`/comercio/empresas` de R8
+se pisa con esto? No: una es cobertura estratégica acumulada vía DJVE, la otra es la foto
+operativa de la última rueda — no se fusionaron entre sí) y luego se construyó + verificó,
+documentando cada decisión con su razón. Detalle completo en la bitácora.
+**Build**: tabla "Por producto" fusiona el bloque separado "Vs hace 7 días" (2 KPIs + lista aparte)
+como una 2ª columna Δ semana — nada se pierde, mismo número, una tabla menos · **drill-down por
+empresa** en "Por producto" Y "Por zona" (click en una fila → qué empresas la componen, máx un
+desglose abierto a la vez) — resultó NO necesitar tocar `foto.ts`: `buques` ya traía producto+
+zona+empresa+toneladas por fila, la agregación es aritmética de UI (`foto-empresas.ts` nuevo,
+puro, 5 tests) · tabla de buques con **orden por defecto a ETB ascendente** (antes toneladas
+desc) · **total por zona sobre el resultado filtrado** cuando el buscador (sin cambios) devuelve
+algo — verificado con "CARGILL": 29 operaciones repartidas Up River Norte/Sur/Bahía Blanca con
+sus propios totales, suma exacta.
+
+**Verificado de punta a punta** (lint/tsc/**423 tests**/build ✅ — 5 nuevos de
+`foto-empresas.test.ts` + Playwright real, claro/oscuro/desktop/mobile, bypass temporal de
+`requireAdmin()` revertido — `git diff` limpio): drill-down de Soja suma exacto los 403.754 t de
+la fila entre sus empresas · tabla de buques ETB 24/07→31/07 ascendente confirmado a ojo · cero
+errores de consola/scroll horizontal en las 3 combinaciones.
+
+**Próximo paso**: **el OK de Lautoro sobre R9 y R10** (ambos con maqueta/propuesta en el PR) —
+con eso el relevamiento web completo queda cerrado de punta a punta. Detalle:
+[`sesiones/2026-07-30-r10-puertos.md`](sesiones/2026-07-30-r10-puertos.md).
+
+## Anterior (30/07/2026 — 🚚 C28/R9: comercio (camiones), HECHO — maqueta en el PR para el OK de Lautoro)
 
 **🚚 C28 — LOTE R9 (COMERCIO: CAMIONES) — HECHO, capturas posteadas en el PR para el OK de
 Lautoro — misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose —

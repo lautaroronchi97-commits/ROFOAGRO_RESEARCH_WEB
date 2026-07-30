@@ -3,12 +3,23 @@
 import { useMemo, useState } from "react";
 import { nfmt } from "@/lib/format";
 import type { BuqueRow } from "@/lib/lineup/foto";
+import { totalesPorZona } from "@/lib/lineup/foto-empresas";
 
 /**
  * Tabla de buques de la última rueda, filtrable por producto y zona + búsqueda
  * libre (buque/empresa/destino), con export a CSV. Client component: los filtros
  * corren en el navegador sobre las filas que ya vienen del server.
+ *
+ * Relevamiento web R10 (punto 54): orden por defecto pasó de toneladas desc a **ETB
+ * ascendente** (el buque que carga hace más tiempo primero — "no barco por barco"
+ * pedía dejar de listar por tamaño). Con cualquier filtro activo (producto/zona/
+ * búsqueda) se suma un renglón de **total por zona** sobre lo filtrado — el buscador
+ * en sí no cambió, solo lo que se muestra arriba del resultado.
  */
+function etbMs(iso: string | null): number {
+  // Sin ETB: al final (no "primero" — un buque sin fecha conocida no es "el más viejo").
+  return iso ? Date.parse(iso) : Infinity;
+}
 export function BuquesTabla({ buques, fecha }: { buques: BuqueRow[]; fecha: string | null }) {
   const [producto, setProducto] = useState("todos");
   const [zona, setZona] = useState("todas");
@@ -32,10 +43,12 @@ export function BuquesTabla({ buques, fecha }: { buques: BuqueRow[]; fecha: stri
           b.empresa.toLowerCase().includes(needle) ||
           (b.destino ?? "").toLowerCase().includes(needle),
       )
-      .sort((a, b) => (b.toneladas ?? 0) - (a.toneladas ?? 0));
+      .sort((a, b) => etbMs(a.etb) - etbMs(b.etb));
   }, [buques, producto, zona, q]);
 
   const totTon = filtradas.reduce((s, b) => s + (b.toneladas ?? 0), 0);
+  const hayFiltro = producto !== "todos" || zona !== "todas" || q.trim() !== "";
+  const porZona = useMemo(() => (hayFiltro ? totalesPorZona(filtradas) : []), [hayFiltro, filtradas]);
 
   function exportarCsv() {
     const cols = ["Buque", "Empresa", "Producto", "Toneladas", "Zona", "Muelle", "Destino", "ETB"];
@@ -98,6 +111,16 @@ export function BuquesTabla({ buques, fecha }: { buques: BuqueRow[]; fecha: stri
       <div className="lu-cuenta">
         {filtradas.length} {filtradas.length === 1 ? "operación" : "operaciones"} · {nfmt(totTon, 0)} t
       </div>
+
+      {porZona.length > 0 && (
+        <div className="lu-totzona">
+          {porZona.map((z) => (
+            <span key={z.zona} className="lu-totzona-item">
+              <b>{z.zona}</b> {nfmt(z.buques, 0)} buques · {nfmt(z.toneladas, 0)} t
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="table-scroll">
         <table className="tbl" style={{ minWidth: 820 }}>
