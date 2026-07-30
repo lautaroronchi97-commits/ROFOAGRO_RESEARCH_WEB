@@ -4,6 +4,7 @@ import type { Meta } from "./types";
 import { getLecaps } from "./lecaps";
 import { getDolarFuturo } from "./dolar-futuro";
 import { sbSelect } from "../supabase";
+import { hoyOperativoMs } from "../dates";
 import {
   emparejarSinteticos,
   type LetraIn,
@@ -52,16 +53,14 @@ export const getSinteticos = cache(async (): Promise<SinteticosData> => {
     symbol: l.symbol,
     px: l.px,
     vencMs: l.venc,
-    dias: l.dias,
   }));
   const posiciones: PosicionIn[] = df.posiciones.map((p) => ({
     label: p.label,
     precio: p.ultimo,
     vencMs: p.fecha,
-    tnaPct: p.tnaPct,
   }));
 
-  const rows = emparejarSinteticos(df.spot, letras, posiciones, pf.map);
+  const rows = emparejarSinteticos(df.spot, letras, posiciones, pf.map, hoyOperativoMs());
 
   const problemas: string[] = [];
   if (df.spot === null) problemas.push("oficial MAE caído (sin sintético)");

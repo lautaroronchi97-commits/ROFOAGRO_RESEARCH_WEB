@@ -387,11 +387,9 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   `parse-pas-zonas.ts` · uploader · `pas-zonas.ts`/`pas-zonas-calc.ts` + panel `/produccion/zonas` ·
   catálogo de monitoreo) y **verificada con Playwright contra el .xlsx real** (1.837 filas cargables,
   identidad cierra 100% desde 2008/09, soja/maíz coinciden 1:1 con lo verificado en el plan) —
-  detalle en `sesiones/2026-07-29-c23-fase1-pas-zonas.md`. **Pendiente real: la migración
-  `20260729120000_c23_pas_zonas.sql` quedó ESCRITA SIN APLICAR** (instrucción explícita del prompt
-  de ejecución: la aplica el orquestador por MCP con el OK de Lautaro) — hasta que se aplique, el
-  panel degrada solo ("no se pudo cargar") y el uploader falla prolijo en el paso 2. Sigue la
-  **Fase 2 (C27)** una vez mergeado esto.
+  detalle en `sesiones/2026-07-29-c23-fase1-pas-zonas.md`. **Migración aplicada y archivo real
+  cargado (confirmado 30/07/2026 por Lautaro + verificado por SQL: `pas_zonas` con 1.837 filas,
+  27 campañas 2000/01→2026/27)** — `/produccion/zonas` queda cerrado de punta a punta.
 - [x] **C24. Camiones de Agroentregas** — ✅ **hecho 28/07**, y **salió mejor que el pedido**: el
   ítem estaba escrito como "carga diaria MANUAL desde la cuenta de X, mismo patrón que Compras
   BCRA", con el research de qué publica esa cuenta como paso 1. Ese research (28/07, con requests
@@ -453,7 +451,7 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   acotado a los 4 cultivos reales), uploader manual semanal + registro en el monitoreo. Los 4
   archivos reales (soja/maíz/trigo/girasol) ya quedaron versionados en `data/pas/` — el build no
   depende de volver a pedirle nada a Lautaro.
-- [ ] **C28. Relevamiento web 29/07 (56 puntos de Lautaro → lotes R1–R10) — PLAN CERRADO 29/07.**
+- [x] **C28. Relevamiento web 29/07 (56 puntos de Lautaro → lotes R1–R10) — ✅ HECHO 30/07/2026.**
   Lautaro relevó a mano TODA la web (docx con 56 puntos + 73 capturas) y pidió los pasos para
   implementar todo. Plan completo en **[`PLAN_RELEVAMIENTO_WEB.md`](../PLAN_RELEVAMIENTO_WEB.md)**:
   transcripción interpretada punto por punto con mapeo a archivos (§2), **10 lotes con prompt
@@ -465,8 +463,22 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   R1 → R3 → R4 → R6 → R2 → R5 → R7 → R8 → R9 → R10. Backlog derivado del mismo relevamiento:
   cambiar el mail de contacto a la casilla de la empresa cuando exista (hoy `ADMIN_EMAILS` →
   lautaroronchi97@gmail.com) + relevamiento pendiente de las páginas de mesa 🔒, Informes y
-  /admin (tanda 2) + verificación visual de `/produccion/zonas` + aviso opcional de instrumento
-  dólar linked no parseable.
+  /admin (tanda 2) + aviso opcional de instrumento dólar linked no parseable.
+  **Cierre (30/07/2026)**: PR #112 (los 10 lotes) mergeado a `main` por Lautaro. Las 2 preguntas
+  que quedaban abiertas (§5) se contestaron el mismo día y se construyeron en la sesión de cierre:
+  **punto 34 (sintéticos)** — fórmulas confirmadas 1:1 contra el Excel (ya coincidían) + fix real
+  de la anualización (TNA por los días al vto del FUTURO, no de la letra — el reclamo de fondo) +
+  `hoyOperativoMs()` nueva en `dates.ts` (fin de semana ancla a viernes) + una sola letra por mes
+  (la más cercana a fin de mes) + panel simplificado (sin TNA del futuro/ventaja/mejor sintético,
+  por pedido explícito); **punto 55 (empresas 0 buques)** — filtro nuevo en
+  `src/lib/lineup/empresas.ts` reusando `DECLARADO_MIN_SIGNIFICATIVO` (5.000 t, ya existente en
+  `cobertura.ts`, sin inventar un segundo umbral): afuera las empresas sin buques Y sin declarado
+  significativo, adentro las que tienen embarques programados de verdad. Verificado con datos
+  reales de Supabase (bypass temporal de `requireAdmin()`, revertido, `git diff` limpio): 4 filas
+  en `/dolar/sinteticos` con TNA descendente por plazo (5,4%→3,6%) y 15 empresas con 0 buques
+  sobreviviendo el filtro, todas con declarado ≥ 5.406 t. `/produccion/zonas` confirmado por
+  Lautaro el mismo día (ver C23). **423→426 tests, lint/tsc/build ✅.** Detalle:
+  [`sesiones/2026-07-30-c28-cierre-sinteticos-empresas.md`](../sesiones/2026-07-30-c28-cierre-sinteticos-empresas.md).
 
 ### D. Lotes técnicos aprobados (refactors/calibración/robustez — prompts en §6)
 

@@ -319,7 +319,10 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
 
 > **Contestadas el 29/07/2026 (por AskUserQuestion, antes de arrancar R1):** 1, 2, 5 y 8 —
 > la respuesta quedó anotada debajo de cada una. **Contestadas el 30/07/2026:** 7 (antes de R3) ·
-> 4 y 6 (antes de R4). Las demás (3, 9, 10) siguen abiertas.
+> 4 y 6 (antes de R4) · **3 y 9 (después de mergear R1-R10, PR #112 — cierran el punto 34 de
+> sintéticos y el punto 55 de empresas, los 2 últimos gates del relevamiento)**. La 10 quedó
+> resuelta por la acción tomada (R9/R10 se hicieron como lotes propios con maqueta+capturas en el
+> PR #112, que Lautaro terminó mergeando) — sin necesidad de una respuesta explícita aparte.
 
 1. **Home (p20)** — Escribiste "Soja nov23 y mayo27". Asumo **NOV26 y MAY27**. ¿Correcto?
    **✅ R: NOV26 y MAY27.**
@@ -332,6 +335,16 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
    (letra, precio, pago final, DLR del mes, resultado esperado de directa y TNA) para validar la
    fórmula 1:1 — regla de siempre. Y confirmame el criterio "vto cercano a fin de mes": ¿la letra
    con vencimiento más cercano al fin de cada mes, una sola por mes?
+   **✅ R (30/07): fórmulas exactas del Excel —
+   `TC breakeven = $D$3×(H14/G14)` (spot×pagoFinal/px, YA coincidía con lo implementado) ·
+   `directa = (I7−E7)/E7` (sintético/futuro−1, YA coincidía) ·
+   `TNA = directa×(365/(F10−$D$3))` **anualizada por los días al vto del FUTURO, no de la letra**
+   (el bug real: el código anualizaba con los días de la letra) · `$D$3` = fecha operativa, que
+   en fin de semana NO avanza a sábado/domingo, queda clavada en viernes hasta el lunes · fuera de
+   rueda, las cotizaciones en vivo quedan congeladas en el último ajuste, sin base de datos nueva
+   (ya cumplido por diseño: sin tabla, últimos valores de data912/MAE). Construido en esta misma
+   sesión (`src/lib/sinteticos.ts` + `dates.ts::hoyOperativoMs` + panel simplificado sin TNA del
+   futuro/ventaja/mejor sintético) — ver `sesiones/2026-07-30-c28-cierre-r10-sinteticos-empresas.md`.
 4. **A fijar (p38)** — Posiciones de trigo escribiste "dic enero marzo julio y septiembre
    diciembre": ¿son **DIC / ENE / MAR / JUL / SEP** (y el último "diciembre" repetía el primero)?
    **✅ R: DIC/ENE/MAR/JUL/SEP, el último "diciembre" era repetido sin querer.**
@@ -354,6 +367,14 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
    todavía no embarcaron** (hoy aparecen arriba porque son las que más "falta cubrir" tienen —
    dato de demanda futura). ¿Las sacamos igual, o dejamos solo las que no tienen NI buques NI
    declarado?
+   **✅ R (30/07): las que no tienen ninguno de los dos se sacan; las que sí tienen embarques
+   programados (declarado) se quedan SOLO si ese número es significativo — el objetivo es que
+   estén las empresas que operan, no una que hizo una operación puntual.** Implementado
+   reusando el piso ya existente `DECLARADO_MIN_SIGNIFICATIVO` (5.000 t, el mismo que usa
+   `senalDe` — no se inventó un segundo umbral): se saca una empresa solo si tiene 0 buques en la
+   última rueda **Y** su declarado a 60 días está por debajo de esas 5.000 t
+   (`src/lib/lineup/empresas.ts`). Verificado con datos reales: 15 empresas con 0 buques quedaron
+   (todas con declarado ≥ 5.406 t), el resto se filtró.
 10. **Camiones/puertos (p53/54)** — Son los dos rediseños grandes. Propongo hacerlos en lotes
     propios (R9/R10) con **maqueta en el PR para tu OK antes de mergear**. ¿Te sirve así o querés
     ver bocetos antes de que arranque el lote?
@@ -367,7 +388,8 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
 - **Relevamiento pendiente (p56)**: páginas de mesa 🔒 (Señal física→precio, Mesa de embarque,
   Calor de mercadería, Negociado por producto), grupo Informes (diario/semanal/lecturas) y /admin
   completo — Lautaro las va a relevar a ojo y saldrá una tanda 2 de este mismo plan.
-- **/produccion/zonas (p51)**: verificación visual de Lautaro pendiente (el panel de C23 quedó
-  con 0 filas hasta que cargue el archivo real — ver ESTADO).
+- ~~**/produccion/zonas (p51)**: verificación visual de Lautaro pendiente~~ → **✅ confirmado
+  30/07/2026** ("ya están todas las campañas") — cotejado por SQL: `pas_zonas` tiene 1.837 filas,
+  27 campañas (2000/01→2026/27), coincide exacto con lo esperado en `PLAN_PAS_ZONAS.md`.
 - **Opcional**: aviso en healthcheck si aparece un instrumento D* nuevo cuyo ticker no parsea
   `vencFromTicker` (§4.2).

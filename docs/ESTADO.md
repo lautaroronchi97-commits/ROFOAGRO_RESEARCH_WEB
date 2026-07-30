@@ -19,7 +19,41 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 🚢 C28/R10: comercio (puertos), HECHO — cierra el relevamiento web completo R1→R10)
+## Ahora (última actualización: 30/07/2026 — ✅ C28 CERRADO: sintéticos (p34) + empresas 0 buques (p55) — el relevamiento web de 56 puntos queda completo)
+
+**✅ C28 — CIERRE FINAL (sintéticos p34 + empresas 0 buques p55) — HECHO — rama
+`claude/plan-desarrollo-auditoria-ka5hyk`, PR #_.** Lautaro terminó mergeando el PR #112 (los 10
+lotes R1→R10) a `main` el mismo 30/07 — y contestó, en el mismo mensaje, las 2 preguntas de §5 de
+`PLAN_RELEVAMIENTO_WEB.md` que seguían abiertas y gateaban los últimos 2 puntos del relevamiento.
+**Sintéticos (p34, pregunta 3)**: Lautaro pasó las fórmulas exactas de su Excel — las 2 centrales
+(sintético = spot×pagoFinal/px · directa = sintético/futuro−1) YA coincidían con lo implementado;
+el fix real es la **anualización**: TNA por los días al vencimiento del **futuro** (no de la
+letra — eran fechas distintas dentro del mismo mes, esa era la fuente del reclamo "está mal
+calculada") + fecha de referencia que **no avanza sábado/domingo** (queda en viernes hasta el
+lunes, `hoyOperativoMs()` nueva en `dates.ts`) + **una sola letra por mes** (la más cercana a fin
+de mes, cuando 2+ empatan con la misma posición) + panel simplificado (sacadas TNA del futuro/
+ventaja/mejor sintético, pedido explícito "solo la tasa del sintético"). Lo de "cotizaciones
+congeladas al cierre, sin base de datos" ya estaba cumplido por diseño (sin tabla, últimos
+valores de data912/MAE), sin cambios. **Empresas 0 buques (p55, pregunta 9)**: se sacan las que
+no tienen NI buques NI declarado significativo — reusando `DECLARADO_MIN_SIGNIFICATIVO` (5.000 t,
+constante ya existente en `cobertura.ts`, sin inventar un segundo umbral) — `src/lib/lineup/
+empresas.ts`. **De paso**: `/produccion/zonas` (C23) confirmado por Lautaro ("ya están todas las
+campañas") — verificado por SQL, `pas_zonas` 1.837 filas/27 campañas — y housekeeping de este
+mismo archivo (la entrada de abajo seguía diciendo "Lautaro confirmó que NO va a mergear
+todavía", desactualizada desde que mergeó).
+
+**Verificado con datos reales** (lint/tsc/**426 tests**/build ✅ — 3 nuevos de `hoyOperativoMs` +
+reescritos los de `emparejarSinteticos` — `npm run start` con `SUPABASE_URL`/`SUPABASE_SERVICE_KEY`
+reales del entorno): `/dolar/sinteticos` con 4 filas (una por mes), TNA descendente por plazo
+(5,4%→3,6%, curva con forma sensata) · `/comercio/empresas` con **bypass temporal** de
+`requireAdmin()` (revertido, `git diff` limpio): 15 empresas con 0 buques sobreviviendo el filtro,
+todas con declarado ≥5.406 t (arriba del piso de 5.000 t), cero por debajo colándose.
+
+**C14 (estrategias avanzadas) sigue explícitamente en pausa** — Lautaro: "la seguimos dejando
+pendiente". **Con esto el relevamiento web de 56 puntos (C28) queda completo de punta a punta.**
+Detalle: [`sesiones/2026-07-30-c28-cierre-sinteticos-empresas.md`](sesiones/2026-07-30-c28-cierre-sinteticos-empresas.md).
+
+## Anterior (30/07/2026 — 🚢 C28/R10: comercio (puertos), HECHO — cierra el relevamiento web completo R1→R10)
 
 **🚢 C28 — LOTE R10 (COMERCIO: PUERTOS) — HECHO, propuesta+capturas posteadas en el PR para el
 OK de Lautoro — misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose —
