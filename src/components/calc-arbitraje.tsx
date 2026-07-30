@@ -5,9 +5,10 @@ import { Panel, PanelHead } from "./panel";
 import { nfmt, pfmt, rfmt, numDeInput as num, fmtInputDate as fmtInput } from "@/lib/format";
 import { tasaDirecta, tnaUSD, spread, teaUSD } from "@/lib/arbitraje";
 import { hoyCordoba, parseYmd, diasCorridos, sumarCorridos, fmtFecha } from "@/lib/habiles";
-import { tcImplicito, arsDesdeUsd } from "@/lib/precio-dual";
+import { arsDesdeUsd } from "@/lib/precio-dual";
 import { CurvaPicker } from "./curva-picker";
-import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
+import { PickerPizarra } from "./precio-dual";
+import { usePrecioDual, type GranoPizarraDual } from "./use-precio-dual";
 import type { GranoCurva } from "@/lib/curva-types";
 
 function IconArb() {
@@ -30,28 +31,25 @@ export function CalcArbitraje({
   pizarraDual?: GranoPizarraDual[];
   tcBna?: number | null;
 }) {
-  const [pizarra, setPizarra] = React.useState("320");
+  const pd = usePrecioDual(tcBna, "320");
   const [futuro, setFuturo] = React.useState("330");
   const [fechaVto, setFechaVto] = React.useState(() =>
     fmtInput(sumarCorridos(parseYmd(hoyCordoba()), 90)),
   );
   const [moneda, setMoneda] = React.useState<Moneda>("usd");
-  const [granoTc, setGranoTc] = React.useState<string | null>(null);
 
   const dias = fechaVto
     ? Math.max(0, diasCorridos(parseYmd(hoyCordoba()), parseYmd(fechaVto)))
     : NaN;
 
-  const pz = num(pizarra);
+  const pz = num(pd.usd);
   const ft = num(futuro);
   const dir = tasaDirecta(ft, pz) * 100;
   const tna = tnaUSD(ft, pz, dias);
   const tea = teaUSD(ft, pz, dias);
   const sp = spread(ft, pz);
 
-  const granoPz = granoTc ? pizarraDual.find((g) => g.underlying === granoTc) : null;
-  const tc = tcImplicito(granoPz?.ars ?? null, granoPz?.usd ?? null) ?? tcBna;
-  const spMostrado = moneda === "ars" && tc != null && Number.isFinite(sp) ? arsDesdeUsd(sp, tc) : sp;
+  const spMostrado = moneda === "ars" && pd.tc != null && Number.isFinite(sp) ? arsDesdeUsd(sp, pd.tc) : sp;
 
   const signo = Number.isFinite(tna) ? (tna > 0 ? "pos" : tna < 0 ? "neg" : "neu2") : "neu2";
   const senal = !Number.isFinite(tna)
@@ -67,20 +65,23 @@ export function CalcArbitraje({
       <PanelHead glyph={<IconArb />} title="Calculadora — carry implícito entre dos posiciones" sub="Tasa directa · TNA USD · spread entre una posición cercana y una lejana" />
 
       <div className="calc">
-        <PrecioDual
-          granos={pizarraDual}
-          tcBna={tcBna}
-          valorUsd={pizarra}
-          onValorUsd={setPizarra}
-          onGranoChange={setGranoTc}
-          label="Cercana desde pizarra"
-        />
+        <PickerPizarra granos={pizarraDual} onPick={pd.elegir} label="Cercana desde pizarra" />
         <CurvaPicker granos={granos} label="Lejana desde A3" onPick={(p) => { setFuturo(String(p.precio)); setFechaVto(p.vto); }} />
         <div className="calc-grid">
           <label className="calc-field">
             <span>Posición cercana / disponible (USD)</span>
-            <input inputMode="decimal" value={pizarra} onChange={(e) => setPizarra(e.target.value)} />
+            <span className="cell-wrap">
+              <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={pd.usd} onChange={(e) => pd.setUsd(e.target.value)} />
+              {pd.editado && <button type="button" className="pz-reset" title="Volver a la pizarra" onClick={pd.reset}>↺</button>}
+            </span>
           </label>
+          {pd.grano && (
+            <label className="calc-field">
+              <span>Posición cercana (ARS)</span>
+              <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={pd.ars} onChange={(e) => pd.setArs(e.target.value)}
+                disabled={pd.tc == null} />
+            </label>
+          )}
           <label className="calc-field">
             <span>Posición lejana / futuro (USD)</span>
             <input inputMode="decimal" value={futuro} onChange={(e) => setFuturo(e.target.value)} />
@@ -109,7 +110,7 @@ export function CalcArbitraje({
             <span className="calc-res-val">
               {Number.isFinite(spMostrado) ? nfmt(spMostrado, moneda === "ars" ? 0 : 2) : "—"}
             </span>
-            {moneda === "ars" && tc == null && <span className="calc-res-sub">elegí un grano para el TC</span>}
+            {moneda === "ars" && pd.tc == null && <span className="calc-res-sub">elegí un grano para el TC</span>}
           </div>
         </div>
         <div className="calc-meta calc-meta-hl">

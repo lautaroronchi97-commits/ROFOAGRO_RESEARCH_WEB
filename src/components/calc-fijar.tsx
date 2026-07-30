@@ -8,7 +8,8 @@ import { evaluarFijar, type Lado, type FilaFijar } from "@/lib/fijar";
 import { hoyCordoba, parseYmd } from "@/lib/habiles";
 import { posicionDeFecha, hoyVencKey } from "@/lib/dates";
 import { posicionesCanonicasVivas, precioFuturoConVivo, type PuntasVivo } from "@/lib/fijar-canon";
-import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
+import { PickerPizarra } from "./precio-dual";
+import { usePrecioDual, type GranoPizarraDual } from "./use-precio-dual";
 import type { GranoCurva } from "@/lib/curva-types";
 
 function IconFijar() {
@@ -27,31 +28,60 @@ function mesCorto(iso: string): string {
 
 type FilaCurva = { vto: string; precio: string; estimado: boolean };
 
-/** Gráfico de barras del delta (disponible − futuro) por plazo. */
-function DeltaChart({ filas }: { filas: FilaFijar[] }) {
+/**
+ * Gráfico COMBINADO delta (barras, eje izq. USD) + TNA implícita (línea, eje
+ * der. %) por plazo — un solo chart, dos escalas independientes sobre el mismo
+ * eje X. Se intentó primero (pedido explícito del relevamiento: "estaría bueno
+ * el gráfico combinado, si no queda legible por separado") y con 4-6 posiciones
+ * queda legible: menos elementos repetidos en la página, menos superficie para
+ * que la marca de agua choque con los datos.
+ */
+function DeltaTnaChart({ filas }: { filas: FilaFijar[] }) {
   if (filas.length === 0) return null;
-  const W = Math.max(640, filas.length * 140);
-  const H = 240;
-  const padT = 18;
+  const W = Math.max(640, filas.length * 160);
+  const H = 300;
+  const padT = 32;
   const padB = 34;
   const h = H - padT - padB;
-  const vals = filas.map((f) => f.delta);
-  const maxV = Math.max(0, ...vals);
-  const minV = Math.min(0, ...vals);
-  const range = maxV - minV || 1;
-  const y = (v: number) => padT + ((maxV - v) / range) * h;
-  const zeroY = y(0);
   const bw = W / filas.length;
+
+  const deltaVals = filas.map((f) => f.delta);
+  const dMax = Math.max(0, ...deltaVals);
+  const dMin = Math.min(0, ...deltaVals);
+  const dRange = dMax - dMin || 1;
+  const yDelta = (v: number) => padT + ((dMax - v) / dRange) * h;
+  const zeroY = yDelta(0);
+
+  // La línea de TNA se queda en la franja SUPERIOR del chart (top 42%), sin
+  // compartir el resto del alto con las barras — evita que su etiqueta choque
+  // con la etiqueta del delta cuando, para alguna posición, ambos valores caen
+  // cerca del mismo punto vertical (encontrado en la verificación real con datos
+  // de maíz: la TNA más baja coincidía con la barra más negativa).
+  const tnaVals = filas.filter((f) => Number.isFinite(f.tna)).map((f) => f.tna);
+  const tMax = tnaVals.length ? Math.max(...tnaVals, 0) : 1;
+  const tMin = tnaVals.length ? Math.min(...tnaVals, 0) : 0;
+  const tRange = tMax - tMin || 1;
+  const hTna = h * 0.42;
+  const yTna = (v: number) => padT + ((tMax - v) / tRange) * hTna;
+
+  const pts = filas
+    .map((f, i) => (Number.isFinite(f.tna) ? { cx: i * bw + bw / 2, cy: yTna(f.tna), f } : null))
+    .filter((p): p is { cx: number; cy: number; f: FilaFijar } => p !== null);
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.cx},${p.cy}`).join(" ");
 
   return (
     <div className="chart-wrap">
-      <ChartMarca />
-      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico del delta por plazo">
+      <ChartMarca tamano="chico" />
+      <div className="dt-legend">
+        <span><i className="dt-sw dt-sw-bar" /> Delta (USD)</span>
+        <span><i className="dt-sw dt-sw-line" /> TNA implícita (%)</span>
+      </div>
+      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico combinado: delta por plazo y curva de TNA implícita">
         <line x1={0} y1={zeroY} x2={W} y2={zeroY} stroke="var(--line-2)" strokeWidth={1} />
         {filas.map((f, i) => {
           const cx = i * bw + bw / 2;
-          const barW = Math.min(40, bw * 0.5);
-          const yv = y(f.delta);
+          const barW = Math.min(38, bw * 0.36);
+          const yv = yDelta(f.delta);
           const top = Math.min(zeroY, yv);
           const height = Math.max(1, Math.abs(yv - zeroY));
           const pos = f.delta >= 0;
@@ -59,53 +89,19 @@ function DeltaChart({ filas }: { filas: FilaFijar[] }) {
             <g key={i}>
               <rect x={cx - barW / 2} y={top} width={barW} height={height} rx={2}
                 fill={pos ? "var(--pos)" : "var(--neg)"} opacity={0.85} />
-              <text x={cx} y={pos ? top - 5 : top + height + 12} textAnchor="middle" fontSize={11}
+              <text x={cx} y={pos ? top - 6 : top + height + 14} textAnchor="middle" fontSize={11}
                 fill="var(--ink-2)" fontFamily="var(--font-mono)">{sfmt(f.delta, 1)}</text>
               <text x={cx} y={H - 7} textAnchor="middle" fontSize={10} fill="var(--ink-3)"
                 fontFamily="var(--font-mono)">{mesCorto(f.vto)}</text>
             </g>
           );
         })}
-      </svg>
-    </div>
-  );
-}
-
-/** Curva de TNA implícita por posición — SEPARADA del delta (unidades distintas,
- *  USD vs %; combinarlas en un solo eje las volvía ilegibles con datos reales). */
-function TnaChart({ filas }: { filas: FilaFijar[] }) {
-  const validas = filas.filter((f) => Number.isFinite(f.tna));
-  if (validas.length === 0) return null;
-  const W = Math.max(640, filas.length * 140);
-  const H = 180;
-  const padT = 20;
-  const padB = 28;
-  const h = H - padT - padB;
-  const vals = validas.map((f) => f.tna);
-  const maxV = Math.max(...vals, 0);
-  const minV = Math.min(...vals, 0);
-  const range = maxV - minV || 1;
-  const y = (v: number) => padT + ((maxV - v) / range) * h;
-  const bw = W / filas.length;
-  const pts = filas
-    .map((f, i) => (Number.isFinite(f.tna) ? { cx: i * bw + bw / 2, cy: y(f.tna), f } : null))
-    .filter((p): p is { cx: number; cy: number; f: FilaFijar } => p !== null);
-  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.cx},${p.cy}`).join(" ");
-
-  return (
-    <div className="chart-wrap">
-      <ChartMarca />
-      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Curva de TNA implícita por posición">
-        <path d={path} fill="none" stroke="var(--brand-deep)" strokeWidth={2} />
+        {path && <path d={path} fill="none" stroke="var(--gold-text)" strokeWidth={2.5} />}
         {pts.map((p, i) => (
-          <g key={i}>
-            <circle cx={p.cx} cy={p.cy} r={3} fill="var(--brand-deep)" />
-            <text x={p.cx} y={p.cy - 8} textAnchor="middle" fontSize={11} fill="var(--ink-2)" fontFamily="var(--font-mono)">
-              {rfmt(p.f.tna, 1)}
-            </text>
-            <text x={p.cx} y={H - 7} textAnchor="middle" fontSize={10} fill="var(--ink-3)" fontFamily="var(--font-mono)">
-              {mesCorto(p.f.vto)}
-            </text>
+          <g key={`t${i}`}>
+            <circle cx={p.cx} cy={p.cy} r={4} fill="var(--gold-text)" stroke="var(--panel)" strokeWidth={1.5} />
+            <text x={p.cx} y={p.cy - 11} textAnchor="middle" fontSize={11} fontWeight={700}
+              fill="var(--gold-text)" fontFamily="var(--font-mono)">{rfmt(p.f.tna, 1)}</text>
           </g>
         ))}
       </svg>
@@ -124,15 +120,16 @@ export function CalcFijar({
   tcBna?: number | null;
   live?: Record<string, PuntasVivo>;
 }) {
-  const [disp, setDisp] = React.useState("");
+  const pd = usePrecioDual(tcBna);
   const [lado, setLado] = React.useState<Lado>("compro");
   const [tasa, setTasa] = React.useState("10");
   const [curva, setCurva] = React.useState<FilaCurva[]>([]);
 
-  const cargarGrano = (underlying: string) => {
-    const g = granos.find((x) => x.underlying === underlying);
-    if (!g) return;
-    const canonicas = posicionesCanonicasVivas(underlying, g.posiciones, hoyVencKey());
+  const elegirGrano = (g: GranoPizarraDual) => {
+    pd.elegir(g);
+    const grano = granos.find((x) => x.underlying === g.underlying);
+    if (!grano) return;
+    const canonicas = posicionesCanonicasVivas(g.underlying, grano.posiciones, hoyVencKey());
     setCurva(
       canonicas.map((p) => {
         const { precio, estimado } = precioFuturoConVivo(p.precio, live[p.symbol]);
@@ -146,7 +143,7 @@ export function CalcFijar({
   const agregar = () => setCurva((c) => [...c, { vto: "", precio: "", estimado: false }]);
   const quitar = (i: number) => setCurva((c) => c.filter((_, j) => j !== i));
 
-  const disponible = num(disp);
+  const disponible = num(pd.usd);
   const tasaComp = num(tasa);
   const hoyMs = parseYmd(hoyCordoba()).getTime();
   const vtoMs = (vto: string) => (vto ? parseYmd(vto).getTime() : null);
@@ -165,18 +162,19 @@ export function CalcFijar({
       <PanelHead glyph={<IconFijar />} title="Cotizador — negocios a fijar" sub="Delta disponible vs curva de futuros" />
 
       <div className="calc">
-        <PrecioDual
-          granos={pizarraDual}
-          tcBna={tcBna}
-          valorUsd={disp}
-          onValorUsd={setDisp}
-          onGranoChange={cargarGrano}
-          label="Grano (disponible + curva canónica)"
-        />
+        <PickerPizarra granos={pizarraDual} onPick={elegirGrano} label="Grano (disponible + curva canónica)" />
         <div className="calc-grid">
           <label className="calc-field">
             <span>Disponible (USD)</span>
-            <input inputMode="decimal" value={disp} onChange={(e) => setDisp(e.target.value)} />
+            <span className="cell-wrap">
+              <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={pd.usd} onChange={(e) => pd.setUsd(e.target.value)} />
+              {pd.editado && <button type="button" className="pz-reset" title="Volver a la pizarra" onClick={pd.reset}>↺</button>}
+            </span>
+          </label>
+          <label className="calc-field">
+            <span>Disponible (ARS)</span>
+            <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={pd.ars} onChange={(e) => pd.setArs(e.target.value)}
+              disabled={pd.tc == null} title={pd.tc == null ? "Sin tipo de cambio del día para convertir" : undefined} />
           </label>
           <label className="calc-field">
             <span>Negocio</span>
@@ -191,8 +189,7 @@ export function CalcFijar({
           </label>
         </div>
 
-        <DeltaChart filas={validas} />
-        <TnaChart filas={validas} />
+        <DeltaTnaChart filas={validas} />
 
         <div className="table-scroll">
           <table className="tbl" style={{ minWidth: 700 }}>

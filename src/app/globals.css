@@ -1814,6 +1814,17 @@ a.estim-inf:hover { color:var(--gold-text); }
   pointer-events:none; z-index:0; overflow:hidden; }
 .cm-marca img { width:55%; max-width:440px; min-width:170px; height:auto; opacity:.2; }
 :root[data-theme="dark"] .cm-marca img { opacity:.22; } /* el panel oscuro se traga un punto más */
+.cm-marca.chico img { width:32%; max-width:200px; min-width:110px; } /* charts de pocas columnas — ver chart-marca.tsx */
+
+/* Leyenda del gráfico combinado delta+TNA de "A fijar" (R4, punto 38: intentar
+   combinar antes de separar). Encima de la marca de agua (z-index implícito por
+   orden de DOM, .cm-marca es z-index:0). */
+.dt-legend { position:relative; z-index:1; display:flex; gap:16px; padding:0 4px 6px;
+  font-family:var(--font-ui); font-size:var(--fs-2xs); font-weight:600; color:var(--ink-2); }
+.dt-legend span { display:inline-flex; align-items:center; gap:5px; }
+.dt-sw { display:inline-block; width:11px; height:11px; border-radius:2px; }
+.dt-sw-bar { background:var(--pos); }
+.dt-sw-line { width:14px; height:2.5px; border-radius:2px; background:var(--gold-text); }
 
 /* Tabla de datos del gráfico (chart-tabla.tsx) — SIEMPRE visible bajo el chart.
    Scroll vertical propio (series largas) con header sticky (ya lo trae .tbl) y

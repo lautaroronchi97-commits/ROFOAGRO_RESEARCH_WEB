@@ -166,3 +166,51 @@ impacto en el contenido (cada lote es un commit propio, revisable por separado e
 - `lib/pases.ts` (usado solo por la calculadora) y `lib/pases-cierres.ts` (el panel real de
   `/granos/pases`) son libs completamente independientes pese al nombre parecido — antes de tocar
   una fórmula con "pase" en el nombre, confirmar CUÁL de las dos con un grep de importadores.
+
+## Corrección post-feedback (misma sesión, mismo día)
+
+Lautaro vio el Preview del PR #112 y marcó 3 fallas reales: el logo (`ChartMarca`) quedaba mal en
+el gráfico de "A fijar", el pedido de intentar el gráfico combinado delta+TNA no se había hecho de
+verdad (se había ido directo a "separados"), y el patrón dual $/USD no dejaba los campos
+"completabale en pesos y usd **por separado**" como pedía el punto 38 original — el widget
+compacto de R4 (`USD [_] · ARS [_]` en una fila chica, calcado del patrón denso de Arbitrajes de
+R3) quedaba duplicado con el campo grande del `calc-grid` que mostraba el MISMO valor, y no se veía
+como dos campos genuinamente separados.
+
+**Re-verificado contra el texto original del relevamiento** (se re-extrajeron los párrafos crudos
+del docx con un script propio, en vez de confiar solo en la paráfrasis de §2 del plan) — confirmó
+las 3 fallas con las palabras exactas de Lautaro: *"Estaria bueno hacer el grafico combinado entre
+delta y tna, si no queda legible graficos por separado"* (había que INTENTAR combinar primero) ·
+*"Que el disponible sea completabale en pesos y usd por separado"* (dos campos reales, no un
+widget chico) · *"poercentaje para cliente"* (el label exacto — tenía "A cliente", no calzaba).
+
+**Rediseño del patrón dual $/USD**: `precio-dual.tsx` (el widget compacto) se reemplazó por
+**`PickerPizarra`** (mismo lenguaje visual que `CurvaPicker` ya establecido en el sitio — una caja
+`.curva-pick` con SOLO un select de grano, sin inputs adentro) + **`use-precio-dual.ts`** (hook
+nuevo, sin opinión de layout: expone `{usd, ars, tc, editado, elegir, setUsd, setArs, reset}`).
+Cada calc ahora renderiza sus PROPIOS `.calc-field` para USD y ARS (mismo tamaño/tipografía que el
+resto de sus campos), cableados al hook — elimina la duplicación de estado en las 4 calcs que usaban
+el patrón (a fijar, por porcentaje, pago diferido, carry). De paso, "A cliente" → **"Porcentaje
+para cliente"** en por-porcentaje (el label exacto del relevamiento).
+
+**Gráfico combinado real** (`DeltaTnaChart` en `calc-fijar.tsx`, reemplaza los `DeltaChart`/
+`TnaChart` separados): un solo SVG con dos escalas — barras de delta (eje izq., USD) + línea de
+TNA implícita (eje der., %) sobre el mismo eje X, con leyenda. La línea de TNA se acota a la franja
+SUPERIOR del chart (top 42% del alto) a propósito: con datos reales de maíz, el punto de TNA más
+bajo coincidía en altura con la etiqueta de la barra más negativa (colisión real encontrada en la
+propia verificación, corregida antes de cerrar).
+
+**Logo del gráfico**: `ChartMarca` suma un prop opcional `tamano="chico"` (`.cm-marca.chico`, tope
+200px en vez de 440px) — SOLO para este chart de pocas columnas muy espaciadas, la opacidad no se
+tocó (sigue siendo la misma en todo el sitio, calibrada a pedido explícito de Lautaro en una sesión
+anterior). Con 4-6 barras muy separadas el logo al tamaño normal tapaba 2-3 de ellas; la propia
+intención documentada del componente ("sutil, nunca compite con las líneas de datos") no se estaba
+cumpliendo en este caso puntual — no es un cambio de política, es un tamaño que síno la cumple.
+
+**Verificado de nuevo**: lint/tsc/**397 tests**/build ✅ · Playwright real con datos de A3/Supabase
+del entorno, claro/oscuro (soja/maíz/trigo en A fijar — trigo cargó las 5 canónicas DIC/ENE/MAR/
+JUL/SEP completas), cero errores de consola/scroll horizontal: el logo ahora queda en el hueco
+entre columnas sin tapar ninguna barra, el combo delta+TNA se lee como un solo gráfico integrado
+(leyenda + dos escalas), los campos USD/ARS aparecen como `.calc-field` genuinamente separados sin
+duplicar el mismo valor en dos inputs de tamaño distinto, "Porcentaje para cliente" con el label
+exacto.

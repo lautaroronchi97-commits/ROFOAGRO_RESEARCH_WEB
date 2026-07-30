@@ -6,7 +6,8 @@ import { nfmt, rfmt, numDeInput as num, fmtInputDate as fmtInput } from "@/lib/f
 import { porcentaje, precioDesdePct } from "@/lib/porcentaje";
 import { hoyCordoba, parseYmd, diasCorridos, sumarCorridos, fmtFecha } from "@/lib/habiles";
 import { CurvaPicker } from "./curva-picker";
-import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
+import { PickerPizarra } from "./precio-dual";
+import { usePrecioDual, type GranoPizarraDual } from "./use-precio-dual";
 import type { GranoCurva } from "@/lib/curva-types";
 
 function IconPct() {
@@ -29,7 +30,7 @@ export function CalcPorcentaje({
   tcBna?: number | null;
 }) {
   const [modo, setModo] = React.useState<Modo>("pct");
-  const [precioNeg, setPrecioNeg] = React.useState("205");
+  const pd = usePrecioDual(tcBna, "205");
   const [precioRef, setPrecioRef] = React.useState("180");
   const [pct, setPct] = React.useState("114");
   const [aforo, setAforo] = React.useState("2");
@@ -41,10 +42,10 @@ export function CalcPorcentaje({
   let resSub = "";
   let clienteTxt = "";
   if (modo === "pct") {
-    const lleno = porcentaje(num(precioNeg), num(precioRef));
+    const lleno = porcentaje(num(pd.usd), num(precioRef));
     if (Number.isFinite(lleno)) {
       resultado = rfmt(lleno, 1);
-      resSub = `${nfmt(num(precioNeg), 2)} ÷ ${nfmt(num(precioRef), 2)}`;
+      resSub = `${nfmt(num(pd.usd), 2)} ÷ ${nfmt(num(precioRef), 2)}`;
       // Aforo en % RELATIVO del lleno (decisión de Lautaro, auditoría E2 21/07/2026):
       // 183,8% con aforo 2 → 183,8 × 0,98 = 180,2 (antes restaba puntos: 181,8).
       const af = num(aforo);
@@ -70,19 +71,28 @@ export function CalcPorcentaje({
           </select>
         </label>
         {modo === "pct" && (
-          <PrecioDual
-            granos={pizarraDual}
-            tcBna={tcBna}
-            valorUsd={precioNeg}
-            onValorUsd={setPrecioNeg}
-            label="Vendida desde pizarra"
-          />
+          <PickerPizarra granos={pizarraDual} onPick={pd.elegir} label="Vendida desde pizarra" />
         )}
         <CurvaPicker granos={granos} label="Fijación desde A3" onPick={(p) => { setPrecioRef(String(p.precio)); setFechaRef(p.vto); }} />
         <div className="calc-grid">
           {modo === "pct" ? (
-            <label className="calc-field"><span>Precio posición vendida</span>
-              <input inputMode="decimal" value={precioNeg} onChange={(e) => setPrecioNeg(e.target.value)} /></label>
+            <>
+              <label className="calc-field">
+                <span>Precio posición vendida (USD)</span>
+                <span className="cell-wrap">
+                  <input inputMode="decimal" className={pd.editado ? "manual" : ""}
+                    value={pd.usd} onChange={(e) => pd.setUsd(e.target.value)} />
+                  {pd.editado && <button type="button" className="pz-reset" title="Volver a la pizarra" onClick={pd.reset}>↺</button>}
+                </span>
+              </label>
+              {pd.grano && (
+                <label className="calc-field">
+                  <span>Precio posición vendida (ARS)</span>
+                  <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={pd.ars} onChange={(e) => pd.setArs(e.target.value)}
+                    disabled={pd.tc == null} title={pd.tc == null ? "Sin tipo de cambio del día para convertir" : undefined} />
+                </label>
+              )}
+            </>
           ) : (
             <label className="calc-field"><span>Porcentaje (%)</span>
               <input inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} /></label>
@@ -104,7 +114,7 @@ export function CalcPorcentaje({
           </div>
           {modo === "pct" && clienteTxt && (
             <div className="calc-res">
-              <span className="calc-res-lbl">A cliente (−aforo)</span>
+              <span className="calc-res-lbl">Porcentaje para cliente (−aforo)</span>
               <span className="calc-res-val rojo">{clienteTxt}</span>
             </div>
           )}

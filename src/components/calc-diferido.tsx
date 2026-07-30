@@ -17,7 +17,8 @@ import {
   diasCorridos,
   fmtFecha,
 } from "@/lib/habiles";
-import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
+import { PickerPizarra } from "./precio-dual";
+import { usePrecioDual, type GranoPizarraDual } from "./use-precio-dual";
 
 function IconCalc() {
   return (
@@ -53,8 +54,8 @@ export function CalcDiferido({
   const [fechaDif, setFechaDif] = React.useState(() =>
     fmtInput(sumarCorridos(sumarHabiles(parseYmd(hoyCordoba()), 5), 30)),
   );
-  const [conPagoUsd, setConPagoUsd] = React.useState("");
-  const [conPago, setConPago] = React.useState("320");
+  const pd = usePrecioDual(tcBna, "", "320");
+  const conPago = pd.ars;
   const [diferido, setDiferido] = React.useState("322");
   const [tasa, setTasa] = React.useState("8");
 
@@ -126,23 +127,25 @@ export function CalcDiferido({
           </select>
         </label>
 
-        {showConPago && (
-          <PrecioDual
-            granos={pizarraDual}
-            tcBna={tcBna}
-            valorUsd={conPagoUsd}
-            onValorUsd={setConPagoUsd}
-            onArs={(ars) => { if (ars) setConPago(ars); }}
-            label="Disponible desde pizarra"
-          />
-        )}
+        {showConPago && <PickerPizarra granos={pizarraDual} onPick={pd.elegir} label="Disponible desde pizarra" />}
 
         <div className="calc-grid">
           {showConPago && (
-            <label className="calc-field">
-              <span>Precio con pago (ARS)</span>
-              <input inputMode="decimal" value={conPago} onChange={(e) => setConPago(e.target.value)} />
-            </label>
+            <>
+              <label className="calc-field">
+                <span>Precio con pago (ARS)</span>
+                <span className="cell-wrap">
+                  <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={conPago} onChange={(e) => pd.setArs(e.target.value)} />
+                  {pd.editado && <button type="button" className="pz-reset" title="Volver a la pizarra" onClick={pd.reset}>↺</button>}
+                </span>
+              </label>
+              {pd.grano && (
+                <label className="calc-field">
+                  <span>Precio con pago (USD)</span>
+                  <input inputMode="decimal" className={pd.editado ? "manual" : ""} value={pd.usd} onChange={(e) => pd.setUsd(e.target.value)} />
+                </label>
+              )}
+            </>
           )}
           {showDiferido && (
             <label className="calc-field">
