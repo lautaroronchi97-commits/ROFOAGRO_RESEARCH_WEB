@@ -19,7 +19,39 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 01/08/2026 — 📊 migración de gráficos a ECharts, CERRADA — los 6 charts que faltaban + limpieza + Fase 4 verificada)
+## Ahora (última actualización: 30/07/2026 — 📰 plantilla "Research" para el informe diario, PROTOTIPO)
+
+**📰 PLANTILLA "RESEARCH" PARA EL INFORME DIARIO — PROTOTIPO, esperando el OK de Lautaro — rama
+`claude/informe-research-p2-ynnz07`, PR #_.** Lautaro importó desde Claude Design un mockup ("Informe
+Research P2" — one-pager tipo research de ALyC, paleta oscura, tesis del día + KPIs + 2 gráficos +
+franja de referencia + agenda) y pidió probar el informe diario de HOY con ese formato. Página nueva
+**`/informes/plantilla/research`** (mismo patrón de gate por `INFORME_TOKEN` que
+`/informes/plantilla/diario`, que NO se tocó — esta es una segunda plantilla, no un reemplazo) +
+`src/lib/informe-research.ts` (desfasaje A3 vs Chicago por grano, TNA implícita, "las tres cifras",
+franja de referencia — todo aritmética pura sobre los libs ya existentes, cero número inventado) +
+`src/components/informe-research-charts.tsx` (2 gráficos SVG a mano, genéricos) +
+`src/lib/informe-research-copy.ts` (la tesis del día + "lo que se lee acá" — prosa curada por fecha,
+placeholder honesto si falta).
+
+**Corrección real encontrada verificando con datos en vivo**: la TNA implícita "de referencia" por grano
+se había armado tomando la posición de MAYOR TNA — con el trigo real del 30/07 eso elegía SEP26 (55 días,
+solo 11 lotes operados) con 41,74% TNA anualizando el mismo spread que DIC26 (144 días, 4.567 de interés
+abierto) anualiza a 17,16% — un contrato ilíquido, no una tasa representativa. Se cambió el criterio a
+**mayor interés abierto** (convención de mercado) antes de generar la placa final.
+
+**Verificado con datos reales** (lint/tsc/build ✅, cero archivo tocado fuera de los 4 nuevos):
+`npm run build && npm run start` con las credenciales reales del entorno, `/informes/plantilla/research`
+sirviendo 200 con los 5 bloques en vivo, cotejados contra `/api/informes/datos` y el JSON crudo de
+`getArbitrajes`/`getDolarFuturo`. Screenshot real con Playwright (816×1056 @2x) del informe de HOY
+(30/07/2026), enviado a Lautaro para feedback.
+
+**Próximo paso: el OK de Lautaro sobre el formato** — si aprueba, decidir si reemplaza o convive con la
+placa vertical actual, sumar un Paso 2 al skill `informe-diario` para que la Routine redacte la tesis
+todos los días (hoy solo hay una entrada a mano para el 30/07), y wirear screenshot/mail/Storage igual
+que el resto del pipeline. Detalle:
+[`sesiones/2026-07-30-plantilla-research-informe-diario.md`](sesiones/2026-07-30-plantilla-research-informe-diario.md).
+
+## Anterior (última actualización: 01/08/2026 — 📊 migración de gráficos a ECharts, CERRADA — los 6 charts que faltaban + limpieza + Fase 4 verificada)
 
 **📊 MIGRACIÓN DE GRÁFICOS A ECHARTS — CERRADA COMPLETA — rama `claude/echarts-migration-parte2`,
 PR #_ (retoma el corte de Lautaro en PR #115, mergeado).** Pedido de Lautaro: "Continúa con los
