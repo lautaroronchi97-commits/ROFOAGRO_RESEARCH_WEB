@@ -19,7 +19,48 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 🏛️ C28/R2: landing, HECHO)
+## Ahora (última actualización: 30/07/2026 — 📐 C28/R5: estrategias + planta, HECHO)
+
+**📐 C28 — LOTE R5 (ESTRATEGIAS + PLANTA) — HECHO — misma rama `claude/website-changes-review-
+ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2 seguían sin mergear al arrancar R5, ver
+bitácora; Lautaro confirmó otra vez explícitamente que NO va a mergear todavía, que siga
+avanzando con el plan y que mañana desde la PC revisa todo junto).** Ejecuta el prompt R5 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 45 y 47).
+**Build — Planta (p47)**: patrón `precio-dual` (reusa R4) para el arranque · **secada no-fijo
+real** (antes aplicaba UN valor a todos los puntos por igual; ahora un valor propio por cada
+punto, desplegable dinámico según cuántos puntos se carguen) · **"otros conceptos" repetible con
++** (antes un solo campo fijo) · desglose de gastos en **tarjetas visuales** (`.plt-breakdown`,
+antes lista de texto chico a la derecha) · **resultado en la moneda elegida** (toggle USD/$,
+pesificando SIEMPRE con `tcBna`, no con el TC implícito del arranque).
+**Build — Estrategias (p45)**: **glosario previo** colapsable (31 estrategias, nombre +
+explicación) · **categorización propia de los 31 presets** (Alcistas/Bajistas/Techo
+asegurado/Piso asegurado/Rango/Volatilidad, mapeo documentado en `estrategias.ts`) + selector
+segmentado (reusa `RangoChips` de R6) · **`describirPata()` nueva** — "qué implica" cada pata
+(comprás/vendés, futuro u opción, derecho vs. obligación) derivado de la pata real, no de texto
+fijo → también funciona para **"estrategia personalizada"** (detectada comparando las patas
+actuales contra las que generaría el preset) · explicación destacada (badge dorado) · resumen
+**en línea y grande** (antes lista mono chica) · **precio base sugerido de A3** (`CurvaPicker`
+nuevo, rearma las patas del preset sobre el precio real elegido) · **ejes del payoff con ticks y
+valores** (antes el SVG no tenía ningún tick).
+**Bug real encontrado y arreglado, no pedido explícitamente**: el `className="manual"` (azul =
+editado a mano) se aplicaba en 4 calculadoras (`por-porcentaje`/`diferido`/`carry` de R4 +
+`planta` ahora) sobre `.calc-field input`, pero la única regla CSS existente era
+`.pz-input.manual` (scope de R3/arbitrajes) — nunca pintaba nada ahí. Una regla CSS nueva
+(`.calc-field input.manual`) lo arregla en las 4 de una sola vez.
+
+**Verificado de punta a punta** (lint/tsc/**402 tests**/build ✅ — 5 nuevos de `planta.test.ts` +
+Playwright real contra `npm run start`, claro/oscuro/desktop/mobile, cero errores de
+consola/scroll horizontal): Estrategias con el glosario expandido legible, chips de categoría
+filtrando el select, editar una pata dispara "Estrategia personalizada" correctamente. Planta con
+aritmética cruzada verificada a mano (secada no-fijo 6+5+4=15,00 exacto, no 3×algo único · otros
+2+1,5=3,50 · arranque 300 − 23,90 gastos = 276,10 USD exacto · toggle a $ = 276,10×1.489,00 =
+411.112,90 exacto, BNA real del entorno).
+
+**Próximo paso**: seguir con **R7** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→R9→R10).
+La aclaración de estética de R4 sigue sin llegar. Detalle:
+[`sesiones/2026-07-30-r5-estrategias-planta.md`](sesiones/2026-07-30-r5-estrategias-planta.md).
+
+## Anterior (30/07/2026 — 🏛️ C28/R2: landing, HECHO)
 
 **🏛️ C28 — LOTE R2 (LANDING) — HECHO — misma rama `claude/website-changes-review-ttqsq4`,
 PR #112 (sigue ampliándose — R3/R4/R6 seguían sin mergear al arrancar R2, ver bitácora; Lautaro

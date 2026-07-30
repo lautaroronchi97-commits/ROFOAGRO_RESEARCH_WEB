@@ -591,6 +591,10 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
   padding:2px 6px; text-align:right; font-variant-numeric:tabular-nums; }
 .pz-input:focus { outline:none; border-color:var(--brand-deep); }
 .pz-input.manual { color:var(--manual); border-color:var(--manual); }
+/* Mismo lenguaje azul-manual, pero para los `.calc-field input` del patrón `precio-dual`
+   (R4/R5) — bug real encontrado en R5: el className="manual" ya se aplicaba en 4 calcs
+   (porcentaje/diferido/arbitraje/planta) sin ninguna regla que lo pintara. */
+.calc-field input.manual { color:var(--manual); border-color:var(--manual); }
 .pz-input:disabled { opacity:.5; cursor:not-allowed; }
 .pz-dual { display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; }
 .pz-reset { margin-left:5px; cursor:pointer; border:none; background:none; color:var(--ink-3);
@@ -917,6 +921,59 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
    mismo bloque que .calc-meta, tamaño de texto normal en vez de fs-2xs. */
 .calc-meta-hl { font-size:14px; gap:6px; }
 .calc-meta-hl b { font-size:15px; }
+
+/* Desglose visual de "Negocios de planta" (relevamiento web R5, punto 47: "layout más
+   visual, más grande, no todo apilado al margen derecho") — tarjetas en grilla en vez
+   de una lista de texto chico pegada a la derecha de `.calc-out`. */
+.plt-breakdown { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:14px; }
+.plt-item { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+  display:flex; flex-direction:column; gap:4px; }
+.plt-item-lbl { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
+.plt-item-val { font-family:var(--font-mono); font-size:17px; font-weight:700; color:var(--ink); }
+.plt-item-val.tot { color:var(--neg); }
+/* Puntos de secada en modo "no fijo": un input por punto, desplegable dinámico. */
+.plt-puntos { display:flex; flex-wrap:wrap; gap:8px; }
+.plt-punto { display:flex; flex-direction:column; gap:3px; }
+.plt-punto span { font-size:var(--fs-2xs); color:var(--ink-3); font-weight:700; }
+.plt-punto input { width:76px; font-family:var(--font-mono); font-size:13px; padding:7px 9px;
+  border-radius:7px; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink); }
+/* Fila de "otros" repetible (+) */
+.plt-otros-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+.plt-otros-row .calc-field { flex:1 1 160px; }
+/* Toggle de moneda del resultado final (USD ⇄ $, dolarizando/pesificando con BNA). */
+.plt-moneda { display:inline-flex; gap:2px; margin-left:10px; background:var(--panel-2);
+  border:1px solid var(--line-2); border-radius:999px; padding:2px; vertical-align:middle; }
+.plt-moneda button { font-family:var(--font-mono); font-size:11px; font-weight:700; padding:3px 10px;
+  border-radius:999px; border:none; background:transparent; color:var(--ink-3); cursor:pointer; }
+.plt-moneda button[aria-pressed="true"] { background:var(--brand-deep); color:var(--panel); }
+
+/* Estrategias con opciones (relevamiento web R5, punto 45): glosario previo, selector
+   segmentado por categoría, explicación destacada, resumen grande en línea, "qué implica". */
+.strat-gloss { border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:var(--panel-2); }
+.strat-gloss > summary { cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px; list-style:none; }
+.strat-gloss > summary::-webkit-details-marker { display:none; }
+.strat-gloss > summary::before { content:"▸ "; color:var(--gold-text); }
+.strat-gloss[open] > summary::before { content:"▾ "; }
+.strat-gloss-body { padding:0 16px 14px; max-height:420px; overflow-y:auto; }
+.strat-gloss-grp h4 { margin:14px 0 6px; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.06em; color:var(--gold-text); }
+.strat-gloss-grp:first-child h4 { margin-top:2px; }
+.strat-gloss-item { margin:0 0 8px; }
+.strat-gloss-item dt { font-weight:700; font-size:13px; color:var(--ink); }
+.strat-gloss-item dd { margin:2px 0 0; font-size:12.5px; color:var(--ink-2); line-height:1.4; }
+.strat-exp-main { padding:12px 16px; border-radius:9px; background:color-mix(in srgb, var(--brand-deep) 8%, transparent);
+  border:1px solid var(--gold-hair); font-size:15px; line-height:1.55; color:var(--ink); }
+.strat-exp-main .k { display:inline-block; margin-right:8px; padding:2px 9px; border-radius:999px;
+  background:var(--gold); color:var(--gold-ink); font-size:var(--fs-xs); font-weight:800; text-transform:uppercase; }
+.strat-implica { display:flex; flex-direction:column; gap:5px; margin:10px 0 0; padding:0; list-style:none; }
+.strat-implica li { font-size:13px; color:var(--ink-2); line-height:1.5; padding-left:16px; position:relative; }
+.strat-implica li::before { content:"—"; position:absolute; left:0; color:var(--gold-text); }
+.strat-resumen { display:flex; flex-wrap:wrap; gap:24px; padding:14px 16px; border-radius:9px;
+  background:var(--panel-3); border:1px solid var(--line-2); }
+.strat-resumen-item { display:flex; flex-direction:column; gap:3px; }
+.strat-resumen-lbl { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
+.strat-resumen-val { font-family:var(--font-mono); font-size:22px; font-weight:700; color:var(--ink); line-height:1.1; }
+.strat-resumen-val.pos { color:var(--pos); }
+.strat-resumen-val.neg { color:var(--neg); }
 .calc-hi { color:var(--gold-text); }
 .calc-warn { display:flex; align-items:center; gap:7px; padding:9px 12px; border-radius:8px;
   background:color-mix(in srgb, var(--neg) 10%, var(--panel-3)); border:1px solid color-mix(in srgb, var(--neg) 30%, var(--line-2));
