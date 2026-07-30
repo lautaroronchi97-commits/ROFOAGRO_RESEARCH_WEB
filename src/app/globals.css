@@ -1930,12 +1930,17 @@ a.estim-inf:hover { color:var(--gold-text); }
 
 /* Marca de agua del logo ROFO AGRO dentro de cada chart (chart-marca.tsx).
    El contenedor PADRE debe ser position:relative (.chart-wrap ya lo es).
-   Asset: /rofoagro-logo-marca.svg (logo completo sin los halos del auto-trace).
-   Opacidad calibrada mirándolo en ambos temas: sutil, nunca compite con las
-   líneas de datos. Queda debajo de tooltips (.cv-tip z-index:5). */
+   Assets: /rofoagro-logo-marca-{claro,oscuro}.svg (30/07, logo real calibrado por
+   tema, reemplaza el auto-trace anterior). Los DOS <img> están siempre en el DOM;
+   acá se muestra solo el que corresponde al tema activo (mismo patrón que ya usaba
+   este bloque para la opacidad). Opacidad calibrada mirándolo en ambos temas: sutil,
+   nunca compite con las líneas de datos. Queda debajo de tooltips (.cv-tip z-index:5). */
 .cm-marca { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   pointer-events:none; z-index:0; overflow:hidden; }
 .cm-marca img { width:55%; max-width:440px; min-width:170px; height:auto; opacity:.2; }
+.cm-marca-oscuro { display:none; }
+:root[data-theme="dark"] .cm-marca-claro { display:none; }
+:root[data-theme="dark"] .cm-marca-oscuro { display:block; }
 :root[data-theme="dark"] .cm-marca img { opacity:.22; } /* el panel oscuro se traga un punto más */
 .cm-marca.chico img { width:32%; max-width:200px; min-width:110px; } /* charts de pocas columnas — ver chart-marca.tsx */
 
