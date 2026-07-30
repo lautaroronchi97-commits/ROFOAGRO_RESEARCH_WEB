@@ -17,6 +17,7 @@ import {
   diasCorridos,
   fmtFecha,
 } from "@/lib/habiles";
+import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
 
 function IconCalc() {
   return (
@@ -37,7 +38,13 @@ const LABELS: Record<Calc, string> = {
   dia: "Fecha de pago",
 };
 
-export function CalcDiferido() {
+export function CalcDiferido({
+  pizarraDual = [],
+  tcBna = null,
+}: {
+  pizarraDual?: GranoPizarraDual[];
+  tcBna?: number | null;
+}) {
   const [calc, setCalc] = React.useState<Calc>("diferido");
   // Fechas por defecto = hoy (Córdoba) y hoy + 5 hábiles + 30 corridos. Init perezoso;
   // los inputs llevan suppressHydrationWarning por si build y cliente caen en días distintos.
@@ -46,6 +53,7 @@ export function CalcDiferido() {
   const [fechaDif, setFechaDif] = React.useState(() =>
     fmtInput(sumarCorridos(sumarHabiles(parseYmd(hoyCordoba()), 5), 30)),
   );
+  const [conPagoUsd, setConPagoUsd] = React.useState("");
   const [conPago, setConPago] = React.useState("320");
   const [diferido, setDiferido] = React.useState("322");
   const [tasa, setTasa] = React.useState("8");
@@ -118,6 +126,17 @@ export function CalcDiferido() {
           </select>
         </label>
 
+        {showConPago && (
+          <PrecioDual
+            granos={pizarraDual}
+            tcBna={tcBna}
+            valorUsd={conPagoUsd}
+            onValorUsd={setConPagoUsd}
+            onArs={(ars) => { if (ars) setConPago(ars); }}
+            label="Disponible desde pizarra"
+          />
+        )}
+
         <div className="calc-grid">
           {showConPago && (
             <label className="calc-field">
@@ -160,10 +179,10 @@ export function CalcDiferido() {
             <span className="calc-res-val">{resultado}</span>
             {resSub && <span className="calc-res-sub">{resSub}</span>}
           </div>
-          <div className="calc-meta">
-            {fechaEstandar && <span>Pago estándar: <b>{fmtFecha(fechaEstandar)}</b></span>}
-            {Number.isFinite(diasFin) && <span>Financiación: <b>{Math.round(diasFin)} días</b> (excedente sobre {nHabiles} hábiles)</span>}
-          </div>
+        </div>
+        <div className="calc-meta calc-meta-hl">
+          {fechaEstandar && <span>Pago estándar: <b className="calc-hi">{fmtFecha(fechaEstandar)}</b></span>}
+          {Number.isFinite(diasFin) && <span>Financiación: <b>{Math.round(diasFin)} días</b> (excedente sobre {nHabiles} hábiles)</span>}
         </div>
       </div>
 
@@ -171,7 +190,8 @@ export function CalcDiferido() {
         <span>
           Negocios en pesos. Diferido = con pago × (1 + tasa × días/365), interés simple. El pago (cobro
           anticipado) descuenta; los días son solo el excedente por encima del pago estándar de {nHabiles}
-          hábiles. Feriados AR editables en <code>habiles.ts</code>.
+          hábiles. El disponible sugerido sale de la pizarra del día (dolarizada con el BNA), siempre editable.
+          Feriados AR editables en <code>habiles.ts</code>.
         </span>
       </div>
     </Panel>

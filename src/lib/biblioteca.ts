@@ -60,6 +60,10 @@ const CALCULADORAS_ITEMS: BibItem[] = CALCULADORAS.map((c) => ({
   href: `/calculadoras/${c.slug}`,
   label: c.nombre,
   desc: c.desc,
+  // Costos queda oculta hasta cerrar el tarifario con la empresa (relevamiento web
+  // 29/07, punto 44, respuesta §5.6) — mismo criterio soloMesa que ya oculta las
+  // páginas internas de /comercio a no-admins.
+  soloMesa: c.slug === "costos",
 }));
 
 const GRAFICOS: BibItem[] = [

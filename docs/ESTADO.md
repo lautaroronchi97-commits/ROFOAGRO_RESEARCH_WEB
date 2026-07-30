@@ -19,10 +19,44 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 🌾 C28/R3: granos, HECHO)
+## Ahora (última actualización: 30/07/2026 — 🧮 C28/R4: calculadoras, HECHO)
+
+**🧮 C28 — LOTE R4 (CALCULADORAS: PATRÓN + 7) — HECHO — misma rama `claude/website-changes-
+review-ttqsq4`, PR #112 (ampliado — R3 seguía sin mergear al arrancar R4, ver bitácora).**
+Ejecuta el prompt R4 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 38–44), con las 2 preguntas que lo
+gateaban contestadas por Lautaro: trigo a-fijar = **DIC/ENE/MAR/JUL/SEP** · costos oculta =
+**sí, alcanza** (sin sidebar/índice + "sin acceso" en URL directa).
+**Build**: patrón compartido **`precio-dual`** (`src/lib/precio-dual.ts` + `src/components/
+precio-dual.tsx` — grano→pizarra, cross-cálculo $/USD, azul-manual, mismo criterio de TC que
+Arbitrajes de R3) cableado en 5 calcs · **A fijar** con **posiciones canónicas por grano**
+(`fijar-canon.ts`: nunca vencidas, máx. 1 año, Soja JUL/SEP/NOV/ENE/MAY · Maíz ABR/JUL/SEP/DIC/
+ENE/MAR · Trigo DIC/ENE/MAR/JUL/SEP) + precio en vivo del WS con fallback "estimado" (promedio
+bid/ask) + gráfico de TNA implícita separado del delta · **Por porcentaje** con "A cliente" en
+rojo + labels/tamaños del plan · **Negocios con pagos** con TC = `tcBna` confirmado o BNA online
+de respaldo, "Precio en pesos" en rojo, "Pago" resaltado · **Pago diferido** sumó el patrón (antes
+100% a mano) · **Pases** con el **signo de la fórmula corregido** (`cercana − larga`, verificado
+con el ejemplo ±10 del relevamiento — confirmado por grep que solo la calculadora usa esa función,
+el panel real de `/granos/pases` es código independiente) + "A fijar" promovido a resultado
+principal + cartel de advertencia si el pase da negativo · **Carry** con selector "Medir spread en
+USD/ARS" · **Costos** oculta con `soloMesa` en `biblioteca.ts` (la sidebar ya filtraba ese flag) +
+filtro en el índice + `redirect("/sin-acceso")` en la página.
+
+**Verificado de punta a punta** (lint/tsc/**397 tests**/build ✅ + Playwright real contra
+`npm run start` con datos de Supabase/A3 del entorno, claro/oscuro, cero errores de consola/scroll
+horizontal): A fijar cargó 4 posiciones canónicas reales de soja con precios de cierre y los 2
+gráficos separados y legibles · Pases con cercana=100/lejana=110 dio exactamente −10,00 (antes
++10) con el cartel de carry visible · Carry con el selector ARS mostrando 14.890 (10 USD × TC real
+~1489) · Costos verificado con **bypass temporal** (forzando el camino no-admin, revertido y `git
+diff` limpio): desaparece de sidebar/índice, la URL directa redirige a `/sin-acceso`.
+
+**Próximo paso**: seguir con **R6 (dólar)** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→
+R9→R10); las preguntas 3/9/10 de §5 siguen abiertas y gatean partes de R2/R5/R8. Detalle:
+[`sesiones/2026-07-30-r4-calculadoras.md`](sesiones/2026-07-30-r4-calculadoras.md).
+
+## Anterior (30/07/2026 — 🌾 C28/R3: granos, HECHO)
 
 **🌾 C28 — LOTE R3 (GRANOS) — HECHO — rama `claude/website-changes-review-ttqsq4` (reiniciada
-desde `main` tras mergear el PR #111 de R1), PR #_.** Ejecuta el prompt R3 de
+desde `main` tras mergear el PR #111 de R1), PR #112.** Ejecuta el prompt R3 de
 `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 25–30, todos en `/granos/*`), con la única pregunta que lo
 gateaba (§5.7, formato del export del view) contestada por Lautaro: **PNG simple**.
 **Build**: Arbitrajes con **edición dual $/USD** (cross-cálculo con el TC implícito de la propia

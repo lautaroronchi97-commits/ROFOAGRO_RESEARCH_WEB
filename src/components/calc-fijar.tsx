@@ -4,9 +4,11 @@ import * as React from "react";
 import { Panel, PanelHead } from "./panel";
 import { ChartMarca } from "./chart-marca";
 import { sfmt, rfmt, nfmt, numDeInput as num } from "@/lib/format";
-import { evaluarFijar, type PosCurva, type Lado, type FilaFijar } from "@/lib/fijar";
+import { evaluarFijar, type Lado, type FilaFijar } from "@/lib/fijar";
 import { hoyCordoba, parseYmd } from "@/lib/habiles";
-import { posicionDeFecha } from "@/lib/dates";
+import { posicionDeFecha, hoyVencKey } from "@/lib/dates";
+import { posicionesCanonicasVivas, precioFuturoConVivo, type PuntasVivo } from "@/lib/fijar-canon";
+import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
 import type { GranoCurva } from "@/lib/curva-types";
 
 function IconFijar() {
@@ -23,29 +25,14 @@ function mesCorto(iso: string): string {
   return posicionDeFecha(iso);
 }
 
-const CURVA_INI: PosCurva[] = [
-  { vto: "2026-07-31", precio: 328 },
-  { vto: "2026-09-30", precio: 333 },
-  { vto: "2026-12-31", precio: 340 },
-  { vto: "2027-04-30", precio: 350 },
-];
+type FilaCurva = { vto: string; precio: string; estimado: boolean };
 
-/** Gráfico de barras del delta (disponible − futuro) por plazo.
- * W/H fijados a la MISMA convención que el resto de los charts del sitio
- * (dolar-futuro-chart/evolucion-chart/negociado-chart: ~640×240) — el viewBox
- * chico anterior (280×150) quedaba desproporcionado al estirarse a 100% del
- * ancho real del panel (~1300px): un factor de escala ~4,4x volvía gigantes
- * los textos de 11/10px. Bug preexistente, no introducido por el rediseño;
- * encontrado al verificar visualmente esta sesión. */
+/** Gráfico de barras del delta (disponible − futuro) por plazo. */
 function DeltaChart({ filas }: { filas: FilaFijar[] }) {
   if (filas.length === 0) return null;
   const W = Math.max(640, filas.length * 140);
   const H = 240;
   const padT = 18;
-  // padB con margen extra (24→34): la etiqueta del valor de una barra negativa
-  // se dibuja DEBAJO de la barra (top+height+12) — con el bug de escala
-  // corregido arriba, la barra de mayor magnitud llegaba a solaparse con el
-  // mes del eje (H-7). Pre-existente también (visible ya en el viewBox viejo).
   const padB = 34;
   const h = H - padT - padB;
   const vals = filas.map((f) => f.delta);
@@ -84,17 +71,79 @@ function DeltaChart({ filas }: { filas: FilaFijar[] }) {
   );
 }
 
-export function CalcFijar({ granos = [] }: { granos?: GranoCurva[] }) {
-  const [disp, setDisp] = React.useState("320");
+/** Curva de TNA implícita por posición — SEPARADA del delta (unidades distintas,
+ *  USD vs %; combinarlas en un solo eje las volvía ilegibles con datos reales). */
+function TnaChart({ filas }: { filas: FilaFijar[] }) {
+  const validas = filas.filter((f) => Number.isFinite(f.tna));
+  if (validas.length === 0) return null;
+  const W = Math.max(640, filas.length * 140);
+  const H = 180;
+  const padT = 20;
+  const padB = 28;
+  const h = H - padT - padB;
+  const vals = validas.map((f) => f.tna);
+  const maxV = Math.max(...vals, 0);
+  const minV = Math.min(...vals, 0);
+  const range = maxV - minV || 1;
+  const y = (v: number) => padT + ((maxV - v) / range) * h;
+  const bw = W / filas.length;
+  const pts = filas
+    .map((f, i) => (Number.isFinite(f.tna) ? { cx: i * bw + bw / 2, cy: y(f.tna), f } : null))
+    .filter((p): p is { cx: number; cy: number; f: FilaFijar } => p !== null);
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.cx},${p.cy}`).join(" ");
+
+  return (
+    <div className="chart-wrap">
+      <ChartMarca />
+      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Curva de TNA implícita por posición">
+        <path d={path} fill="none" stroke="var(--brand-deep)" strokeWidth={2} />
+        {pts.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.cx} cy={p.cy} r={3} fill="var(--brand-deep)" />
+            <text x={p.cx} y={p.cy - 8} textAnchor="middle" fontSize={11} fill="var(--ink-2)" fontFamily="var(--font-mono)">
+              {rfmt(p.f.tna, 1)}
+            </text>
+            <text x={p.cx} y={H - 7} textAnchor="middle" fontSize={10} fill="var(--ink-3)" fontFamily="var(--font-mono)">
+              {mesCorto(p.f.vto)}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+export function CalcFijar({
+  granos = [],
+  pizarraDual = [],
+  tcBna = null,
+  live = {},
+}: {
+  granos?: GranoCurva[];
+  pizarraDual?: GranoPizarraDual[];
+  tcBna?: number | null;
+  live?: Record<string, PuntasVivo>;
+}) {
+  const [disp, setDisp] = React.useState("");
   const [lado, setLado] = React.useState<Lado>("compro");
   const [tasa, setTasa] = React.useState("10");
-  const [curva, setCurva] = React.useState<{ vto: string; precio: string }[]>(
-    CURVA_INI.map((p) => ({ vto: p.vto, precio: String(p.precio) })),
-  );
+  const [curva, setCurva] = React.useState<FilaCurva[]>([]);
+
+  const cargarGrano = (underlying: string) => {
+    const g = granos.find((x) => x.underlying === underlying);
+    if (!g) return;
+    const canonicas = posicionesCanonicasVivas(underlying, g.posiciones, hoyVencKey());
+    setCurva(
+      canonicas.map((p) => {
+        const { precio, estimado } = precioFuturoConVivo(p.precio, live[p.symbol]);
+        return { vto: p.vto, precio: String(precio), estimado };
+      }),
+    );
+  };
 
   const setFila = (i: number, campo: "vto" | "precio", val: string) =>
-    setCurva((c) => c.map((f, j) => (j === i ? { ...f, [campo]: val } : f)));
-  const agregar = () => setCurva((c) => [...c, { vto: "", precio: "" }]);
+    setCurva((c) => c.map((f, j) => (j === i ? { ...f, [campo]: val, ...(campo === "precio" ? { estimado: false } : {}) } : f)));
+  const agregar = () => setCurva((c) => [...c, { vto: "", precio: "", estimado: false }]);
   const quitar = (i: number) => setCurva((c) => c.filter((_, j) => j !== i));
 
   const disponible = num(disp);
@@ -116,25 +165,14 @@ export function CalcFijar({ granos = [] }: { granos?: GranoCurva[] }) {
       <PanelHead glyph={<IconFijar />} title="Cotizador — negocios a fijar" sub="Delta disponible vs curva de futuros" />
 
       <div className="calc">
-        {granos.length > 0 && (
-          <div className="curva-pick">
-            <span className="curva-pick-lbl">Traer curva de A3</span>
-            <select
-              aria-label="Grano"
-              defaultValue=""
-              onChange={(e) => {
-                const g = granos[Number(e.target.value)];
-                if (g) setCurva(g.posiciones.map((p) => ({ vto: p.vto, precio: String(p.precio) })));
-                e.currentTarget.selectedIndex = 0;
-              }}
-            >
-              <option value="" disabled>Grano…</option>
-              {granos.map((g, i) => (
-                <option key={g.underlying} value={i}>{g.nombre}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <PrecioDual
+          granos={pizarraDual}
+          tcBna={tcBna}
+          valorUsd={disp}
+          onValorUsd={setDisp}
+          onGranoChange={cargarGrano}
+          label="Grano (disponible + curva canónica)"
+        />
         <div className="calc-grid">
           <label className="calc-field">
             <span>Disponible (USD)</span>
@@ -154,6 +192,7 @@ export function CalcFijar({ granos = [] }: { granos?: GranoCurva[] }) {
         </div>
 
         <DeltaChart filas={validas} />
+        <TnaChart filas={validas} />
 
         <div className="table-scroll">
           <table className="tbl" style={{ minWidth: 700 }}>
@@ -179,7 +218,14 @@ export function CalcFijar({ granos = [] }: { granos?: GranoCurva[] }) {
                       <input className="cell-in" type="date" value={f.vto} onChange={(e) => setFila(i, "vto", e.target.value)} />
                     </td>
                     <td>
-                      <input className="cell-in num" inputMode="decimal" value={f.precio} onChange={(e) => setFila(i, "precio", e.target.value)} />
+                      <span className="cell-wrap">
+                        <input className="cell-in num" inputMode="decimal" value={f.precio} onChange={(e) => setFila(i, "precio", e.target.value)} />
+                        {f.estimado && (
+                          <span className="pz-estim" title="A3 todavía no operó esta posición hoy: es el promedio comprador/vendedor en vivo, no un precio operado.">
+                            estimado
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="dim">{r ? r.dias : "—"}</td>
                     <td className="dim">{r ? sfmt(r.delta, 2) : "—"}</td>
@@ -203,8 +249,10 @@ export function CalcFijar({ granos = [] }: { granos?: GranoCurva[] }) {
           <span className="k">A fijar</span> Delta = disponible − futuro (sin costo de oportunidad) · TNA impl. =
           (futuro/disponible − 1) × 365/días · Resultado = compro a fijar → futuro − disponible; vendo a fijar →
           disponible − futuro (verde = a favor). <b>Comparador</b>: la TNA impl. se pinta verde cuando supera tu
-          tasa; «Precio a tu tasa» = futuro teórico si el carry rindiera exactamente esa tasa. Toma el precio de
-          <b> futuros</b>, que puede diferir del spot al fijar (riesgo de base).
+          tasa; «Precio a tu tasa» = futuro teórico si el carry rindiera exactamente esa tasa. Al elegir un grano
+          se cargan sus posiciones canónicas con el precio en vivo de A3 (o el promedio comprador/vendedor,
+          marcado «estimado», si todavía no operó); podés editar cualquier campo o agregar posiciones sueltas.
+          Toma el precio de <b>futuros</b>, que puede diferir del spot al fijar (riesgo de base).
         </span>
       </div>
     </Panel>

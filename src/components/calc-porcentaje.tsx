@@ -6,6 +6,7 @@ import { nfmt, rfmt, numDeInput as num, fmtInputDate as fmtInput } from "@/lib/f
 import { porcentaje, precioDesdePct } from "@/lib/porcentaje";
 import { hoyCordoba, parseYmd, diasCorridos, sumarCorridos, fmtFecha } from "@/lib/habiles";
 import { CurvaPicker } from "./curva-picker";
+import { PrecioDual, type GranoPizarraDual } from "./precio-dual";
 import type { GranoCurva } from "@/lib/curva-types";
 
 function IconPct() {
@@ -18,7 +19,15 @@ function IconPct() {
 
 type Modo = "pct" | "precio";
 
-export function CalcPorcentaje({ granos = [] }: { granos?: GranoCurva[] }) {
+export function CalcPorcentaje({
+  granos = [],
+  pizarraDual = [],
+  tcBna = null,
+}: {
+  granos?: GranoCurva[];
+  pizarraDual?: GranoPizarraDual[];
+  tcBna?: number | null;
+}) {
   const [modo, setModo] = React.useState<Modo>("pct");
   const [precioNeg, setPrecioNeg] = React.useState("205");
   const [precioRef, setPrecioRef] = React.useState("180");
@@ -51,7 +60,7 @@ export function CalcPorcentaje({ granos = [] }: { granos?: GranoCurva[] }) {
 
   return (
     <Panel id="calc-porcentaje">
-      <PanelHead glyph={<IconPct />} title="Cotizador — negocios por porcentaje" sub="Fijar por relación a otra posición (ej. 114% maíz julio) · aforo a cliente" />
+      <PanelHead glyph={<IconPct />} title="Cotizador — negocios por porcentaje" sub="Fijar por relación a otra posición" />
       <div className="calc">
         <label className="calc-field calc-mode">
           <span>Calcular</span>
@@ -60,6 +69,15 @@ export function CalcPorcentaje({ granos = [] }: { granos?: GranoCurva[] }) {
             <option value="precio">Precio del negocio</option>
           </select>
         </label>
+        {modo === "pct" && (
+          <PrecioDual
+            granos={pizarraDual}
+            tcBna={tcBna}
+            valorUsd={precioNeg}
+            onValorUsd={setPrecioNeg}
+            label="Vendida desde pizarra"
+          />
+        )}
         <CurvaPicker granos={granos} label="Fijación desde A3" onPick={(p) => { setPrecioRef(String(p.precio)); setFechaRef(p.vto); }} />
         <div className="calc-grid">
           {modo === "pct" ? (
@@ -75,7 +93,7 @@ export function CalcPorcentaje({ granos = [] }: { granos?: GranoCurva[] }) {
             <label className="calc-field"><span>Aforo a cliente (%)</span>
               <input inputMode="decimal" value={aforo} onChange={(e) => setAforo(e.target.value)} /></label>
           )}
-          <label className="calc-field"><span>Vto de la fijación</span>
+          <label className="calc-field"><span>Vencimiento del período de fijación</span>
             <input type="date" suppressHydrationWarning value={fechaRef} onChange={(e) => setFechaRef(e.target.value)} /></label>
         </div>
         <div className="calc-out">
@@ -84,19 +102,24 @@ export function CalcPorcentaje({ granos = [] }: { granos?: GranoCurva[] }) {
             <span className="calc-res-val">{resultado}</span>
             {resSub && <span className="calc-res-sub">{resSub}</span>}
           </div>
-          <div className="calc-meta">
-            {modo === "pct" && clienteTxt && <span>A cliente (−aforo): <b>{clienteTxt}</b></span>}
-            <span>Plazo estimado: <b>{Number.isFinite(dias) ? `${dias} días` : "—"}</b></span>
-            <span>Vence: <b>{fechaRef ? fmtFecha(parseYmd(fechaRef)) : "—"}</b></span>
-          </div>
+          {modo === "pct" && clienteTxt && (
+            <div className="calc-res">
+              <span className="calc-res-lbl">A cliente (−aforo)</span>
+              <span className="calc-res-val rojo">{clienteTxt}</span>
+            </div>
+          )}
+        </div>
+        <div className="calc-meta calc-meta-hl">
+          <span>Plazo estimado: <b>{Number.isFinite(dias) ? `${dias} días` : "—"}</b></span>
+          <span>Vencimiento del período de fijación: <b>{fechaRef ? fmtFecha(parseYmd(fechaRef)) : "—"}</b></span>
         </div>
       </div>
       <div className="panel-note">
         <span>
           <span className="k">Por relación</span> Porcentaje lleno = precio de la posición vendida ÷ precio de la
           posición de fijación (ej. 114% maíz julio). El <b>aforo</b> es un % relativo que descuenta al lleno para
-          cotizar a clientes (lleno × (1 − aforo/100)). El plazo se estima del vencimiento de la fijación. Precios a mano; con la curva A3 se
-          eligen producto/posición y se completan solos.
+          cotizar a clientes (lleno × (1 − aforo/100)). El plazo se estima del vencimiento de la fijación. Precios a
+          mano; la vendida sale de la pizarra del día, la de fijación de la curva A3.
         </span>
       </div>
     </Panel>

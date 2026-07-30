@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CALCULADORAS } from "@/lib/calculadoras";
-import { requireSeccion } from "@/lib/auth/dal";
+import { requireSeccion, getAcceso } from "@/lib/auth/dal";
+import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { PageHead } from "@/components/page-head";
 
 export const metadata: Metadata = {
@@ -12,13 +13,17 @@ export const metadata: Metadata = {
 
 export default async function CalculadorasPage() {
   await requireSeccion("calculadoras");
+  // Costos queda oculta del índice hasta cerrar el tarifario con la empresa
+  // (relevamiento web 29/07, punto 44) — mismo criterio soloMesa de biblioteca.ts.
+  const esAdmin = AUTH_ENFORCED ? ((await getAcceso())?.esAdmin ?? false) : true;
+  const visibles = CALCULADORAS.filter((c) => c.slug !== "costos" || esAdmin);
   return (
     <>
       <main className="wrap">
         <div className="col">
           <PageHead kicker="Cotizadores de mesa" title="Calculadoras" lede="Corré tus números con la lógica de una mesa: a fijar, pases, carry, costos y más." />
           <nav className="hub-grid" aria-label="Calculadoras">
-            {CALCULADORAS.map((c) => (
+            {visibles.map((c) => (
               <Link key={c.slug} href={`/calculadoras/${c.slug}`} className="hub-card">
                 <span className="hub-card-name">{c.nombre}</span>
                 <span className="hub-card-desc">{c.desc}</span>

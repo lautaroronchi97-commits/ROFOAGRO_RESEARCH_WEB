@@ -318,8 +318,8 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
 ## 5. Preguntas y decisiones para Lautaro (TODAS acá, como pediste)
 
 > **Contestadas el 29/07/2026 (por AskUserQuestion, antes de arrancar R1):** 1, 2, 5 y 8 —
-> la respuesta quedó anotada debajo de cada una. **Contestada el 30/07/2026 (antes de R3):** 7.
-> Las demás (3, 4, 6, 9, 10) siguen abiertas.
+> la respuesta quedó anotada debajo de cada una. **Contestadas el 30/07/2026:** 7 (antes de R3) ·
+> 4 y 6 (antes de R4). Las demás (3, 9, 10) siguen abiertas.
 
 1. **Home (p20)** — Escribiste "Soja nov23 y mayo27". Asumo **NOV26 y MAY27**. ¿Correcto?
    **✅ R: NOV26 y MAY27.**
@@ -334,6 +334,7 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
    con vencimiento más cercano al fin de cada mes, una sola por mes?
 4. **A fijar (p38)** — Posiciones de trigo escribiste "dic enero marzo julio y septiembre
    diciembre": ¿son **DIC / ENE / MAR / JUL / SEP** (y el último "diciembre" repetía el primero)?
+   **✅ R: DIC/ENE/MAR/JUL/SEP, el último "diciembre" era repetido sin querer.**
 5. **Marca de agua (p14)** — ¿La sacamos del todo, o reemplazamos tu email por un texto neutro
    ("ROFO AGRO") para conservar el efecto anti-captura cuando haya clientes? Ojo: la marca de agua
    con el email de CADA usuario logueado era la protección anti-préstamo de cuentas del plan de
@@ -341,6 +342,7 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
    **✅ R: "ROFO AGRO · email" para los clientes; los admins la ven vacía (sin marca).**
 6. **Costos (p44)** — "Oculto solo para admin": ¿alcanza con que no aparezca en la sidebar ni en
    el índice de calculadoras y que la URL directa dé "sin acceso" para no-admins? (recomendado)
+   **✅ R: sí, alcanza así.**
 7. **View exportable (p30)** — ¿Te alcanza un botón "descargar PNG" en cada card del view
    (rápido), o lo querés como PDF con formato de informe (placa tipo informe diario, más trabajo)?
    **✅ R: PNG simple.**

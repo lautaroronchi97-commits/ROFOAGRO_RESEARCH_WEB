@@ -906,10 +906,19 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .calc-res-lbl { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
 .calc-res-val { font-family:var(--font-mono); font-size:26px; font-weight:700; font-variant-numeric:tabular-nums;
   color:var(--brand-deep); line-height:1.1; }
+.calc-res-val.rojo { color:var(--neg); }
 .calc-res-sub { font-family:var(--font-mono); font-size:var(--fs-2xs); color:var(--ink-2); }
 .calc-meta { display:flex; flex-direction:column; gap:3px; font-family:var(--font-mono);
   font-size:var(--fs-2xs); color:var(--ink-2); text-align:right; }
 .calc-meta b { color:var(--ink); font-weight:700; }
+/* Datos "más grandes/destacados" del relevamiento web (R4, puntos 39/40/41/43):
+   mismo bloque que .calc-meta, tamaño de texto normal en vez de fs-2xs. */
+.calc-meta-hl { font-size:14px; gap:6px; }
+.calc-meta-hl b { font-size:15px; }
+.calc-hi { color:var(--gold-text); }
+.calc-warn { display:flex; align-items:center; gap:7px; padding:9px 12px; border-radius:8px;
+  background:color-mix(in srgb, var(--neg) 10%, var(--panel-3)); border:1px solid color-mix(in srgb, var(--neg) 30%, var(--line-2));
+  color:var(--neg); font-family:var(--font-ui); font-size:var(--fs-xs); font-weight:600; }
 .cell-in { font-family:var(--font-mono); font-size:12.5px; padding:4px 6px; border-radius:5px;
   border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink); width:100%; max-width:130px; }
 .cell-in.num { text-align:right; max-width:90px; }
