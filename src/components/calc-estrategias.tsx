@@ -3,19 +3,24 @@
 import * as React from "react";
 import { Panel, PanelHead } from "./panel";
 import { ChartMarca } from "./chart-marca";
+import { CurvaPicker } from "./curva-picker";
 import { nfmt, sfmt } from "@/lib/format";
 import {
   PRESETS,
+  CATEGORIAS,
   payoffTotal,
   serieEscenarios,
   breakevens,
   costoEstrategia,
+  describirPata,
   type Pata,
   type Tipo,
   type Lado,
   type Escenario,
+  type Categoria,
 } from "@/lib/estrategias";
 import type { Persona } from "@/lib/costos";
+import type { GranoCurva } from "@/lib/curva-types";
 
 function IconStrat() {
   return (
@@ -38,26 +43,64 @@ const toNum = (p: PataStr): Pata => ({
 });
 
 const PRESET0 = PRESETS.find((p) => p.id === "collar") ?? PRESETS[0]!; // catálogo hardcodeado (~27), nunca vacío
+const CATS_TODAS: (Categoria | "Todas")[] = ["Todas", ...CATEGORIAS];
 
-/** Gráfico de payoff: resultado por tonelada vs precio final, con breakevens. */
+/** Glosario previo (relevamiento web R5, punto 45): qué es y para qué sirve cada estrategia,
+ *  para leer ANTES de simular — agrupado por la misma categoría del selector de abajo. */
+function Glosario() {
+  return (
+    <details className="strat-gloss">
+      <summary>Glosario de estrategias — qué es y para qué sirve cada una</summary>
+      <div className="strat-gloss-body">
+        {CATEGORIAS.map((cat) => (
+          <div className="strat-gloss-grp" key={cat}>
+            <h4>{cat}</h4>
+            <dl>
+              {PRESETS.filter((p) => p.categoria === cat).map((p) => (
+                <div className="strat-gloss-item" key={p.id}>
+                  <dt>{p.nombre}</dt>
+                  <dd>{p.explicacion}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/** Gráfico de payoff: resultado por tonelada vs precio final, con breakevens y ejes con ticks. */
 function PayoffChart({ serie, B, bes }: { serie: Escenario[]; B: number; bes: number[] }) {
   if (serie.length < 2) return null;
-  const W = 620, H = 190, padX = 8, padT = 12, padB = 22;
+  const W = 620, H = 220, padL = 46, padR = 10, padT = 12, padB = 26;
   const xs = serie.map((s) => s.P);
   const ys = serie.map((s) => s.resultado);
   const loX = Math.min(...xs), hiX = Math.max(...xs);
   const hiY = Math.max(0, ...ys), loY = Math.min(0, ...ys);
   const rY = hiY - loY || 1;
-  const x = (P: number) => padX + ((P - loX) / (hiX - loX || 1)) * (W - 2 * padX);
+  const x = (P: number) => padL + ((P - loX) / (hiX - loX || 1)) * (W - padL - padR);
   const y = (v: number) => padT + ((hiY - v) / rY) * (H - padT - padB);
   const zeroY = y(0);
   const pts = serie.map((s) => `${x(s.P).toFixed(1)},${y(s.resultado).toFixed(1)}`).join(" ");
 
+  const xTicks = Array.from({ length: 5 }, (_, i) => loX + ((hiX - loX) * i) / 4);
+  const yTicks = Array.from({ length: 4 }, (_, i) => loY + ((hiY - loY) * i) / 3);
+
   return (
     <div className="chart-wrap">
       <ChartMarca />
-      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico de payoff de la estrategia">
-        <line x1={padX} y1={zeroY} x2={W - padX} y2={zeroY} stroke="var(--line-2)" strokeWidth={1} />
+      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico de payoff de la estrategia: resultado por tonelada según el precio final">
+        {yTicks.map((v, i) => (
+          <g key={i}>
+            <line className="cv-grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
+            <text className="cv-axis" x={padL - 6} y={y(v) + 3} textAnchor="end">{nfmt(v, 0)}</text>
+          </g>
+        ))}
+        <line x1={padL} y1={zeroY} x2={W - padR} y2={zeroY} stroke="var(--line-2)" strokeWidth={1} />
+        {xTicks.map((v, i) => (
+          <text key={i} className="cv-axis" x={x(v)} y={H - 8} textAnchor="middle">{nfmt(v, 0)}</text>
+        ))}
         {Number.isFinite(B) && B >= loX && B <= hiX && (
           <line x1={x(B)} y1={padT} x2={x(B)} y2={H - padB} stroke="var(--ink-3)" strokeWidth={1} strokeDasharray="3 3" />
         )}
@@ -65,17 +108,19 @@ function PayoffChart({ serie, B, bes }: { serie: Escenario[]; B: number; bes: nu
         {bes.map((be, i) => (
           <g key={i}>
             <circle cx={x(be)} cy={zeroY} r={3} fill="var(--gold, var(--brand-deep))" />
-            <text x={x(be)} y={H - 7} textAnchor="middle" fontSize={10} fill="var(--ink-3)" fontFamily="var(--font-mono)">{nfmt(be, 0)}</text>
+            <text x={x(be)} y={zeroY - 8} textAnchor="middle" fontSize={10} fill="var(--ink-3)" fontFamily="var(--font-mono)">{nfmt(be, 0)}</text>
           </g>
         ))}
+        <text className="cv-axis" x={W / 2} y={H - 1} textAnchor="middle">Precio final (USD)</text>
       </svg>
     </div>
   );
 }
 
-export function CalcEstrategias() {
+export function CalcEstrategias({ granos = [] }: { granos?: GranoCurva[] }) {
   const [base, setBase] = React.useState("320");
   const [paso, setPaso] = React.useState("15");
+  const [catFiltro, setCatFiltro] = React.useState<Categoria | "Todas">("Todas");
   const [estId, setEstId] = React.useState(PRESET0.id);
   const [patas, setPatas] = React.useState<PataStr[]>(() => PRESET0.patas(320, 15).map(toStr));
   const [conCostos, setConCostos] = React.useState(false);
@@ -84,14 +129,26 @@ export function CalcEstrategias() {
 
   const B = num(base), S = num(paso);
   const preset = PRESETS.find((p) => p.id === estId);
+  const presetsFiltrados = catFiltro === "Todas" ? PRESETS : PRESETS.filter((p) => p.categoria === catFiltro);
 
   const cambiar = (id: string) => {
     setEstId(id);
     const p = PRESETS.find((x) => x.id === id);
     if (p && Number.isFinite(B) && Number.isFinite(S)) setPatas(p.patas(B, S).map(toStr));
   };
+  const elegirCategoria = (cat: Categoria | "Todas") => {
+    setCatFiltro(cat);
+    const lista = cat === "Todas" ? PRESETS : PRESETS.filter((p) => p.categoria === cat);
+    if (!lista.some((p) => p.id === estId) && lista[0]) cambiar(lista[0].id);
+  };
   const recargar = () => {
     if (preset && Number.isFinite(B) && Number.isFinite(S)) setPatas(preset.patas(B, S).map(toStr));
+  };
+  // Precio base sugerido de A3 (punto 45): al traer una posición real, las opciones
+  // del preset elegido se rearman sobre ESE precio (no solo se actualiza el número).
+  const traerDeA3 = (pos: { precio: number }) => {
+    setBase(String(pos.precio));
+    if (preset && Number.isFinite(S)) setPatas(preset.patas(pos.precio, S).map(toStr));
   };
   const setPata = (i: number, campo: keyof PataStr, val: string) =>
     setPatas((ps) => ps.map((p, j) => (j === i ? { ...p, [campo]: val } : p)));
@@ -100,6 +157,10 @@ export function CalcEstrategias() {
 
   const patasNum = patas.map(toNum).filter((p) => Number.isFinite(p.strike));
   const okRange = Number.isFinite(B) && Number.isFinite(S) && S > 0;
+  // "Estrategia personalizada" (punto 45): las patas ya no coinciden con las que
+  // generaría el preset elegido a este B/S — el usuario las tocó a mano.
+  const personalizada =
+    !!preset && okRange && JSON.stringify(patasNum) !== JSON.stringify(preset.patas(B, S));
   const ivaPct = num(iva);
   const costos = conCostos && Number.isFinite(ivaPct) ? costoEstrategia(patasNum, persona, ivaPct) : 0;
   const serieBruta = okRange && patasNum.length ? serieEscenarios(patasNum, B, S) : [];
@@ -126,14 +187,27 @@ export function CalcEstrategias() {
 
   return (
     <Panel id="calc-estrategias">
-      <PanelHead glyph={<IconStrat />} title="Calculadora — estrategias con opciones" sub="Preset + patas editables · payoff, tabla y gráfico" />
+      <PanelHead glyph={<IconStrat />} title="Calculadora — estrategias con opciones" />
 
       <div className="calc">
+        <Glosario />
+
+        <div className="calc-field">
+          <span>Categoría</span>
+        </div>
+        <div className="fg-bar" role="toolbar" aria-label="Categoría de estrategia">
+          {CATS_TODAS.map((c) => (
+            <button key={c} type="button" className="fg-chip" aria-pressed={catFiltro === c} onClick={() => elegirCategoria(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
+
         <div className="calc-grid">
           <label className="calc-field">
             <span>Estrategia</span>
             <select value={estId} onChange={(e) => cambiar(e.target.value)}>
-              {PRESETS.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              {presetsFiltrados.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
           </label>
           <label className="calc-field">
@@ -145,10 +219,21 @@ export function CalcEstrategias() {
             <input inputMode="decimal" value={paso} onChange={(e) => setPaso(e.target.value)} />
           </label>
         </div>
+        <CurvaPicker granos={granos} onPick={traerDeA3} label="Precio base sugerido de A3" />
 
         {preset && (
-          <div className="strat-exp">
-            <span className="k">{preset.view}</span> {preset.explicacion}
+          <div className="strat-exp-main">
+            <span className="k">{personalizada ? "Estrategia personalizada" : preset.view}</span>
+            {personalizada
+              ? "Modificaste las patas del preset — ya no es la combinación original, es tuya. El resumen y el gráfico de abajo reflejan exactamente lo que armaste."
+              : preset.explicacion}
+            {!personalizada && (
+              <ul className="strat-implica">
+                {preset.patas(Number.isFinite(B) ? B : 0, Number.isFinite(S) ? S : 1).map((p, i) => (
+                  <li key={i}>{describirPata(p)}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         <div className="strat-exp">
@@ -188,13 +273,28 @@ export function CalcEstrategias() {
 
         <PayoffChart serie={serie} B={B} bes={bes} />
 
-        <div className="calc-out">
-          <div className="calc-meta">
-            <span>Máx. ganancia: <b className="pos">{gananciaIlimitada ? "ilimitada" : Number.isFinite(maxG) ? sfmt(maxG, 1) : "—"}</b></span>
-            <span>Máx. pérdida: <b className="neg">{perdidaIlimitada ? "ilimitada" : Number.isFinite(maxP) ? sfmt(maxP, 1) : "—"}</b></span>
-            <span>Prima neta: <b>{sfmt(neta, 1)} USD</b> {neta > 0 ? "(costo)" : neta < 0 ? "(ingreso)" : ""}</span>
-            {conCostos && <span>Costos (A3/Cocos): <b>{nfmt(costos, 1)} USD</b></span>}
-            <span>Breakeven(s): <b>{bes.length ? bes.map((b) => nfmt(b, 1)).join(" · ") : "—"}</b></span>
+        <div className="strat-resumen">
+          <div className="strat-resumen-item">
+            <span className="strat-resumen-lbl">Máx. ganancia</span>
+            <span className="strat-resumen-val pos">{gananciaIlimitada ? "ilimitada" : Number.isFinite(maxG) ? sfmt(maxG, 1) : "—"}</span>
+          </div>
+          <div className="strat-resumen-item">
+            <span className="strat-resumen-lbl">Máx. pérdida</span>
+            <span className="strat-resumen-val neg">{perdidaIlimitada ? "ilimitada" : Number.isFinite(maxP) ? sfmt(maxP, 1) : "—"}</span>
+          </div>
+          <div className="strat-resumen-item">
+            <span className="strat-resumen-lbl">Prima neta</span>
+            <span className="strat-resumen-val">{sfmt(neta, 1)} <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-3)" }}>{neta > 0 ? "(costo)" : neta < 0 ? "(ingreso)" : ""}</span></span>
+          </div>
+          {conCostos && (
+            <div className="strat-resumen-item">
+              <span className="strat-resumen-lbl">Costos (A3/Cocos)</span>
+              <span className="strat-resumen-val">{nfmt(costos, 1)}</span>
+            </div>
+          )}
+          <div className="strat-resumen-item">
+            <span className="strat-resumen-lbl">Breakeven(s)</span>
+            <span className="strat-resumen-val">{bes.length ? bes.map((b) => nfmt(b, 1)).join(" · ") : "—"}</span>
           </div>
         </div>
 

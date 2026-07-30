@@ -12,37 +12,37 @@ import { ContactoForm } from "@/components/landing/contacto-form";
 const SERVICIOS = [
   {
     icon: "grid",
-    titulo: "Tablero de research",
+    titulo: "Research de mercado",
     texto:
-      "Arbitrajes, pizarra, dólar y tasas, gráficos de spreads y comercio exterior (DJVE), actualizado varias veces por día.",
+      "Todo lo que una mesa mira antes de decidir, actualizado varias veces por día y en un solo lugar.",
   },
   {
     icon: "arb",
-    titulo: "Arbitrajes en tiempo real",
+    titulo: "Lectura en tiempo real",
     texto:
-      "Spot contra futuro, con tasa directa y TNA en USD por posición. Ves al instante dónde conviene vender y dónde esperar.",
+      "Sabés al instante qué te conviene más: vender ahora o esperar. La misma lectura que usa una mesa profesional.",
   },
   {
     icon: "calc",
-    titulo: "Calculadoras específicas",
+    titulo: "Herramientas a medida",
     texto:
-      "A fijar, por porcentaje, pases, negocios de planta, costos. Corré tus números con la lógica de una mesa.",
+      "Corré tus propios números con la misma lógica que usa una mesa de granos, para cada tipo de negocio.",
   },
   {
     icon: "chart",
-    titulo: "Estimaciones de producción",
+    titulo: "Qué se viene",
     texto:
-      "USDA, CONAB, BCR y SAGyP comparadas, con calendario de informes. Sabé qué se viene antes de que impacte el precio.",
+      "Los organismos que mueven el precio mundial, comparados y con calendario. Te enterás antes de que impacte.",
   },
   {
     icon: "news",
     titulo: "Noticias del agro al momento",
-    texto: "Lo que mueve el mercado, curado y categorizado. Sin ruido.",
+    texto: "Lo que mueve el mercado, filtrado para vos. Sin ruido, sin perder tiempo buscando.",
   },
   {
     icon: "wa",
     titulo: "Informes diarios y semanales",
-    texto: "El resumen que importa, en tu teléfono por WhatsApp, todos los días.",
+    texto: "El resumen que importa, directo a tu WhatsApp, todos los días.",
   },
 ] as const;
 
@@ -65,14 +65,14 @@ const DIFERENCIALES = [
   {
     titulo: "Alineados con tu resultado",
     texto:
-      "Trabajamos para que decidas mejor. Nuestro foco está puesto en tu rentabilidad, no en tu volumen de operaciones.",
+      "Nuestro foco está puesto en donde vos decidas ponerlo: en tu rentabilidad, en tu volumen de operaciones, o en las dos cosas.",
   },
 ] as const;
 
 const FAQ = [
   {
     q: "¿Esto reemplaza a mi corredor?",
-    a: "No, lo complementa. Tu corredor ejecuta y opera tus negocios; nosotros te damos el research, el criterio y la estrategia para que llegues a esa operación sabiendo qué te conviene. Vas a hablar con tu corredor con más información y mejor parado.",
+    a: "No, lo complementa. Le vendas a tu acopio, tu cooperativa, un exportador o un corredor, nosotros te damos el research, el criterio y la estrategia para que llegues a esa operación sabiendo qué te conviene. Vas a negociar con más información y mejor parado.",
   },
   {
     q: "¿Qué incluye el acceso?",
@@ -80,7 +80,7 @@ const FAQ = [
   },
   {
     q: "¿Los datos son en tiempo real?",
-    a: "El tablero se actualiza varias veces por día, con los arbitrajes de mercado en vivo durante la rueda. No es un tick a tick de trader: es la foto que necesitás para decidir bien, varias veces al día.",
+    a: "El tablero está conectado a mercado en tiempo real durante la rueda, y esa información llega actualizada e interpretada por nuestros especialistas — no son números sueltos. No es un tick a tick de trader: es la lectura que necesitás para decidir bien, varias veces al día.",
   },
   {
     q: "¿Sirve para productores y para acopios?",
@@ -110,8 +110,8 @@ export default function BienvenidaPage() {
           <p className="lp-lead">
             Accedé a las mismas herramientas y al mismo criterio que usan las mesas de trading de
             granos de Rosario. Un equipo con <strong>más de 10 años</strong> de experiencia te
-            acompaña a decidir cuándo, cómo y a qué precio vender, evaluando todas las alternativas
-            para elegir la mejor.
+            acompaña a decidir cuándo, cómo y a qué precio comprar o vender, evaluando todas las
+            alternativas para elegir la mejor.
           </p>
           <div className="lp-hero-cta">
             <a href="#contacto" className="auth-btn auth-btn-primary lp-btn-lg">
@@ -121,7 +121,10 @@ export default function BienvenidaPage() {
               Ver qué incluye
             </a>
           </div>
-          <p className="lp-hero-foot">Servicio a medida para productores y acopios.</p>
+          <p className="lp-hero-foot">
+            <span className="lp-hero-foot-dot" aria-hidden="true" />
+            Servicio a medida para productores y acopios
+          </p>
         </div>
       </section>
 
@@ -199,9 +202,9 @@ export default function BienvenidaPage() {
               </article>
             ))}
           </div>
-          <p className="lp-p lp-center lp-narrow lp-services-foot">
-            Y, sobre todo, especialistas en estrategia que te ayudan a diagramar tu jugada, no solo
-            datos.
+          <p className="lp-services-foot">
+            Y, sobre todo, especialistas en estrategia que te ayudan a diagramar tu jugada — no
+            solo datos.
           </p>
         </div>
       </section>
@@ -221,7 +224,7 @@ export default function BienvenidaPage() {
       {/* ===== POR QUÉ ROFO AGRO ===== */}
       <section id="por-que" className="lp-section">
         <div className="lp-wrap">
-          <h2 className="lp-h2 lp-center">Por qué ROFO AGRO</h2>
+          <h2 className="lp-h2 lp-center">¿Por qué ROFO AGRO?</h2>
           <div className="lp-why">
             {DIFERENCIALES.map((d) => (
               <article key={d.titulo} className="lp-why-item">
@@ -237,11 +240,12 @@ export default function BienvenidaPage() {
       <section className="lp-section lp-acopios">
         <div className="lp-wrap lp-acopios-in">
           <span className="lp-eyebrow lp-eyebrow-gold">Para acopios</span>
-          <h2 className="lp-h2">Replicá el modelo de un correacopio</h2>
+          <h2 className="lp-h2">Profesionalizá tu mesa de negocios</h2>
           <p className="lp-p">
-            Te damos la experiencia de un correacopio para que armes condiciones de originación para
-            tus propios clientes: a fijar, a precio, canje, cartas de garantía. Replicás el modelo
-            de las grandes mesas, con nuestro acompañamiento, y le agregás valor a tu cartera.
+            Te ayudamos a potenciar tu originación: diseñamos e instrumentamos con vos tus propias
+            condiciones para tus clientes — a fijar, a precio, canje, cartas de garantía — con el
+            mismo criterio que usa una mesa profesional. Le agregás valor a tu cartera, con nuestro
+            acompañamiento.
           </p>
           <a href="#contacto" className="auth-btn auth-btn-primary lp-btn-lg lp-btn-inline">
             Quiero asesoramiento
@@ -281,15 +285,15 @@ export default function BienvenidaPage() {
       <section id="contacto" className="lp-section lp-alt">
         <div className="lp-wrap lp-contacto">
           <div className="lp-contacto-copy">
-            <h2 className="lp-h2">Sumá una mesa de granos a tu equipo</h2>
+            <h2 className="lp-h2">Sumá toda nuestra experiencia a tu equipo</h2>
             <p className="lp-p">
               Contanos de tu empresa y qué querés lograr. Con eso armamos tu servicio a medida.
             </p>
             <p className="lp-nota">
-              El acceso al tablero es para clientes con asesoramiento contratado.
+              El acceso a la web es para clientes con asesoramiento contratado.
             </p>
             <p className="lp-nota">
-              ¿Ya sos cliente? <Link href="/ingresar">Ingresá al tablero</Link>.
+              ¿Ya sos cliente? <Link href="/ingresar">Ingresá a la web</Link>.
             </p>
           </div>
           <div className="lp-contacto-form">
@@ -303,7 +307,7 @@ export default function BienvenidaPage() {
         <div className="lp-wrap lp-center">
           <h2 className="lp-h2 lp-cierre-t">Dejá de decidir a ciegas.</h2>
           <p className="lp-p lp-center lp-narrow">
-            Tomá cada decisión con una mesa de granos de tu lado.
+            Tomá cada decisión con un equipo de profesionales de tu lado.
           </p>
           <a href="#contacto" className="auth-btn auth-btn-primary lp-btn-lg lp-btn-inline">
             Quiero asesoramiento
@@ -395,6 +399,21 @@ function Teaser() {
             <li><span>USDA recorta la producción de maíz de EEUU</span><em>Informes</em></li>
             <li><span>El dólar futuro comprime tasas en la rueda</span><em>Dólar</em></li>
           </ul>
+        </div>
+
+        {/* Comercio exterior: line-up de buques */}
+        <div className="lp-mock lp-mock-wide">
+          <div className="lp-mock-hd">Comercio exterior · Line-up de puertos</div>
+          <table className="lp-mock-tbl">
+            <thead>
+              <tr><th>Buque</th><th>Zona</th><th>Producto</th><th>Ton</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>MV Delta</td><td>Up River N</td><td>Soja</td><td>32.400</td></tr>
+              <tr><td>MV Aurora</td><td>Up River S</td><td>Maíz</td><td>28.100</td></tr>
+              <tr><td>MV Cobre</td><td>Bahía</td><td>Trigo</td><td>19.700</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
       <div className="lp-teaser-fade" aria-hidden="true" />

@@ -48,18 +48,28 @@ export function EstimacionesCliente({
   interpretaciones: InterpretacionPublica[];
 }) {
   /* ---------- Pizarra (con filtros) ---------- */
-  const [granosOff, setGranosOff] = useState<Set<string>>(new Set());
+  // Semántica de filtro (relevamiento web R7, punto 50): click en un chip deja SOLO ese valor;
+  // re-click vuelve a mostrar todos — misma semántica que el calendario (punto 49), y ahora
+  // también en organismo/país/campaña, no solo grano.
+  const [granoSolo, setGranoSolo] = useState<string | null>(null);
+  const [orgSolo, setOrgSolo] = useState<string | null>(null);
+  const [paisSolo, setPaisSolo] = useState<string | null>(null);
+  const [campSolo, setCampSolo] = useState<string | null>(null);
   const pizarra = useMemo(() => construirPizarra(rows), [rows]);
-  const pizarraFilt = useMemo(() => pizarra.filter((c) => !granosOff.has(c.grano)), [pizarra, granosOff]);
-
-  function toggleGrano(g: string) {
-    setGranosOff((prev) => {
-      const next = new Set(prev);
-      if (next.has(g)) next.delete(g);
-      else next.add(g);
-      return next;
-    });
-  }
+  const orgsDisp = useMemo(() => [...new Set(pizarra.map((c) => c.organismo))], [pizarra]);
+  const paisesDisp = useMemo(() => [...new Set(pizarra.map((c) => c.pais))], [pizarra]);
+  const campsDisp = useMemo(() => [...new Set(pizarra.map((c) => c.campania))].sort(), [pizarra]);
+  const pizarraFilt = useMemo(
+    () =>
+      pizarra.filter(
+        (c) =>
+          (granoSolo === null || c.grano === granoSolo) &&
+          (orgSolo === null || c.organismo === orgSolo) &&
+          (paisSolo === null || c.pais === paisSolo) &&
+          (campSolo === null || c.campania === campSolo),
+      ),
+    [pizarra, granoSolo, orgSolo, paisSolo, campSolo],
+  );
 
   /* ---------- Gráfico de evolución (selectores) ---------- */
   // `granos[0]`/`paisesIni[0]` pueden ser undefined solo si `rows` viene vacío (sin estimaciones
@@ -94,16 +104,55 @@ export function EstimacionesCliente({
     <div className="estim">
       {/* ---- Pizarra ---- */}
       <div className="estim-block">
-        <div className="cal-filters" role="group" aria-label="Filtrar granos">
+        <div className="cal-filters" role="group" aria-label="Filtrar por grano">
           {granos.map((g) => (
             <button
               key={g}
               type="button"
-              className={`cal-fchip ${granosOff.has(g) ? "is-off" : ""}`}
-              aria-pressed={!granosOff.has(g)}
-              onClick={() => toggleGrano(g)}
+              className={`cal-fchip ${granoSolo !== null && granoSolo !== g ? "is-off" : ""}`}
+              aria-pressed={granoSolo === g}
+              onClick={() => setGranoSolo((prev) => (prev === g ? null : g))}
             >
               {GRANO_LABEL[g] ?? g}
+            </button>
+          ))}
+        </div>
+        <div className="cal-filters" role="group" aria-label="Filtrar por organismo">
+          {orgsDisp.map((o) => (
+            <button
+              key={o}
+              type="button"
+              className={`cal-fchip org-${o} ${orgSolo !== null && orgSolo !== o ? "is-off" : ""}`}
+              aria-pressed={orgSolo === o}
+              onClick={() => setOrgSolo((prev) => (prev === o ? null : o))}
+            >
+              {ORG_LABEL[o as keyof typeof ORG_LABEL] ?? o}
+            </button>
+          ))}
+        </div>
+        <div className="cal-filters" role="group" aria-label="Filtrar por país">
+          {paisesDisp.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`cal-fchip ${paisSolo !== null && paisSolo !== p ? "is-off" : ""}`}
+              aria-pressed={paisSolo === p}
+              onClick={() => setPaisSolo((prev) => (prev === p ? null : p))}
+            >
+              {PAIS_LABEL[p] ?? p}
+            </button>
+          ))}
+        </div>
+        <div className="cal-filters" role="group" aria-label="Filtrar por campaña">
+          {campsDisp.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`cal-fchip ${campSolo !== null && campSolo !== c ? "is-off" : ""}`}
+              aria-pressed={campSolo === c}
+              onClick={() => setCampSolo((prev) => (prev === c ? null : c))}
+            >
+              {c}
             </button>
           ))}
         </div>

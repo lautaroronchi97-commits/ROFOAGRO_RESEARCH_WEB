@@ -4,7 +4,15 @@ import { useState } from "react";
 import { nfmt } from "@/lib/format";
 import { ChartMarca } from "./chart-marca";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
+import { RangoChips } from "./rango-chips";
 import type { PuntoBcraMulc } from "@/lib/bcra-mulc";
+
+type Rango = "30" | "60" | "90";
+const OPCIONES_RANGO: { label: string; value: Rango }[] = [
+  { label: "30D", value: "30" },
+  { label: "60D", value: "60" },
+  { label: "90D", value: "90" },
+];
 
 const W = 660;
 const H = 200;
@@ -22,13 +30,15 @@ function fmtFecha(fechaISO: string): string {
  * rojo venta neta. Las barras de carga manual (todavía sin confirmar por la oficial) van más
  * tenues para distinguirlas de un vistazo; se pisan solas cuando llega el dato de la API.
  */
-export function BcraMulcChart({ serie }: { serie: PuntoBcraMulc[] }) {
+export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[] }) {
   const [hi, setHi] = useState<number | null>(null);
+  const [rango, setRango] = useState<Rango>("90");
 
-  if (serie.length === 0) {
+  if (serieCompleta.length === 0) {
     return <div className="chart-wrap chart-empty">Sin datos todavía para el gráfico.</div>;
   }
 
+  const serie = serieCompleta.slice(-Number(rango));
   const vals = serie.map((p) => p.montoMusd);
   let yMin = Math.min(0, ...vals);
   let yMax = Math.max(0, ...vals);
@@ -74,6 +84,7 @@ export function BcraMulcChart({ serie }: { serie: PuntoBcraMulc[] }) {
 
   return (
     <>
+      <RangoChips opciones={OPCIONES_RANGO} valor={rango} onChange={setRango} label="Plazo del gráfico" />
       <div className="chart-wrap">
         <ChartMarca />
         <svg viewBox={`0 0 ${W} ${H}`} className="cv" role="img" aria-label="Compras netas del BCRA en el MULC, M USD por día">
@@ -132,7 +143,9 @@ export function BcraMulcChart({ serie }: { serie: PuntoBcraMulc[] }) {
       <ChartTabla
         columnas={columnas}
         filas={filas}
-        nota="BCRA API v4 (variable 78, ~3-4 días hábiles de rezago) + carga manual del día en /admin/datos, que se pisa sola cuando llega el dato oficial."
+        maxFilas={5}
+        orden="desc"
+        nota="Banco Central (~3-4 días hábiles de rezago) + carga manual del día en /admin/datos, que se pisa sola cuando llega el dato oficial."
       />
     </>
   );

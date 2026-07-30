@@ -2,7 +2,6 @@ import { getDolarFuturo } from "@/lib/market";
 import { nfmt, pfmt, rfmt, dirOf, arrowOf } from "@/lib/format";
 import { Panel, PanelHead } from "./panel";
 import { DolarFuturoChart } from "./dolar-futuro-chart";
-import { ChartTabla } from "./chart-tabla";
 import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
 
@@ -32,31 +31,7 @@ export async function DolarFuturoPanel() {
         sub="Curva + tasas implícitas (A3 · spot mayorista)"
         stamp={<SourceStamp meta={data.meta} />}
       />
-      <div className="df-split">
-        <div className="df-chart">
-          {points.length > 1 && <DolarFuturoChart points={points} />}
-          <div className="cv-legend">
-            <span className="lk">
-              <span className="sw" aria-hidden="true" />
-              Último por posición
-            </span>
-            {data.spot && (
-              <span className="lk">
-                <span className="sw g" aria-hidden="true" />
-                Spot may. {nfmt(data.spot, 2)}
-              </span>
-            )}
-          </div>
-          <ChartTabla
-            titulo="Datos de la curva"
-            columnas={[
-              { key: "pos", label: "Posición", align: "left" },
-              { key: "precio", label: "Precio ($)" },
-            ]}
-            filas={points.map((p) => ({ pos: p.label, precio: nfmt(p.value, 1) }))}
-          />
-        </div>
-
+      <div className="df-stack">
         <div className="df-table">
           <div className="table-scroll">
             <table className="tbl" style={{ minWidth: 460 }}>
@@ -99,6 +74,22 @@ export async function DolarFuturoPanel() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div className="df-chart">
+          {points.length > 1 && <DolarFuturoChart points={points} />}
+          <div className="cv-legend">
+            <span className="lk">
+              <span className="sw" aria-hidden="true" />
+              Último por posición
+            </span>
+            {data.spot && (
+              <span className="lk">
+                <span className="sw g" aria-hidden="true" />
+                Spot may. {nfmt(data.spot, 2)}
+              </span>
+            )}
           </div>
         </div>
       </div>

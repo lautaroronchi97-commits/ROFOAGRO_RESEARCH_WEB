@@ -46,6 +46,12 @@ function resolverPrioridad(rows: CamionRow[]): CamionRow[] {
 
 export type SerieZona = { zona: ZonaCamiones; display: string; puntos: { fecha: string; cantidad: number }[] };
 export type SerieProducto = { producto: ProductoCamiones; display: string; puntos: { fecha: string; cantidad: number }[] };
+/** Matriz cruda zona×producto (excluye TOTAL) — insumo puro de `matriz.ts` para el chart único de
+ *  Williams (relevamiento web R9, punto 53): grano elegido → sumar/filtrar zonas o re-agrupar por
+ *  campaña. Cada export "un grano puntual" de Williams SÍ trae las 4 zonas para ese producto
+ *  (ver QueEsEsto de `camiones-panel.tsx`), así que el cruce existe en la tabla — antes se perdía
+ *  al sumarlo todo en `porProducto`. */
+export type PuntoZonaProducto = { fecha: string; zona: ZonaCamiones; producto: ProductoCamiones; cantidad: number };
 
 export type CamionesData = {
   fecha: string | null;
@@ -55,6 +61,7 @@ export type CamionesData = {
   productoLiderHoy: { cod: ProductoCamiones; display: string; cantidad: number } | null;
   porZona: SerieZona[]; // producto = TOTAL únicamente (el reporte no abre zona×producto)
   porProducto: SerieProducto[]; // suma nacional (4 zonas) por producto cargado
+  porZonaProducto: PuntoZonaProducto[];
   productosDisponibles: ProductoCamiones[];
   meta: Meta;
 };
@@ -67,6 +74,7 @@ const vacia = (problema: string): CamionesData => ({
   productoLiderHoy: null,
   porZona: [],
   porProducto: [],
+  porZonaProducto: [],
   productosDisponibles: [],
   meta: { source: SOURCE, updatedAt: null, status: "parcial", problemas: [problema] },
 });
@@ -106,6 +114,11 @@ export const getCamiones = cache(async (): Promise<CamionesData> => {
     display: PRODUCTO_DISPLAY[p],
     puntos: [...porProductoMap.get(p)!.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([fecha, cantidad]) => ({ fecha, cantidad })),
   }));
+
+  // --- Matriz cruda zona×producto (sin sumar entre zonas ni entre fechas) ---
+  const porZonaProducto: PuntoZonaProducto[] = rows
+    .filter((r) => r.producto !== "TOTAL" && PRODUCTO_CLAVES.includes(r.producto as ProductoCamiones))
+    .map((r) => ({ fecha: r.fecha, zona: r.zona, producto: r.producto as ProductoCamiones, cantidad: r.cantidad }));
 
   // --- KPIs de la última fecha con dato TOTAL ---
   const fechasTotal = [...(porZonaMap.get("ROSARIO_ALEDANOS")?.keys() ?? [])].sort();
@@ -152,6 +165,7 @@ export const getCamiones = cache(async (): Promise<CamionesData> => {
     productoLiderHoy,
     porZona,
     porProducto,
+    porZonaProducto,
     productosDisponibles,
     meta: { source: SOURCE, updatedAt: null, status: "real", problemas: [] },
   };

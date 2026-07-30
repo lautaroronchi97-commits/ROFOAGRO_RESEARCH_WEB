@@ -3,7 +3,7 @@
 import * as React from "react";
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot,
-  ResponsiveContainer,
+  ResponsiveContainer, LabelList,
 } from "recharts";
 import { nfmt } from "@/lib/format";
 import {
@@ -65,7 +65,7 @@ function mergeRows(lines: CampLine[], banda: BandaPunto[]): Row[] {
 
 export function SpreadChart({
   lines, eje, metric, anchorMes, decimals = 2, modo = "lineas", banda = [], refVto,
-  ma, pct = false, exportName,
+  ma, pct = false, exportName, kpis,
 }: {
   lines: CampLine[];
   eje: Eje;
@@ -81,6 +81,8 @@ export function SpreadChart({
   pct?: boolean;
   /** Si viene, muestra los botones de export PNG/CSV con este nombre de archivo. */
   exportName?: string;
+  /** KPIs del caller (R7 punto 48): se renderizan ENTRE el chart y la tabla. */
+  kpis?: React.ReactNode;
 }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   // En modo banda solo se dibuja la vigente como línea (la historia es la sombra);
@@ -107,6 +109,28 @@ export function SpreadChart({
         }),
     [drawnBase],
   );
+  // Tabla siempre descendente (R6 punto 32 / R7 punto 48, patrón general del sitio) — y en el
+  // eje días-al-vto, la fila de "hoy" (el último dato REAL de la campaña vigente, que en
+  // general no llega hasta x=0 porque el vto todavía no pasó) va primera y recuadrada, en vez
+  // de que x=0 (el vto de campañas YA vencidas) encabece la tabla. Se calcula ANTES del early
+  // return de abajo (rules-of-hooks: los hooks no pueden quedar después de un return condicional).
+  const vigenteKey = lines.find((l) => l.vigente)?.key ?? null;
+  const hoyX = React.useMemo(() => {
+    if (eje !== "vto" || !vigenteKey) return null;
+    let m: number | null = null;
+    for (const r of rows) {
+      if (typeof r[`y${vigenteKey}`] === "number" && (m === null || r.x > m)) m = r.x;
+    }
+    return m;
+  }, [eje, vigenteKey, rows]);
+  const filasOrdenadas = React.useMemo(() => {
+    const desc = [...rows].sort((a, b) => b.x - a.x);
+    if (hoyX == null) return desc;
+    const i = desc.findIndex((r) => r.x === hoyX);
+    if (i <= 0) return desc;
+    const [hoyRow] = desc.splice(i, 1);
+    return hoyRow ? [hoyRow, ...desc] : desc;
+  }, [rows, hoyX]);
   if (rows.length === 0) return null;
 
   // Mes en cada x del eje días-al-vto: proyectado desde el vencimiento de la
@@ -121,7 +145,7 @@ export function SpreadChart({
 
   // Tabla de datos (doble lectura): EXACTAMENTE los mismos puntos que dibuja el
   // chart (`rows` = líneas + banda mergeadas por x), con el mismo formateo que
-  // usa el tooltip (nfmt + decimals). Una fila por valor de x, ya ordenadas.
+  // usa el tooltip (nfmt + decimals). Una fila por valor de x, en orden descendente.
   const columnas: ChartTablaColumna[] = [
     { key: "x", label: eje === "vto" ? "Ruedas al vto" : "Fecha", align: "left" },
     ...drawn.map((ln) => ({ key: `y${ln.key}`, label: ln.label })),
@@ -133,7 +157,7 @@ export function SpreadChart({
         ]
       : []),
   ];
-  const filas: ChartTablaFila[] = rows.map((r) => {
+  const filas: ChartTablaFila[] = filasOrdenadas.map((r) => {
     const fila: ChartTablaFila = {};
     if (eje === "vto") {
       // Igual que el encabezado del tooltip: nº de ruedas + mes de referencia.
@@ -162,11 +186,27 @@ export function SpreadChart({
   const hayParcial = puntosParciales.length > 0;
   const notaTabla =
     (eje === "vto"
-      ? "Los mismos puntos que dibuja el gráfico, por rueda hábil al vencimiento (con el mes de referencia de la campaña vigente). «—» = sin dato a esa altura."
+      ? "Los mismos puntos que dibuja el gráfico, por rueda hábil al vencimiento (con el mes de referencia de la campaña vigente). «—» = sin dato a esa altura. La fila recuadrada es HOY."
       : "Los mismos puntos que dibuja el gráfico, en eje calendario. Con varias campañas superpuestas la fila se rotula por mes. «—» = sin dato a esa altura.") +
     (hayParcial ? " El punto marcado con ⊚ es el dato de HOY: provisorio, puede cambiar." : "");
 
   const axisDecimals = pct ? 1 : metric === "ratio" ? 3 : 0;
+
+  /** Label de campaña en el extremo (último punto real) de cada línea — R7 punto 48. */
+  function labelExtremo(dataKey: string, color: string, texto: string) {
+    let lastIdx = -1;
+    rows.forEach((r, i) => { if (typeof r[dataKey] === "number") lastIdx = i; });
+    function EtiquetaExtremo(props: { x?: string | number; y?: string | number; index?: number }) {
+      const { x, y, index } = props;
+      if (index !== lastIdx || x == null || y == null) return null;
+      return (
+        <text x={Number(x) + 6} y={Number(y)} dy={3} fontSize={10} fontFamily="var(--font-mono)" fontWeight={700} fill={color}>
+          {texto}
+        </text>
+      );
+    }
+    return EtiquetaExtremo;
+  }
 
   return (
     <>
@@ -185,7 +225,9 @@ export function SpreadChart({
       <div style={{ position: "relative" }} ref={wrapRef}>
         <ChartMarca />
         <ResponsiveContainer width="100%" height={param(400)}>
-          <ComposedChart data={rows} margin={{ top: 8, right: 16, bottom: 30, left: 4 }}>
+          {/* right:40 (no 16) — deja lugar a la etiqueta de campaña en el extremo de cada
+              línea (R7 punto 48); con 16 quedaba cortada contra el borde del SVG. */}
+          <ComposedChart data={rows} margin={{ top: 8, right: 40, bottom: 30, left: 4 }}>
             <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" />
             <XAxis
               dataKey="x"
@@ -243,7 +285,9 @@ export function SpreadChart({
                 activeDot={{ r: 3 }}
                 connectNulls
                 isAnimationActive={false}
-              />
+              >
+                <LabelList dataKey={`y${ln.key}`} content={labelExtremo(`y${ln.key}`, ln.color, ln.label)} />
+              </Line>
             ))}
             {puntosParciales.map((p) => (
               <ReferenceDot
@@ -261,7 +305,14 @@ export function SpreadChart({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <ChartTabla columnas={columnas} filas={filas} nota={notaTabla} exportCsv={exportName} />
+      {kpis}
+      <ChartTabla
+        columnas={columnas}
+        filas={filas}
+        nota={notaTabla}
+        exportCsv={exportName}
+        destacada={hoyX != null ? (_, i) => i === 0 : undefined}
+      />
     </>
   );
 }

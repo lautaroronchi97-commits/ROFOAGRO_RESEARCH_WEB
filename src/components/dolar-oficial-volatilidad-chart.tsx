@@ -129,6 +129,8 @@ export function DolarOficialVolatilidadChart({
             })) as ChartTablaFila[]}
             nota={`Desvío estándar de las últimas ${cfg.ventana}, anualizado (${cfg.factor}). Último dato: ${nfmt(conVol[conVol.length - 1]!.volAnualizada, 2)}%.`} // conVol.length<2 ya cayó en la rama de arriba
             exportCsv={nombreArchivo("dolar-oficial-volatilidad", modo)}
+            maxFilas={5}
+            orden="desc"
           />
         </>
       )}

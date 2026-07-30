@@ -51,7 +51,7 @@ export function EmpresasTabla({ empresas, fecha }: { empresas: EmpresaRow[]; fec
   }, [empresas, senal, producto, q]);
 
   function exportarCsv() {
-    const cols = ["Empresa", "Buques", "Standing_t", "Declarado_60d", "Originado_60d", "Falta_cubrir", "Cobertura", "Senal", "Declarado_campana", "Originado_campana", "Transito_PYUY", "Ritmo_actual", "Ritmo_normal", "Productos", "Zonas"];
+    const cols = ["Empresa", "Buques", "Standing_t", "Declarado_60d", "Embarcado_60d", "Falta_cubrir", "Cumplimiento", "Senal", "Declarado_campana", "Embarcado_campana", "Transito_PYUY", "Ritmo_actual", "Ritmo_normal", "Productos", "Zonas"];
     const esc = (v: string | number | null) => {
       const s = v == null ? "" : String(v);
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -113,9 +113,9 @@ export function EmpresasTabla({ empresas, fecha }: { empresas: EmpresaRow[]; fec
               <th scope="col">Buques</th>
               <th scope="col">Standing t</th>
               <th scope="col">Decl. 60d</th>
-              <th scope="col">Orig. 60d</th>
+              <th scope="col">Emb. 60d</th>
               <th scope="col">Falta</th>
-              <th scope="col" title="Originado / Declarado a 60 días">Cob.</th>
+              <th scope="col" title="Embarcado / Declarado a 60 días">Cump.</th>
               <th className="l" scope="col">Señal</th>
               <th scope="col" title="Line-up parado hoy vs lo normal para esta época (5 campañas)">Ritmo</th>
             </tr>

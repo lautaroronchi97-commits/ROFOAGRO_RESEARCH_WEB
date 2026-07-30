@@ -15,6 +15,8 @@ import {
 } from "@/lib/views-mercado";
 import type { ResumenGrano } from "@/lib/views-scorecard";
 import { ViewFeedback } from "./view-feedback";
+import { ViewExportButton } from "@/components/view-export-button";
+import type { ViewExportData } from "@/lib/chart-export";
 import { PageHead } from "@/components/page-head";
 
 /**
@@ -36,6 +38,7 @@ const DIR_COLOR: Record<DireccionView, string> = {
   neutral: "var(--neu)",
 };
 const DIR_GLIFO: Record<DireccionView, string> = { alcista: "▲", bajista: "▼", neutral: "◆" };
+const DIR_COLOR_VAR: Record<DireccionView, string> = { alcista: "--pos", bajista: "--neg", neutral: "--neu" };
 const GRANO_EMOJI: Record<string, string> = { soja: "🌱", maiz: "🌽", trigo: "🌾" };
 
 const RELACION_LABEL: Record<RelacionPrevia, string> = {
@@ -122,8 +125,22 @@ function Invalidadores({ v }: { v: ViewMercado }) {
   );
 }
 
-function ViewCard({ v, scorecard }: { v: ViewMercado; scorecard: ResumenGrano }) {
+function ViewCard({ v, scorecard, esAdmin }: { v: ViewMercado; scorecard: ResumenGrano; esAdmin: boolean }) {
   const color = DIR_COLOR[v.direccion];
+  const datosExport: ViewExportData = {
+    granoLabel: GRANO_VIEW_LABEL[v.grano],
+    granoEmoji: GRANO_EMOJI[v.grano] ?? "",
+    direccionLabel: DIRECCION_VIEW_LABEL[v.direccion],
+    colorVar: DIR_COLOR_VAR[v.direccion],
+    confianza: v.confianza,
+    horizonte: v.horizonte,
+    fechaLabel: fechaAR(v.fecha),
+    tesis: v.tesis_md.replace(/\n{2,}/g, " "),
+    aFavor: v.argumentos.a_favor,
+    enContra: v.argumentos.en_contra,
+    accion: v.argumentos.accion,
+    invalidacion: v.invalidacion,
+  };
   return (
     <article className="vw-card" style={{ borderTopColor: color }}>
       <header className="vw-hd">
@@ -141,6 +158,7 @@ function ViewCard({ v, scorecard }: { v: ViewMercado; scorecard: ResumenGrano })
         <span className="vw-meta dim">
           <Confianza n={v.confianza} /> · {v.horizonte} · view del {fechaAR(v.fecha)}
         </span>
+        <ViewExportButton grano={v.grano} fecha={v.fecha} datos={datosExport} />
       </header>
 
       <Tesis md={v.tesis_md} />
@@ -200,13 +218,21 @@ function ViewCard({ v, scorecard }: { v: ViewMercado; scorecard: ResumenGrano })
         </div>
       )}
 
-      <ViewFeedback id={v.id} actual={v.feedback_lautaro} actualNota={v.nota_lautaro} />
+      {/* Solo admins ven/cargan el feedback (relevamiento 29/07, punto 30) — hoy la
+          página entera ya es admin-only, así que esto no cambia nada visible; el
+          día que se abra a clientes, el feedback queda oculto automáticamente sin
+          tocar nada más acá. */}
+      {esAdmin && <ViewFeedback id={v.id} actual={v.feedback_lautaro} actualNota={v.nota_lautaro} />}
     </article>
   );
 }
 
 export default async function ViewMesaPage() {
   await requireAdmin();
+  // La página entera ya es admin-only (arriba); esAdmin=true siempre hoy. Se pasa
+  // explícito para que, el día que se saque el requireAdmin() de la página, el
+  // feedback siga oculto sin tocar ViewCard (ver el comentario ahí).
+  const esAdmin = true;
   const [{ vigentes, historial, error }, scorecard] = await Promise.all([getViewsMercado(), getScorecard()]);
   const hayAlguno = GRANOS_VIEW.some((g) => vigentes[g] !== null);
 
@@ -260,7 +286,7 @@ export default async function ViewMesaPage() {
             <div className="vw-grid">
               {GRANOS_VIEW.map((g) => {
                 const v = vigentes[g];
-                return v ? <ViewCard key={g} v={v} scorecard={scorecard.porGrano[g]} /> : null;
+                return v ? <ViewCard key={g} v={v} scorecard={scorecard.porGrano[g]} esAdmin={esAdmin} /> : null;
               })}
             </div>
           </Panel>

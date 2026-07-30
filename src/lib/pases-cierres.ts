@@ -47,7 +47,15 @@ export type PaseGrano = {
 
 export type PasesData = { granos: PaseGrano[]; meta: Meta };
 
-export const getPases = cache(async (): Promise<PasesData> => {
+/**
+ * `liquidaSymbol`, si se pasa, filtra las posiciones candidatas ANTES de armar los
+ * pares — mismo criterio de liquidez que Arbitrajes (relevamiento 29/07, punto 26):
+ * si una posición se oculta allá (OI<100 sin operar hoy), no debe aparecer como pata
+ * de ningún pase acá. Depende de datos en vivo de A3 (`operoHoy`), por eso no vive
+ * adentro de esta lib pura — el caller (`pases-panel.tsx`) arma el predicado con
+ * `getFuturosLive()` y lo inyecta.
+ */
+export const getPases = cache(async (liquidaSymbol?: (symbol: string, openInterest: number | null) => boolean): Promise<PasesData> => {
   const [{ granos, meta }, vtos] = await Promise.all([getCierresGranos(), getVencimientos()]);
 
   type Pos = { symbol: string; posicion: string; settlement: number | null; close: number | null };
@@ -79,7 +87,10 @@ export const getPases = cache(async (): Promise<PasesData> => {
   const out: PaseGrano[] = [];
   for (const g of granos) {
     // Solo futuros con vencimiento (excluye disponible, venc = 0), ya en orden de vto.
-    const fut = g.posiciones.filter((p) => p.venc > 0);
+    // Sin `liquidaSymbol`, no se filtra por liquidez (comportamiento previo intacto).
+    const fut = g.posiciones
+      .filter((p) => p.venc > 0)
+      .filter((p) => !liquidaSymbol || liquidaSymbol(p.symbol, p.openInterest ?? null));
     const spreads: PaseSpread[] = [];
     // 1) Posición cercana (la primera viva) contra cada posición más lejana.
     const cercana = fut[0];

@@ -39,6 +39,9 @@
   --pos:#16A34A; --neg:#DC2626; --neu:#7E8C74;
   --pos-weak:rgba(22,163,74,.12); --neg-weak:rgba(220,38,38,.12);
   --focus:#2F6E34;
+  /* Valor cargado a mano en vez del automático (pizarra editada) — azul, deliberadamente
+     distinto de la paleta verde/oro de la marca (pedido explícito de Lautaro). */
+  --manual:#2563EB;
   /* Colores de campañas (validados con el validador dataviz, PASS 4/4 en ambos temas).
      El color sigue a la campaña SIEMPRE; la vigente se distingue por grosor, no color. */
   --camp-2020:#2A78D6; --camp-2021:#D96A2A; --camp-2022:#0891B2; --camp-2023:#B45309;
@@ -72,6 +75,7 @@
   --pos:#37D982; --neg:#FF5C5C; --neu:#8B9E85;
   --pos-weak:rgba(55,217,130,.14); --neg-weak:rgba(255,92,92,.14);
   --focus:#98CE66;
+  --manual:#5B9BFF;
   --camp-2020:#3987E5; --camp-2021:#D95926; --camp-2022:#0AA2C0; --camp-2023:#BE6A1C;
   --camp-2024:#DB639E; --camp-2025:#A55BEA; --camp-2026:#0FA38E; --camp-2027:#9085E9;
   --shadow:
@@ -372,9 +376,26 @@ table.tbl { width:100%; border-collapse:collapse; min-width:640px; }
 .grp-cell .gname { font-family:var(--font-ui); font-weight:700; font-size:var(--fs-xs);
   text-transform:uppercase; letter-spacing:.09em; color:var(--brand-deep); }
 .grp-cell .gmeta { font-family:var(--font-mono); font-size:var(--fs-2xs); color:var(--ink-2); }
+.grp-cell .gvol { margin-left:auto; white-space:nowrap; }
 .grp-cell .gglyph { display:flex; }
 .grp-cell .gglyph svg { width:15px; height:15px; }
+.grp-cell .gemoji { font-size:14px; line-height:1; }
+
+/* Toolbar de Arbitrajes: filtro de grano a la izquierda, oficial/BNA online a la
+   derecha, alineados con el nombre de los granos (relevamiento 29/07, punto 25). */
+.arb-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  gap:10px; margin-bottom:8px; }
+.arb-fx { display:flex; align-items:center; gap:12px; font-family:var(--font-ui);
+  font-size:var(--fs-xs); color:var(--ink-2); }
+.arb-fx b { font-family:var(--font-mono); color:var(--ink); }
 .pos { color:var(--pos); } .neg { color:var(--neg); } .neu2 { color:var(--neu); }
+
+/* "Mejor para hacer caja" — grano ganador recuadrado (relevamiento 29/07, punto 27) */
+tr.mc-win td { background:color-mix(in srgb, var(--gold) 10%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
+.mc-badge { font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--gold-text); background:color-mix(in srgb, var(--gold) 16%, transparent);
+  padding:1px 6px; border-radius:var(--r-chip); }
 
 .chip { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-weight:700;
   font-size:12px; padding:2px 7px; border-radius:var(--r-chip); min-width:74px; justify-content:flex-end; }
@@ -513,16 +534,18 @@ svg.cv { width:100%; height:auto; display:block; touch-action:pan-y; }
 .cv-legend .sw { width:14px; height:2px; border-radius:2px; background:var(--brand-deep); }
 .cv-legend .sw.g { width:8px; height:8px; border-radius:50%; background:var(--gold); }
 
-/* dólar futuro: gráfico + tabla lado a lado (apilan en mobile) */
-.df-split { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; padding:2px 2px 0; }
-.df-split > .df-chart { flex:1 1 300px; min-width:0; }
-.df-split > .df-table { flex:1.6 1 430px; min-width:0; }
+/* dólar futuro: tabla primero (central), gráfico grande debajo (relevamiento web,
+   punto 31 — antes gráfico+tabla lado a lado con una ChartTabla redundante) */
+.df-stack { display:flex; flex-direction:column; gap:18px; padding:2px 2px 0; }
+.df-stack > .df-table { min-width:0; }
+.df-stack > .df-chart { min-width:0; }
 
 /* panel cambiario / volumen */
-.cbo-head { padding:10px 16px 12px; }
+.cbo-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:26px; padding:10px 16px 12px; }
 .cbo-kpi { display:inline-flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
 .cbo-kpi .k { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3); font-weight:700; }
 .cbo-kpi .v { font-size:26px; font-weight:700; color:var(--ink); letter-spacing:-.01em; line-height:1; }
+.cbo-kpi + .cbo-kpi .v { font-size:20px; }
 .volcell { display:flex; align-items:center; gap:9px; }
 .vbar { position:relative; height:6px; border-radius:999px; flex:1; min-width:70px; overflow:hidden;
   background:color-mix(in srgb,var(--ink-3) 14%, transparent);
@@ -563,10 +586,17 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .ruedas { display:inline-flex; align-items:center; gap:9px; }
 .rueda-tag { display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono);
   font-size:var(--fs-xs); font-weight:600; color:var(--ink-2); white-space:nowrap; }
-.pz-input { width:74px; font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:700;
+.pz-input { width:80px; font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:700;
   color:var(--ink); background:var(--panel); border:1px solid var(--line-2); border-radius:5px;
-  padding:1px 5px; text-align:right; font-variant-numeric:tabular-nums; }
+  padding:2px 6px; text-align:right; font-variant-numeric:tabular-nums; }
 .pz-input:focus { outline:none; border-color:var(--brand-deep); }
+.pz-input.manual { color:var(--manual); border-color:var(--manual); }
+/* Mismo lenguaje azul-manual, pero para los `.calc-field input` del patrón `precio-dual`
+   (R4/R5) — bug real encontrado en R5: el className="manual" ya se aplicaba en 4 calcs
+   (porcentaje/diferido/arbitraje/planta) sin ninguna regla que lo pintara. */
+.calc-field input.manual { color:var(--manual); border-color:var(--manual); }
+.pz-input:disabled { opacity:.5; cursor:not-allowed; }
+.pz-dual { display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; }
 .pz-reset { margin-left:5px; cursor:pointer; border:none; background:none; color:var(--ink-3);
   font-size:var(--fs-xs); line-height:1; padding:0 2px; }
 .pz-reset:hover { color:var(--brand-deep); }
@@ -882,10 +912,72 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .calc-res-lbl { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
 .calc-res-val { font-family:var(--font-mono); font-size:26px; font-weight:700; font-variant-numeric:tabular-nums;
   color:var(--brand-deep); line-height:1.1; }
+.calc-res-val.rojo { color:var(--neg); }
 .calc-res-sub { font-family:var(--font-mono); font-size:var(--fs-2xs); color:var(--ink-2); }
 .calc-meta { display:flex; flex-direction:column; gap:3px; font-family:var(--font-mono);
   font-size:var(--fs-2xs); color:var(--ink-2); text-align:right; }
 .calc-meta b { color:var(--ink); font-weight:700; }
+/* Datos "más grandes/destacados" del relevamiento web (R4, puntos 39/40/41/43):
+   mismo bloque que .calc-meta, tamaño de texto normal en vez de fs-2xs. */
+.calc-meta-hl { font-size:14px; gap:6px; }
+.calc-meta-hl b { font-size:15px; }
+
+/* Desglose visual de "Negocios de planta" (relevamiento web R5, punto 47: "layout más
+   visual, más grande, no todo apilado al margen derecho") — tarjetas en grilla en vez
+   de una lista de texto chico pegada a la derecha de `.calc-out`. */
+.plt-breakdown { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:14px; }
+.plt-item { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+  display:flex; flex-direction:column; gap:4px; }
+.plt-item-lbl { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
+.plt-item-val { font-family:var(--font-mono); font-size:17px; font-weight:700; color:var(--ink); }
+.plt-item-val.tot { color:var(--neg); }
+/* Puntos de secada en modo "no fijo": un input por punto, desplegable dinámico. */
+.plt-puntos { display:flex; flex-wrap:wrap; gap:8px; }
+.plt-punto { display:flex; flex-direction:column; gap:3px; }
+.plt-punto span { font-size:var(--fs-2xs); color:var(--ink-3); font-weight:700; }
+.plt-punto input { width:76px; font-family:var(--font-mono); font-size:13px; padding:7px 9px;
+  border-radius:7px; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink); }
+/* Fila de "otros" repetible (+) */
+.plt-otros-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+.plt-otros-row .calc-field { flex:1 1 160px; }
+/* Toggle de moneda del resultado final (USD ⇄ $, dolarizando/pesificando con BNA). */
+.plt-moneda { display:inline-flex; gap:2px; margin-left:10px; background:var(--panel-2);
+  border:1px solid var(--line-2); border-radius:999px; padding:2px; vertical-align:middle; }
+.plt-moneda button { font-family:var(--font-mono); font-size:11px; font-weight:700; padding:3px 10px;
+  border-radius:999px; border:none; background:transparent; color:var(--ink-3); cursor:pointer; }
+.plt-moneda button[aria-pressed="true"] { background:var(--brand-deep); color:var(--panel); }
+
+/* Estrategias con opciones (relevamiento web R5, punto 45): glosario previo, selector
+   segmentado por categoría, explicación destacada, resumen grande en línea, "qué implica". */
+.strat-gloss { border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:var(--panel-2); }
+.strat-gloss > summary { cursor:pointer; padding:12px 16px; font-weight:700; font-size:14px; list-style:none; }
+.strat-gloss > summary::-webkit-details-marker { display:none; }
+.strat-gloss > summary::before { content:"▸ "; color:var(--gold-text); }
+.strat-gloss[open] > summary::before { content:"▾ "; }
+.strat-gloss-body { padding:0 16px 14px; max-height:420px; overflow-y:auto; }
+.strat-gloss-grp h4 { margin:14px 0 6px; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.06em; color:var(--gold-text); }
+.strat-gloss-grp:first-child h4 { margin-top:2px; }
+.strat-gloss-item { margin:0 0 8px; }
+.strat-gloss-item dt { font-weight:700; font-size:13px; color:var(--ink); }
+.strat-gloss-item dd { margin:2px 0 0; font-size:12.5px; color:var(--ink-2); line-height:1.4; }
+.strat-exp-main { padding:12px 16px; border-radius:9px; background:color-mix(in srgb, var(--brand-deep) 8%, transparent);
+  border:1px solid var(--gold-hair); font-size:15px; line-height:1.55; color:var(--ink); }
+.strat-exp-main .k { display:inline-block; margin-right:8px; padding:2px 9px; border-radius:999px;
+  background:var(--gold); color:var(--gold-ink); font-size:var(--fs-xs); font-weight:800; text-transform:uppercase; }
+.strat-implica { display:flex; flex-direction:column; gap:5px; margin:10px 0 0; padding:0; list-style:none; }
+.strat-implica li { font-size:13px; color:var(--ink-2); line-height:1.5; padding-left:16px; position:relative; }
+.strat-implica li::before { content:"—"; position:absolute; left:0; color:var(--gold-text); }
+.strat-resumen { display:flex; flex-wrap:wrap; gap:24px; padding:14px 16px; border-radius:9px;
+  background:var(--panel-3); border:1px solid var(--line-2); }
+.strat-resumen-item { display:flex; flex-direction:column; gap:3px; }
+.strat-resumen-lbl { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
+.strat-resumen-val { font-family:var(--font-mono); font-size:22px; font-weight:700; color:var(--ink); line-height:1.1; }
+.strat-resumen-val.pos { color:var(--pos); }
+.strat-resumen-val.neg { color:var(--neg); }
+.calc-hi { color:var(--gold-text); }
+.calc-warn { display:flex; align-items:center; gap:7px; padding:9px 12px; border-radius:8px;
+  background:color-mix(in srgb, var(--neg) 10%, var(--panel-3)); border:1px solid color-mix(in srgb, var(--neg) 30%, var(--line-2));
+  color:var(--neg); font-family:var(--font-ui); font-size:var(--fs-xs); font-weight:600; }
 .cell-in { font-family:var(--font-mono); font-size:12.5px; padding:4px 6px; border-radius:5px;
   border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink); width:100%; max-width:130px; }
 .cell-in.num { text-align:right; max-width:90px; }
@@ -958,11 +1050,18 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .gx-tip .gx-tip-h { font-weight:700; color:var(--ink); margin-bottom:4px; font-family:var(--font-mono); }
 .gx-tip-row { display:flex; align-items:center; gap:6px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
 .gx-tip-row .sw { width:8px; height:8px; border-radius:50%; }
-.gx-kpis { display:flex; flex-wrap:wrap; gap:16px; margin-top:10px; padding:10px 14px;
+/* R7 punto 48: KPIs más grandes, entre el gráfico y la tabla (ahora los renderiza
+   spread-chart.tsx en ese lugar exacto, vía la prop `kpis`). */
+.gx-kpis { display:flex; flex-wrap:wrap; gap:22px; margin:12px 0; padding:12px 16px;
   background:var(--panel-2); border:1px solid var(--line); border-radius:8px; }
-.gx-kpi { display:flex; flex-direction:column; gap:1px; }
+.gx-kpi { display:flex; flex-direction:column; gap:2px; }
 .gx-kpi .k { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; }
-.gx-kpi .v { font-family:var(--font-mono); font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; }
+.gx-kpi .v { font-family:var(--font-mono); font-size:21px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; }
+
+/* Fila "hoy" en la tabla de spread-chart.tsx cuando el eje es días-al-vto (R7 punto 48):
+   recuadro + tinte para distinguirla del resto del historial. */
+.ct-hoy td { background:color-mix(in srgb, var(--gold) 12%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); font-weight:700; }
 
 /* Presets agrupados por grano (calendar spreads de Lautaro) */
 .gx-preset-groups { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
@@ -1014,6 +1113,16 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .cam-BARLEY           { --org-c:#8A6D9E; }
 .cam-SORGHUM          { --org-c:#B06A4A; }
 .cam-SFSEED           { --org-c:#3E86A0; }
+
+/* R9: chart único de camiones (williams-chart.tsx) — toolbar de controles + histograma de empresas */
+.williams-chart { margin-top:6px; }
+.cam-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:14px 20px; margin-bottom:10px; }
+.emp-histo { display:flex; flex-direction:column; gap:7px; margin-top:6px; }
+.emp-histo-fila { display:grid; grid-template-columns:min(38%,160px) 1fr auto; align-items:center; gap:8px; }
+.emp-histo-nombre { font-size:var(--fs-xs); color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.emp-histo-barra-wrap { height:9px; border-radius:5px; background:var(--panel-3); overflow:hidden; }
+.emp-histo-barra { display:block; height:100%; border-radius:5px; background:var(--gold); }
+.emp-histo-valor { font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:700; text-align:right; min-width:3.5ch; }
 
 .cal-org { font-family:var(--font-mono); font-weight:700; font-size:var(--fs-2xs); letter-spacing:.04em;
   text-transform:uppercase; white-space:nowrap; padding:2.5px 7px; border-radius:var(--r-chip);
@@ -1370,7 +1479,11 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-hero-cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:32px 0 0; }
 .lp-btn-lg { width:auto; min-width:172px; padding:13px 26px; font-size:var(--fs-md); }
 .lp-btn-inline { margin-top:26px; }
-.lp-hero-foot { margin:18px 0 0; font-size:var(--fs-sm); color:var(--ink-3); }
+.lp-hero-foot { display:inline-flex; align-items:center; gap:8px; margin:22px auto 0; padding:8px 16px;
+  font-size:var(--fs-sm); font-weight:700; color:var(--gold-text); letter-spacing:.01em;
+  background:color-mix(in srgb, var(--gold) 12%, transparent); border:1px solid var(--gold-hair);
+  border-radius:999px; }
+.lp-hero-foot-dot { width:6px; height:6px; border-radius:999px; background:var(--gold); flex:0 0 auto; }
 
 /* --- Problema --- */
 .lp-pain { list-style:none; padding:0; margin:24px 0 0; display:grid; gap:12px;
@@ -1401,7 +1514,8 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-card-icon svg { width:22px; height:22px; }
 .lp-card-t { font-size:var(--fs-md); font-weight:800; color:var(--ink); margin:14px 0 7px; }
 .lp-card-p { font-size:var(--fs-base); line-height:1.55; color:var(--ink-2); margin:0; }
-.lp-services-foot { margin-top:26px; color:var(--ink-3); }
+.lp-services-foot { margin:26px auto 0; max-width:56ch; text-align:center; font-size:var(--fs-lg);
+  font-weight:700; line-height:1.5; color:var(--ink); }
 @media (max-width:900px){ .lp-services { grid-template-columns:1fr 1fr; } }
 @media (max-width:600px){ .lp-services { grid-template-columns:1fr; } }
 
@@ -1417,6 +1531,7 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-teaser-fade { position:absolute; left:0; right:0; bottom:0; height:64px; pointer-events:none;
   background:linear-gradient(to bottom, transparent, var(--panel)); }
 .lp-mock { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:14px; }
+.lp-mock-wide { grid-column:1 / -1; }
 .lp-mock-hd { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.08em; font-weight:800;
   color:var(--brand-deep); margin-bottom:10px; }
 .lp-mock-tbl { width:100%; border-collapse:collapse; font-size:var(--fs-xs); }
@@ -1673,6 +1788,19 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lu-h3 { font-family:var(--font-ui); font-size:var(--fs-xs); font-weight:800; letter-spacing:.07em;
   text-transform:uppercase; color:var(--ink-2); margin:22px 0 8px; }
 
+/* DJVE por familias (R8 punto 52) */
+.djve-head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px;
+  padding:8px 2px 14px; border-bottom:1px solid var(--line); margin-bottom:4px; }
+.djve-updated { font-size:var(--fs-xs); color:var(--ink-3); margin:0; }
+.djve-total { font-size:var(--fs-sm); color:var(--ink-2); margin:0; }
+.djve-total b { font-family:var(--font-mono); color:var(--ink); font-weight:800; }
+.djve-familia { margin:20px 0 4px; }
+.djve-familia-h { display:flex; align-items:baseline; gap:10px; font-family:var(--font-ui);
+  font-size:var(--fs-sm); font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--gold-text); margin:0 0 8px; }
+.djve-familia-tot { font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:700;
+  text-transform:none; letter-spacing:normal; color:var(--ink-3); }
+
 .lu-cambios { margin:16px 0 4px; padding:12px 14px;
   background:color-mix(in srgb, var(--gold) 6%, var(--panel-2)); border:1px solid var(--gold-hair); border-radius:10px; }
 .lu-cambios .lu-h3 { margin:0 0 8px; color:var(--gold-text); }
@@ -1688,6 +1816,19 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lu-cambios-ref { background:var(--panel-2); border-color:var(--line); }
 .lu-cambios-ref .lu-h3 { color:var(--ink-2); }
 .lu-mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+
+/* R10: drill-down por empresa en "Por producto"/"Por zona" (foto-operativa-client.tsx) */
+.lu-clickable { cursor:pointer; }
+.lu-clickable:hover td { background:var(--panel-2); }
+.lu-clic-ico { display:inline-block; width:1em; font-size:.8em; color:var(--gold-text); }
+.lu-drill td { background:var(--panel-2); font-size:var(--fs-xs); color:var(--ink-2);
+  border-top:none; padding-top:4px; padding-bottom:4px; }
+.lu-drill td.l { padding-left:26px; }
+
+/* R10: total por zona sobre el resultado filtrado de la tabla de buques */
+.lu-totzona { display:flex; flex-wrap:wrap; gap:8px 18px; margin:0 0 10px; font-size:var(--fs-xs);
+  color:var(--ink-2); }
+.lu-totzona-item b { color:var(--ink); font-weight:700; }
 
 .tbl tbody td.pos { color:var(--pos); font-variant-numeric:tabular-nums; }
 .tbl tbody td.neg { color:var(--neg); font-variant-numeric:tabular-nums; }
@@ -1747,10 +1888,12 @@ a.estim-inf:hover { color:var(--gold-text); }
   font-variant-numeric:tabular-nums; color:var(--ink);
 }
 .mon-tbl tbody td.mon-tn::before { content:""; }
-/* Subtítulo del bloque informativo (macro), separado con una regla fina. */
+/* Subtítulo del bloque informativo (macro), separado con una regla fina. Alineado
+   con el mismo inset que el contenido de la tabla de abajo (relevamiento 29/07,
+   punto 29 — antes arrancaba pegado al margen, sin padding-left). */
 .mon-sub-hd {
   font-family:var(--font-ui); font-size:9px; font-weight:800; text-transform:uppercase;
-  letter-spacing:.1em; color:var(--ink-3); margin:14px 0 6px; padding-top:10px;
+  letter-spacing:.1em; color:var(--ink-3); margin:14px 0 6px; padding:10px 0 0 12px;
   border-top:1px solid var(--line);
 }
 /* Unidad chica pegada al último precio del bloque macro. */
@@ -1779,6 +1922,17 @@ a.estim-inf:hover { color:var(--gold-text); }
   pointer-events:none; z-index:0; overflow:hidden; }
 .cm-marca img { width:55%; max-width:440px; min-width:170px; height:auto; opacity:.2; }
 :root[data-theme="dark"] .cm-marca img { opacity:.22; } /* el panel oscuro se traga un punto más */
+.cm-marca.chico img { width:32%; max-width:200px; min-width:110px; } /* charts de pocas columnas — ver chart-marca.tsx */
+
+/* Leyenda del gráfico combinado delta+TNA de "A fijar" (R4, punto 38: intentar
+   combinar antes de separar). Encima de la marca de agua (z-index implícito por
+   orden de DOM, .cm-marca es z-index:0). */
+.dt-legend { position:relative; z-index:1; display:flex; gap:16px; padding:0 4px 6px;
+  font-family:var(--font-ui); font-size:var(--fs-2xs); font-weight:600; color:var(--ink-2); }
+.dt-legend span { display:inline-flex; align-items:center; gap:5px; }
+.dt-sw { display:inline-block; width:11px; height:11px; border-radius:2px; }
+.dt-sw-bar { background:var(--pos); }
+.dt-sw-line { width:14px; height:2.5px; border-radius:2px; background:var(--gold-text); }
 
 /* Tabla de datos del gráfico (chart-tabla.tsx) — SIEMPRE visible bajo el chart.
    Scroll vertical propio (series largas) con header sticky (ya lo trae .tbl) y
@@ -1788,6 +1942,10 @@ a.estim-inf:hover { color:var(--gold-text); }
   font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.07em; font-weight:700;
   color:var(--ink-3); }
 .ct-hd .ct-n { margin-left:auto; font-family:var(--font-mono); font-weight:600; letter-spacing:.02em; }
+.ct-toggle { display:inline-flex; align-items:baseline; gap:5px; background:none; border:none; padding:0;
+  font:inherit; text-transform:inherit; letter-spacing:inherit; color:inherit; cursor:pointer; }
+.ct-toggle:hover { color:var(--ink); }
+.ct-toggle-ico { font-size:.85em; color:var(--gold-text); }
 .ct-scroll { overflow:auto; max-height:320px; border:1px solid var(--line); border-radius:8px;
   background:var(--panel); -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
 .ct-scroll:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
@@ -1824,6 +1982,10 @@ a.estim-inf:hover { color:var(--gold-text); }
 .vw-rel { font-size:var(--fs-2xs); font-weight:800; letter-spacing:.06em; text-transform:uppercase;
   border:1px solid currentColor; border-radius:99px; padding:1px 8px; }
 .vw-meta { font-size:var(--fs-xs); margin-left:auto; display:inline-flex; align-items:center; gap:6px; }
+.vw-export-btn { font-family:var(--font-ui); font-size:var(--fs-2xs); font-weight:700; cursor:pointer;
+  padding:3px 9px; border-radius:999px; border:1px solid var(--line-2); background:var(--panel);
+  color:var(--ink-2); }
+.vw-export-btn:hover { color:var(--gold-text); border-color:var(--gold-hair); }
 .vw-conf { display:inline-flex; gap:2px; vertical-align:middle; }
 .vw-conf i { width:7px; height:7px; border-radius:99px; background:var(--line-2); display:inline-block; }
 .vw-conf i.on { background:var(--gold); }

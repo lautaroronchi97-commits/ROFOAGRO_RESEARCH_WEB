@@ -15,7 +15,7 @@ export default async function DolarLinkedPage() {
   return (
     <main className="wrap">
       <div className="col">
-        <PageHead kicker="data912" title="Dólar linked" lede="TC implícito de cada bono/letra linked y su spread contra el oficial mayorista." />
+        <PageHead kicker="Mercado de deuda local" title="Dólar linked" lede="TC implícito de cada bono/letra linked y su spread contra el oficial mayorista." />
         <DolarLinkedPanel />
       </div>
     </main>

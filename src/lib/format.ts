@@ -71,3 +71,16 @@ export function horaCordoba(d: Date = new Date(), withSeconds = true): string {
     hour12: false,
   }).format(d);
 }
+
+/** Fecha + hora completa en Córdoba ("30/07 04:12") — para stamps que necesitan el día,
+ *  no solo la hora (relevamiento web R8, punto 52: DJVE quiere la fecha completa arriba). */
+export function fechaHoraCordoba(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Cordoba",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}

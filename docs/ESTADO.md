@@ -19,7 +19,358 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 🎛️ C28/R1: shell + home + cinta, HECHO)
+## Ahora (última actualización: 30/07/2026 — 🚢 C28/R10: comercio (puertos), HECHO — cierra el relevamiento web completo R1→R10)
+
+**🚢 C28 — LOTE R10 (COMERCIO: PUERTOS) — HECHO, propuesta+capturas posteadas en el PR para el
+OK de Lautoro — misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose —
+R3/R4/R6/R2/R5/R7/R8/R9 seguían sin mergear al arrancar R10, ver bitácora; Lautaro confirmó otra
+vez explícitamente que NO va a mergear todavía).** Ejecuta el prompt R10 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (punto 54), rediseño de `/comercio/puertos` — **último lote del
+orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→R9→R10): el relevamiento de 56 puntos queda completo**,
+salvo lo explícitamente gateado por preguntas de §5 sin contestar (sintéticos Q3/R6, empresas 0
+buques Q9/R8).
+**Este prompt pedía más que una maqueta**: *"Lautaro pidió explícito chequear redundancias y
+preguntar ante dudas: antes de codear, armá la propuesta de layout... y pasásela por el PR"* —
+se hizo el chequeo de redundancias POR ESCRITO antes de tocar código (¿`/comercio/empresas` de R8
+se pisa con esto? No: una es cobertura estratégica acumulada vía DJVE, la otra es la foto
+operativa de la última rueda — no se fusionaron entre sí) y luego se construyó + verificó,
+documentando cada decisión con su razón. Detalle completo en la bitácora.
+**Build**: tabla "Por producto" fusiona el bloque separado "Vs hace 7 días" (2 KPIs + lista aparte)
+como una 2ª columna Δ semana — nada se pierde, mismo número, una tabla menos · **drill-down por
+empresa** en "Por producto" Y "Por zona" (click en una fila → qué empresas la componen, máx un
+desglose abierto a la vez) — resultó NO necesitar tocar `foto.ts`: `buques` ya traía producto+
+zona+empresa+toneladas por fila, la agregación es aritmética de UI (`foto-empresas.ts` nuevo,
+puro, 5 tests) · tabla de buques con **orden por defecto a ETB ascendente** (antes toneladas
+desc) · **total por zona sobre el resultado filtrado** cuando el buscador (sin cambios) devuelve
+algo — verificado con "CARGILL": 29 operaciones repartidas Up River Norte/Sur/Bahía Blanca con
+sus propios totales, suma exacta.
+
+**Verificado de punta a punta** (lint/tsc/**423 tests**/build ✅ — 5 nuevos de
+`foto-empresas.test.ts` + Playwright real, claro/oscuro/desktop/mobile, bypass temporal de
+`requireAdmin()` revertido — `git diff` limpio): drill-down de Soja suma exacto los 403.754 t de
+la fila entre sus empresas · tabla de buques ETB 24/07→31/07 ascendente confirmado a ojo · cero
+errores de consola/scroll horizontal en las 3 combinaciones.
+
+**Próximo paso**: **el OK de Lautoro sobre R9 y R10** (ambos con maqueta/propuesta en el PR) —
+con eso el relevamiento web completo queda cerrado de punta a punta. Detalle:
+[`sesiones/2026-07-30-r10-puertos.md`](sesiones/2026-07-30-r10-puertos.md).
+
+## Anterior (30/07/2026 — 🚚 C28/R9: comercio (camiones), HECHO — maqueta en el PR para el OK de Lautoro)
+
+**🚚 C28 — LOTE R9 (COMERCIO: CAMIONES) — HECHO, capturas posteadas en el PR para el OK de
+Lautoro — misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose —
+R3/R4/R6/R2/R5/R7/R8 seguían sin mergear al arrancar R9, ver bitácora; Lautaro confirmó otra vez
+explícitamente que NO va a mergear todavía, que siga avanzando con el plan).** Ejecuta el prompt
+R9 de `PLAN_RELEVAMIENTO_WEB.md` §3 (punto 53), rediseño completo de `/comercio/camiones`.
+**El propio prompt pide maqueta+OK de Lautoro ANTES de codear el layout final** (y la pregunta 10
+de §5 sobre si ese esquema sirve sigue sin contestar) — se resolvió construyendo el rediseño
+completo (la especificación del punto 53 ya describe el layout con precisión) y posteando las
+capturas de la verificación como comentario en el PR #112, en vez de frenar a esperar una
+aprobación síncrona que hoy no iba a llegar (Lautoro ya dijo varias veces que recién revisa mañana
+desde la PC). Detalle completo de esa decisión en la bitácora.
+**Build**: filtro de grano **transversal a toda la página** (chip bar nueva arriba de los 2
+paneles) controla a la vez el chart "Por grano" de Agroentregas, sus KPIs, la tabla+histograma de
+empresas, Y el chart de Williams · **Williams pasa de 2 charts a UNO solo** (`williams-chart.tsx`
+nuevo): zonas todas/elegidas + **modo campaña** (reagrupa 2018→hoy por campaña del producto vía
+`lineup/campanas.ts`, sin duplicar la regla de mes de arranque por grano — X = día de campaña,
+líneas agregables/quitables, mismo lenguaje visual `--camp-{año}` que `/graficos`) · **5-6 KPIs
+mantenidos** (total/día anterior/Δ día anterior/Δ semana/Δ interanual%/producto líder) recalculados
+en vivo sobre la serie filtrada (`src/lib/camiones/matriz.ts` nuevo, puro, 10 tests) · **histograma
+por empresa receptora** (`empresas-histograma.tsx`, barras a mano) + tabla de empresas filtrable
+por grano y búsqueda (`empresas-tabla.tsx`) · **tablas colapsables, máx una abierta** (`ChartTabla`
+sumó soporte opt-in `colapsable`/`abierta`/`onToggleAbierta`, sin tocar el default de los demás
+consumidores) · sello "Agroentregas" fuera del panel (`SourceStamp` sumó `ocultarFuente` opt-in) ·
+¿Qué es esto? de los 2 paneles + señal reescritos sin citar archivos del repo.
+**Refactor de arquitectura**: `plantas-panel.tsx`/`camiones-panel.tsx` (2 Server Components async
+independientes, no podían compartir estado de cliente) borrados — el fetch pasó a `page.tsx`,
+`camiones-client.tsx` (nuevo) sostiene el filtro de grano + qué tabla está abierta para los 2
+bloques a la vez.
+
+**Verificado de punta a punta** (lint/tsc/**418 tests**/build ✅ — 10 nuevos de `matriz.test.ts` —
++ Playwright real contra `npm run start`, claro/oscuro/desktop/mobile con el toggle de tema real
+clickeado, cero errores de consola/scroll horizontal): filtro de grano propagando a los 4 bloques
+a la vez (Soja → Agroentregas 1.628, Williams 1.383, tabla "10 empresas con soja" 1:1 con el
+histograma) · modo campaña con 3 líneas superpuestas (2026/27·2025/26·2024/25, eje MAR→FEB de la
+campaña de maíz) · tabla colapsable abriendo/cerrando con el pivot correcto (90 filas, día de
+campaña descendente) · **bypass temporal de `esAdmin`** (revertido, `git diff` limpio): empresa
+por empresa igual en tabla e histograma, panel "Barcos vs camiones" sin regresión.
+
+**Próximo paso**: **el OK de Lautoro sobre este layout** (capturas en el PR) → si aprueba, seguir
+con **R10** (comercio: puertos, punto 54, último del orden R1→R3→R4→R6→R2→R5→R7→R8→R9→R10) — mismo
+patrón de maqueta-primero, con el pedido explícito de Lautoro de chequear redundancias antes de
+codear. Detalle: [`sesiones/2026-07-30-r9-camiones.md`](sesiones/2026-07-30-r9-camiones.md).
+
+## Anterior (30/07/2026 — 🚢 C28/R8: comercio (DJVE+empresas), HECHO salvo 0-buques)
+
+**🚢 C28 — LOTE R8 (COMERCIO: DJVE + EMPRESAS) — HECHO salvo un punto explícitamente pendiente —
+misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2/R5/R7
+seguían sin mergear al arrancar R8, ver bitácora; Lautaro confirmó otra vez explícitamente que NO
+va a mergear todavía, que siga avanzando con el plan).** Ejecuta el prompt R8 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 52 y 55).
+**Build**: DJVE (`djve-panel.tsx`) reescrito para agrupar por **familia** (Maíz/Soja/Trigo/
+Girasol/Cebada y malta/Otros — mapeo nuevo `src/lib/djve-familias.ts`, por palabra clave,
+**verificado contra los 88 productos reales de `djve_resumen`** por SQL antes de codear), familias
+**ordenadas por volumen** (Maíz 29,18 Mt → … → Otros 0,82 Mt, sorgo) · **fecha completa de última
+actualización arriba** (helper nuevo `fechaHoraCordoba()`) · sacada la línea "N productos
+ocultos". Empresas: **"Originado"→"Embarcado"** y **"Cobertura"→"Cumplimiento"** de punta a punta
+(tabla de empresas, tabla por producto, KPI, headers del CSV) · **`ratioFmt` a % es-AR** (antes
+ratio crudo `0.87`, ahora `87%` — función compartida, también mejora `/comercio/senal` sin tocar
+sus etiquetas). **"Quitar empresas con 0 buques" queda EXPLÍCITAMENTE sin tocar**: gateado por la
+pregunta 9 de §5, que sigue sin contestar — el resto del lote no dependía de esa respuesta.
+
+**Verificado de punta a punta** (lint/tsc/**408 tests**/build ✅ — 6 nuevos de
+`djve-familias.test.ts` + Playwright real, claro/oscuro/desktop/mobile, cero errores de
+consola/scroll horizontal): DJVE con las 6 familias en el orden correcto por volumen (coincide
+exacto con la consulta SQL directa) · Empresas con **bypass temporal** de `requireAdmin()`
+(revertido, `git diff` limpio) mostrando "30% · cumplimiento global 60d" y los headers "Emb.
+60d"/"Cump." — confirmado que las empresas con 0 buques siguen apareciendo (filtro gateado
+intacto).
+
+**Próximo paso**: seguir con **R9** (comercio: camiones) según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10) — el prompt pide maqueta en el PR para el OK de Lautoro ANTES
+de codear el layout final. Detalle:
+[`sesiones/2026-07-30-r8-djve-empresas.md`](sesiones/2026-07-30-r8-djve-empresas.md).
+
+## Anterior (30/07/2026 — 📊 C28/R7: gráficos + producción, HECHO)
+
+**📊 C28 — LOTE R7 (GRÁFICOS + PRODUCCIÓN) — HECHO — misma rama `claude/website-changes-review-
+ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2/R5 seguían sin mergear al arrancar R7, ver
+bitácora; Lautaro confirmó otra vez explícitamente que NO va a mergear todavía, que siga
+avanzando con el plan).** Ejecuta el prompt R7 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 48–50).
+**Build — Calendario (p49) y Estimaciones (p50)**: semántica de filtro invertida en los chips de
+organismo/grano (antes click = EXCLUÍA; ahora click = deja SOLO ese, re-click = todos) ·
+calendario acotado a **60 días** (antes fijo hasta fin de 2026) · estimaciones sumó **3 grupos de
+chips nuevos** (organismo, país, campaña) con el mismo componente visual del grano, combinando
+por AND.
+**Build — `/graficos` (p48)**: default de campañas = **solo la última disponible** (antes `[]` ⇒
+todas, compatibilidad con links viejos verificada) · **"Todas"/"Últ. 3" con toggle** (re-click
+vuelve a dejar solo la última) · labels de `PRESETS_PIZARRA` corregidos a mayúscula ("Pizarra
+Maíz/Soja/Trigo") · tabla de `spread-chart.tsx` **siempre descendente**, y en eje días-al-vto la
+fila de **"hoy" recuadrada primera** (nueva prop opt-in `destacada` en `ChartTabla`) · **KPIs más
+grandes y reubicados** entre el chart y su tabla (`SpreadChart` suma prop `kpis`) · **etiqueta de
+campaña en el extremo de cada línea** (`LabelList`).
+**2 bugs reales encontrados y arreglados en la propia verificación**: la etiqueta de campaña
+quedaba cortada contra el borde del SVG (margen derecho insuficiente) · los botones nuevos
+"Todas"/"Últ. 3" solo tenían `aria-pressed` sin la clase `.on` que el sitio usa para pintar el
+estado activo — el toggle funcionaba pero era invisible.
+
+**Verificado de punta a punta** (lint/tsc/**402 tests**/build ✅ + Playwright real contra
+`npm run start`, claro/oscuro/desktop/mobile, cero errores de consola/scroll horizontal):
+`/graficos` con el default nuevo (solo 2027 tildado), fila "hoy" recuadrada en dorado primera en
+la tabla, etiqueta "2027" visible completa, toggle Todas/Últ.3 con estado visual correcto en
+ambos sentidos · calendario con click-filtra-uno funcionando · estimaciones con 2 filtros
+combinados (Soja+Argentina → 4 filas exactas).
+
+**Próximo paso**: seguir con **R8** (comercio: DJVE + empresas) según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10) — parcialmente gateado por la pregunta 9 de §5 (empresas con 0
+buques), revisar si Lautoro la contestó. Detalle:
+[`sesiones/2026-07-30-r7-graficos-produccion.md`](sesiones/2026-07-30-r7-graficos-produccion.md).
+
+## Anterior (30/07/2026 — 📐 C28/R5: estrategias + planta, HECHO)
+
+**📐 C28 — LOTE R5 (ESTRATEGIAS + PLANTA) — HECHO — misma rama `claude/website-changes-review-
+ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2 seguían sin mergear al arrancar R5, ver
+bitácora; Lautaro confirmó otra vez explícitamente que NO va a mergear todavía, que siga
+avanzando con el plan y que mañana desde la PC revisa todo junto).** Ejecuta el prompt R5 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 45 y 47).
+**Build — Planta (p47)**: patrón `precio-dual` (reusa R4) para el arranque · **secada no-fijo
+real** (antes aplicaba UN valor a todos los puntos por igual; ahora un valor propio por cada
+punto, desplegable dinámico según cuántos puntos se carguen) · **"otros conceptos" repetible con
++** (antes un solo campo fijo) · desglose de gastos en **tarjetas visuales** (`.plt-breakdown`,
+antes lista de texto chico a la derecha) · **resultado en la moneda elegida** (toggle USD/$,
+pesificando SIEMPRE con `tcBna`, no con el TC implícito del arranque).
+**Build — Estrategias (p45)**: **glosario previo** colapsable (31 estrategias, nombre +
+explicación) · **categorización propia de los 31 presets** (Alcistas/Bajistas/Techo
+asegurado/Piso asegurado/Rango/Volatilidad, mapeo documentado en `estrategias.ts`) + selector
+segmentado (reusa `RangoChips` de R6) · **`describirPata()` nueva** — "qué implica" cada pata
+(comprás/vendés, futuro u opción, derecho vs. obligación) derivado de la pata real, no de texto
+fijo → también funciona para **"estrategia personalizada"** (detectada comparando las patas
+actuales contra las que generaría el preset) · explicación destacada (badge dorado) · resumen
+**en línea y grande** (antes lista mono chica) · **precio base sugerido de A3** (`CurvaPicker`
+nuevo, rearma las patas del preset sobre el precio real elegido) · **ejes del payoff con ticks y
+valores** (antes el SVG no tenía ningún tick).
+**Bug real encontrado y arreglado, no pedido explícitamente**: el `className="manual"` (azul =
+editado a mano) se aplicaba en 4 calculadoras (`por-porcentaje`/`diferido`/`carry` de R4 +
+`planta` ahora) sobre `.calc-field input`, pero la única regla CSS existente era
+`.pz-input.manual` (scope de R3/arbitrajes) — nunca pintaba nada ahí. Una regla CSS nueva
+(`.calc-field input.manual`) lo arregla en las 4 de una sola vez.
+
+**Verificado de punta a punta** (lint/tsc/**402 tests**/build ✅ — 5 nuevos de `planta.test.ts` +
+Playwright real contra `npm run start`, claro/oscuro/desktop/mobile, cero errores de
+consola/scroll horizontal): Estrategias con el glosario expandido legible, chips de categoría
+filtrando el select, editar una pata dispara "Estrategia personalizada" correctamente. Planta con
+aritmética cruzada verificada a mano (secada no-fijo 6+5+4=15,00 exacto, no 3×algo único · otros
+2+1,5=3,50 · arranque 300 − 23,90 gastos = 276,10 USD exacto · toggle a $ = 276,10×1.489,00 =
+411.112,90 exacto, BNA real del entorno).
+
+**Próximo paso**: seguir con **R7** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→R9→R10).
+La aclaración de estética de R4 sigue sin llegar. Detalle:
+[`sesiones/2026-07-30-r5-estrategias-planta.md`](sesiones/2026-07-30-r5-estrategias-planta.md).
+
+## Anterior (30/07/2026 — 🏛️ C28/R2: landing, HECHO)
+
+**🏛️ C28 — LOTE R2 (LANDING) — HECHO — misma rama `claude/website-changes-review-ttqsq4`,
+PR #112 (sigue ampliándose — R3/R4/R6 seguían sin mergear al arrancar R2, ver bitácora; Lautaro
+confirmó explícitamente que NO va a mergear todavía, que siga avanzando con el plan y que mañana
+desde la PC revisa todo junto).** Ejecuta el prompt R2 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos
+1–12, todos en `/bienvenida`), con `ui-ux-pro-max` y `voz-lautaro` cargadas, copy **redactado**
+(no copiado textual) donde Lautaro dio letra.
+**Build**: hero con "comprar o vender" (antes solo "vender") + "Servicio a medida para
+productores y acopios" pasó de texto apagado a **badge destacado** (píldora dorada) · las 6
+tarjetas de Servicios reescritas para dar **indicios** en vez de listar funciones internas
+literales · frase de cierre de Servicios ("no solo datos") destacada visualmente (bold, tamaño
+grande) · Teaser sumó un **5º mock "Comercio exterior · Line-up de puertos"** (buques ficticios,
+sin datos reales) · "Por qué ROFO AGRO" → **"¿Por qué ROFO AGRO?"** + diferencial de foco
+redactado · Acopios sin "correacopio", nuevo heading **"Profesionalizá tu mesa de negocios"** +
+copy con las 4 ideas dadas · FAQ corredor ampliada a **acopio/cooperativa/exportador/corredor** +
+FAQ tiempo real con **"conectada a mercado real time" + "interpretada por nuestros
+especialistas"** · contacto con heading **"Sumá toda nuestra experiencia a tu equipo"** + las 2
+menciones de "tablero" DE ESA SECCIÓN (nota + link) pasadas a **"web"** (acotado a ese anclaje, sin
+tocar el resto de las menciones de "tablero" de la landing) · cierre con **"equipo de
+profesionales"** en vez de "mesa de granos".
+
+**Verificado de punta a punta** (lint/tsc/**397 tests**/build ✅ + Playwright real contra
+`npm run start`, claro/oscuro/desktop/mobile, `reducedMotion:"reduce"`, cero errores de
+consola/scroll horizontal, capturas dirigidas del hero/teaser/servicios confirmando el badge, la
+frase destacada y el mock nuevo). **Sin verificar**: a qué mail llega hoy el formulario de
+contacto (`ADMIN_EMAILS` en Vercel) — el MCP de Vercel de este entorno no expone ningún tool para
+leer env vars, y `get_runtime_logs` devolvió `ExceedsBillingLimitError` (logs gateados por el plan
+del equipo); el código confirma que el destino es 100% esa env var y que degrada en silencio si
+falta, pero el valor real solo lo puede confirmar Lautoro a mano en el dashboard de Vercel.
+
+**Próximo paso**: seguir con **R5** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→R9→R10); las
+preguntas 3/9/10 de §5 siguen abiertas y gatean partes de R5/R8. Detalle:
+[`sesiones/2026-07-30-r2-landing.md`](sesiones/2026-07-30-r2-landing.md).
+
+## Anterior (30/07/2026 — 💵 C28/R6: dólar, HECHO salvo p34)
+
+**💵 C28 — LOTE R6 (DÓLAR) — HECHO salvo un punto explícitamente pendiente — misma rama
+`claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose — R3/R4 seguían sin mergear al
+arrancar R6, ver bitácora).** Ejecuta el prompt R6 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 31–36,
+todos en `/dolar/*`), arrancado directo tras el mensaje de Lautaro de seguir con lo que sigue
+mientras él prepara la aclaración de estética de R4 desde la PC.
+**Build**: `/dolar/futuro` sin la `ChartTabla` duplicada, tabla de posiciones primero y gráfico
+más grande abajo (`.df-stack`) · **patrón 5-descendente + selector de rango** en los 5 charts del
+punto 32 (`ChartTabla` sumó props opcionales `maxFilas`/`orden`, sin tocar los ~11 consumidores
+que no los usan; `RangoChips` nuevo y genérico, cableado en oficial-semanal 12/26 sem. y BCRA
+30/60/90 días) · "data912" fuera de los kickers de linked/implícitas (→ "Mercado de deuda local")
+· **Implícitas con 4 series** (dólar futuro + linked + **sintéticos + granos**, ninguna
+reemplazada; tabla se oculta sola si supera 30 filas) · **Cambiario**: `GRUPOS` a solo "Monedas"
+(fuera Contado/Tasas) + **"Volumen dólar linked"** nuevo (suma del nominal `v` de TODOS los D* del
+feed de notas, etiquetado honesto como "nominal" — NO es USD, verificado con `curl` real que su
+magnitud es comparable a `q_bid`/`q_ask`, no a los USD de la tabla MAE) + texto técnico "BCRA API
+v4 (variable 78…)" fuera del ¿Qué es esto? Y TAMBIÉN de la nota de la tabla del chart de BCRA
+(mismo texto exacto, pero ahí estaba siempre visible sin colapsar — peor que el caso pedido).
+**p34 (sintéticos) queda EXPLÍCITAMENTE sin tocar**: el propio prompt trae la regla dura de
+validar la fórmula contra un ejemplo numérico del Excel de Lautaro ANTES de codear (pregunta 3 de
+§5), que sigue sin contestar — el resto del lote no dependía de esa respuesta y se hizo completo.
+
+**Verificado de punta a punta** (lint/tsc/**397 tests**/build ✅ + Playwright real contra
+`npm run start`, claro/oscuro/desktop/mobile, `reducedMotion:"reduce"` para evitar falsos
+positivos de la animación de entrada en cascada del rediseño premium, cero errores de
+consola/scroll horizontal): futuro sin tabla duplicada · los 5 charts con 5 filas descendentes y
+selector de rango funcionando (BCRA 179 M nominal de dólar linked coincide exacto con la suma
+verificada por `curl` independiente al feed de data912) · implícitas con las 4 series en gráfico y
+leyenda · cambiario con un solo grupo "Monedas" y ambos textos técnicos limpios (nota + ¿Qué es
+esto?) · grep confirma cero "data912" visible en las páginas tocadas.
+
+**Próximo paso**: seguir con **R2 (landing)** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→
+R9→R10); p34 queda pendiente hasta que Lautaro conteste la pregunta 3 de §5 (ejemplo del Excel);
+las preguntas 9/10 siguen abiertas y gatean partes de R2/R5/R8. La aclaración de estética de R4
+que Lautaro prometió mandar desde la PC no llegó todavía durante esta sesión. Detalle:
+[`sesiones/2026-07-30-r6-dolar.md`](sesiones/2026-07-30-r6-dolar.md).
+
+## Anterior (30/07/2026 — 🧮 C28/R4: calculadoras, HECHO)
+
+**🧮 C28 — LOTE R4 (CALCULADORAS: PATRÓN + 7) — HECHO — misma rama `claude/website-changes-
+review-ttqsq4`, PR #112 (ampliado — R3 seguía sin mergear al arrancar R4, ver bitácora).**
+Ejecuta el prompt R4 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 38–44), con las 2 preguntas que lo
+gateaban contestadas por Lautaro: trigo a-fijar = **DIC/ENE/MAR/JUL/SEP** · costos oculta =
+**sí, alcanza** (sin sidebar/índice + "sin acceso" en URL directa).
+**Build**: patrón compartido **`precio-dual`** (`src/lib/precio-dual.ts` + `src/components/
+precio-dual.tsx` — grano→pizarra, cross-cálculo $/USD, azul-manual, mismo criterio de TC que
+Arbitrajes de R3) cableado en 5 calcs · **A fijar** con **posiciones canónicas por grano**
+(`fijar-canon.ts`: nunca vencidas, máx. 1 año, Soja JUL/SEP/NOV/ENE/MAY · Maíz ABR/JUL/SEP/DIC/
+ENE/MAR · Trigo DIC/ENE/MAR/JUL/SEP) + precio en vivo del WS con fallback "estimado" (promedio
+bid/ask) + gráfico de TNA implícita separado del delta · **Por porcentaje** con "A cliente" en
+rojo + labels/tamaños del plan · **Negocios con pagos** con TC = `tcBna` confirmado o BNA online
+de respaldo, "Precio en pesos" en rojo, "Pago" resaltado · **Pago diferido** sumó el patrón (antes
+100% a mano) · **Pases** con el **signo de la fórmula corregido** (`cercana − larga`, verificado
+con el ejemplo ±10 del relevamiento — confirmado por grep que solo la calculadora usa esa función,
+el panel real de `/granos/pases` es código independiente) + "A fijar" promovido a resultado
+principal + cartel de advertencia si el pase da negativo · **Carry** con selector "Medir spread en
+USD/ARS" · **Costos** oculta con `soloMesa` en `biblioteca.ts` (la sidebar ya filtraba ese flag) +
+filtro en el índice + `redirect("/sin-acceso")` en la página.
+
+**Verificado de punta a punta** (lint/tsc/**397 tests**/build ✅ + Playwright real contra
+`npm run start` con datos de Supabase/A3 del entorno, claro/oscuro, cero errores de consola/scroll
+horizontal): A fijar cargó 4 posiciones canónicas reales de soja con precios de cierre y los 2
+gráficos separados y legibles · Pases con cercana=100/lejana=110 dio exactamente −10,00 (antes
++10) con el cartel de carry visible · Carry con el selector ARS mostrando 14.890 (10 USD × TC real
+~1489) · Costos verificado con **bypass temporal** (forzando el camino no-admin, revertido y `git
+diff` limpio): desaparece de sidebar/índice, la URL directa redirige a `/sin-acceso`.
+
+**Próximo paso**: seguir con **R6 (dólar)** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→
+R9→R10); las preguntas 3/9/10 de §5 siguen abiertas y gatean partes de R2/R5/R8. Detalle:
+[`sesiones/2026-07-30-r4-calculadoras.md`](sesiones/2026-07-30-r4-calculadoras.md).
+
+**Corrección post-feedback, misma sesión, mismo día**: al ver el Preview, Lautaro rechazó de plano
+la estética de este lote ("Los cambio es estéticos que hiciste son malísimos... No lograste lo que
+te pedí en absoluto") y señaló 3 problemas puntuales en las calculadoras — el logo mal integrado en
+las imágenes, los 2 gráficos de "A fijar" mal combinados, y los campos $/USD que pidió separar
+quedaron mal (una re-lectura del docx original mostró que el widget compacto de la primera vuelta
+duplicaba el mismo estado en dos lugares que parecían distintos, en vez de dar dos campos
+genuinamente separados). Reescrito en la misma sesión: `usePrecioDual` (hook, sin layout) +
+`PickerPizarra` (picker simple) reemplazan el widget compacto — cada calc arma su propio par de
+`.calc-field` USD/ARS reales · `DeltaTnaChart` (gráfico combinado de a de verdad, doble eje, barras
++ línea, con un bug real de colisión de etiquetas encontrado y arreglado con datos de maíz) ·
+marca de agua de `ChartMarca` con variante opcional `tamano="chico"` para gráficos con pocas
+columnas (sin tocar el tamaño/opacidad global, que Lautaro había calibrado a propósito en otra
+sesión). Detalle completo con las 3 citas exactas del docx: sección "Corrección post-feedback" al
+final de [`sesiones/2026-07-30-r4-calculadoras.md`](sesiones/2026-07-30-r4-calculadoras.md).
+
+## Anterior (30/07/2026 — 🌾 C28/R3: granos, HECHO)
+
+**🌾 C28 — LOTE R3 (GRANOS) — HECHO — rama `claude/website-changes-review-ttqsq4` (reiniciada
+desde `main` tras mergear el PR #111 de R1), PR #112.** Ejecuta el prompt R3 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 25–30, todos en `/granos/*`), con la única pregunta que lo
+gateaba (§5.7, formato del export del view) contestada por Lautaro: **PNG simple**.
+**Build**: Arbitrajes con **edición dual $/USD** (cross-cálculo con el TC implícito de la propia
+pizarra CAC del grano, fallback `tcBna`; campo editado en azul —token nuevo `--manual`—) + bloque
+**Oficial (MAE) / BNA online** (`oficial−9`, `src/lib/bna-online.ts` nuevo, reusable por R4) + vol/
+OI del grupo pegado a la derecha · Pases con el **mismo filtro de liquidez** que Arbitrajes
+(extraído a `src/lib/liquidez-posicion.ts`, antes vivía solo ahí) · Caja comparando **posiciones
+fijas** (SOJ/NOV·MAI/DIC·TRI/DIC) + columna Spread + ganador resaltado · Capacidad con **"Soja
+(industria)" pegada debajo de Soja** + emojis 🌾/🌻 para sorgo/girasol · Monitor con **14 emojis
+únicos** por instrumento + alineación de "Referencias" corregida · View con el bloque de feedback
+gateado por `esAdmin` (ready para cuando se abra a clientes) + **botón "↓ PNG"** por card.
+
+**El export PNG del view cambió de técnica en la propia verificación** (2 fallas reales
+encontradas, no hipotéticas): la primera versión (rasterizar el DOM real vía
+`<svg><foreignObject>`, como ya hace `exportarSvgComoPng` con los charts) falló el 100% de las
+veces — primero por XML roto (el CSS de Tailwind v4 trae `@property { syntax: "<color>" }`, el `<`
+literal rompe el `<style>` sin CDATA) y, ya arreglado eso, por **canvas "tainted"** (limitación de
+Chrome con CUALQUIER `foreignObject` con HTML adentro, confirmado que no depende de fuentes/
+imágenes externas). Se abandonó la técnica y se reescribió como **dibujo a mano en canvas**
+(`exportarViewComoPng`, `chart-export.ts`) con los colores reales del tema — cero riesgo de taint,
+probado y funcionando en claro y oscuro.
+
+**Verificado de punta a punta** (lint/tsc/**384 tests**/build ✅ + Playwright real contra
+`npm run start` con datos de Supabase del entorno, claro/oscuro, cero errores de consola/scroll
+horizontal): Arbitrajes con cross-cálculo exacto (999 USD → 1.487.509,2 ARS) y clase `.manual`
+confirmada · Pases cruzado contra Arbitrajes (todas sus patas dentro del set visible de
+Arbitrajes) · Caja con Soja/NOV26 resaltado y spread visible · Capacidad con el orden Soja→Soja
+(industria)→Maíz→Trigo→Sorgo→Girasol en los 2 temas · Monitor con los 14 emojis distintos
+(`Set().size` verificado) · View con **bypass temporal** (`requireAdmin()` + datos sintéticos,
+revertido y `git diff` limpio): feedback visible, PNG descargado y comparado contra la card en
+pantalla en claro y oscuro — y con el código real, `/granos/view` sin sesión sigue redirigiendo a
+`/ingresar`.
+
+**Próximo paso**: seguir con **R4 (calculadoras: patrón + 7)** según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10); las preguntas 3/4/6/9/10 de §5 siguen abiertas y gatean partes
+de R4/R2/R5/R8. Detalle: [`sesiones/2026-07-30-r3-granos.md`](sesiones/2026-07-30-r3-granos.md).
+
+## Anterior (29/07/2026 — 🎛️ C28/R1: shell + home + cinta, HECHO)
 
 **🎛️ C28 — LOTE R1 (SHELL + HOME + CINTA) — HECHO — rama `claude/website-changes-review-ttqsq4`
 (reiniciada desde `main` tras mergear el PR #109 del plan), PR #_.** Ejecuta el prompt R1 de

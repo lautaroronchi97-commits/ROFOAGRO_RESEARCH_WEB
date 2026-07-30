@@ -47,7 +47,7 @@ export async function EmpresasPanel() {
       <PanelHead
         glyph={<IconEmpresa />}
         title="Empresas exportadoras"
-        sub={`Cobertura al ${ddmm(fecha)} · DJVE vs line-up`}
+        sub={`Cumplimiento al ${ddmm(fecha)} · DJVE vs line-up`}
         stamp={<SourceStamp meta={data.meta} />}
       />
 
@@ -62,21 +62,21 @@ export async function EmpresasPanel() {
         </div>
         <div className="lu-kpi">
           <span className="lu-kpi-v">{ratioFmt(totOrig / (totDecl || 1))}</span>
-          <span className="lu-kpi-l">cobertura global 60d</span>
+          <span className="lu-kpi-l">cumplimiento global 60d</span>
         </div>
       </div>
 
-      <h3 className="lu-h3">Gap de cobertura por producto · foto forward 60 días</h3>
-      <p className="lu-nota">Lo declarado en DJVE para embarcar en los próximos 60 días vs lo que ya está en el line-up. Cobertura baja = corto = presión compradora (alcista FAS).</p>
+      <h3 className="lu-h3">Gap de cumplimiento por producto · foto forward 60 días</h3>
+      <p className="lu-nota">Lo declarado en DJVE para embarcar en los próximos 60 días vs lo que ya está en el line-up. Cumplimiento bajo = corto = presión compradora (alcista FAS).</p>
       <div className="table-scroll">
         <table className="tbl" style={{ minWidth: 620 }}>
           <thead>
             <tr>
               <th className="l" scope="col">Producto</th>
               <th scope="col">Declarado 60d</th>
-              <th scope="col">Originado 60d</th>
+              <th scope="col">Embarcado 60d</th>
               <th scope="col">Falta</th>
-              <th scope="col">Cobertura</th>
+              <th scope="col">Cumplimiento</th>
               <th className="l" scope="col">Señal</th>
             </tr>
           </thead>
@@ -123,7 +123,7 @@ export async function EmpresasPanel() {
       </div>
       <p className="lu-nota lu-mono">Nueva = campaña {productos[0]?.campNueva ?? "—"} · Vieja = {productos[0]?.campVieja ?? "—"} (varía por grano).</p>
 
-      <h3 className="lu-h3">Empresas · cobertura, avance y ritmo</h3>
+      <h3 className="lu-h3">Empresas · cumplimiento, avance y ritmo</h3>
       <EmpresasTabla empresas={empresas} fecha={fecha} />
       {transitoTotal > 0 && (
         <p className="lu-nota">Tránsito Paraguay/Uruguay excluido del gap (no tiene DJVE argentina): <b>{nfmt(transitoTotal, 0)} t</b> en el último line-up.</p>

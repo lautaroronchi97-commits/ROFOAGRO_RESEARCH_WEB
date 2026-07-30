@@ -40,6 +40,8 @@ export type FilaEmpresa = {
   share: number; // % del total del día
   plantas: { planta: string; cantidad: number }[];
   granoLider: { display: string; cantidad: number } | null;
+  /** Apertura por grano (mayor a menor) — sostiene el filtro "por grano" de la tabla/histograma. */
+  porGrano: { cod: ProductoAgroentregas; display: string; cantidad: number }[];
 };
 
 export type PlantasData = {
@@ -177,11 +179,13 @@ export const getCamionesPlantas = cache(async (): Promise<PlantasData> => {
   const porEmpresa: FilaEmpresa[] = [...porEmpresaMap.entries()]
     .map(([empresa, e]) => {
       let lider: FilaEmpresa["granoLider"] = null;
+      const porGrano: FilaEmpresa["porGrano"] = [];
       for (const [cod, cantidad] of e.granos) {
-        if (lider == null || cantidad > lider.cantidad) {
-          lider = { display: DISPLAY[cod as ProductoAgroentregas] ?? cod, cantidad };
-        }
+        const display = DISPLAY[cod as ProductoAgroentregas] ?? cod;
+        porGrano.push({ cod: cod as ProductoAgroentregas, display, cantidad });
+        if (lider == null || cantidad > lider.cantidad) lider = { display, cantidad };
       }
+      porGrano.sort((a, b) => b.cantidad - a.cantidad);
       return {
         empresa,
         cantidad: e.cantidad,
@@ -190,6 +194,7 @@ export const getCamionesPlantas = cache(async (): Promise<PlantasData> => {
           .map(([planta, cantidad]) => ({ planta, cantidad }))
           .sort((a, b) => b.cantidad - a.cantidad),
         granoLider: lider,
+        porGrano,
       };
     })
     .sort((a, b) => b.cantidad - a.cantidad);

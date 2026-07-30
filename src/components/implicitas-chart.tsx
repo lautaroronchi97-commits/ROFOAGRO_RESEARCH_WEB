@@ -37,7 +37,7 @@ export function ImplicitasChart({ series }: { series: Serie[] }) {
   return (
     <div className="ic-wrap">
       <ChartMarca />
-      <svg viewBox={`0 0 ${W} ${H}`} className="ic" role="img" aria-label="Tasas implícitas por plazo: dólar futuro, dólar linked y granos">
+      <svg viewBox={`0 0 ${W} ${H}`} className="ic" role="img" aria-label="Tasas implícitas por plazo: dólar futuro, dólar linked, sintéticos y granos">
         {yTicks.map((t, k) => (
           <g key={k}>
             <line className={Math.abs(t) < 1e-9 ? "ic-zero" : "ic-grid"} x1={pad.l} y1={Y(t)} x2={W - pad.r} y2={Y(t)} />

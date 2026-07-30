@@ -3,9 +3,10 @@
 import * as React from "react";
 import { Panel, PanelHead } from "./panel";
 import { nfmt, numDeInput as num } from "@/lib/format";
-import { VALOR_PUNTO_FIJO, calcularPlanta } from "@/lib/planta";
-
-export type PizarraProducto = { underlying: string; nombre: string; usd: number | null };
+import { arsDesdeUsd } from "@/lib/precio-dual";
+import { usePrecioDual } from "./use-precio-dual";
+import { PickerPizarra, type GranoPizarraDual } from "./precio-dual";
+import { VALOR_PUNTO_FIJO, calcularPlanta, type OtroItem } from "@/lib/planta";
 
 /** 0 si está vacío o no es válido (para los rubros que se restan). */
 function n0(v: string): number {
@@ -23,105 +24,113 @@ function IconPlanta() {
   );
 }
 
-export function CalcPlanta({ pizarra = [] }: { pizarra?: PizarraProducto[] }) {
-  const [pi, setPi] = React.useState(0);
-  const sel = pizarra[Math.min(pi, Math.max(0, pizarra.length - 1))];
-  const pizarraUsd = sel?.usd ?? null;
+type OtroStr = { label: string; valor: string };
 
-  const [precio, setPrecio] = React.useState(() => (pizarra[0]?.usd != null ? String(pizarra[0].usd) : ""));
+/**
+ * Calculadora "Negocios de planta" (relevamiento web R5, punto 47): patrón
+ * `precio-dual` para el arranque (reusa R4) · secada fijo/no-fijo con un valor
+ * por punto en modo "no fijo" (desplegable dinámico según cuántos puntos) ·
+ * "otros" repetible con botón + · desglose en tarjetas visuales · resultado en
+ * la moneda elegida, dolarizando/pesificando siempre con el BNA del día.
+ */
+export function CalcPlanta({
+  pizarra = [],
+  tcBna,
+}: {
+  pizarra?: GranoPizarraDual[];
+  tcBna: number | null;
+}) {
+  const pd = usePrecioDual(tcBna);
+
   const [flete, setFlete] = React.useState("");
   const [secadaModo, setSecadaModo] = React.useState<"fijo" | "libre">("fijo");
   const [puntos, setPuntos] = React.useState("1");
   const [valorPunto, setValorPunto] = React.useState(String(VALOR_PUNTO_FIJO));
+  const [porPunto, setPorPunto] = React.useState<Record<number, string>>({});
   const [merma, setMerma] = React.useState("0.3");
   const [paritaria, setParitaria] = React.useState("4.5");
   const [embolsado, setEmbolsado] = React.useState("");
-  const [otrosLbl, setOtrosLbl] = React.useState("");
-  const [otros, setOtros] = React.useState("");
+  const [otros, setOtros] = React.useState<OtroStr[]>([{ label: "", valor: "" }]);
+  const [moneda, setMoneda] = React.useState<"USD" | "ARS">("USD");
 
-  const elegir = (i: number) => {
-    setPi(i);
-    const u = pizarra[i]?.usd;
-    if (u != null) setPrecio(String(u));
-  };
-
-  const arranque = num(precio);
-  const editada = pizarraUsd != null && Number.isFinite(arranque) && arranque !== pizarraUsd;
-
-  const nPuntos = n0(puntos);
-  const vPunto = secadaModo === "fijo" ? VALOR_PUNTO_FIJO : n0(valorPunto);
+  const arranque = num(pd.usd);
+  const nPuntos = Math.max(0, Math.round(n0(puntos)));
+  const vPunto = n0(valorPunto);
   const pctMerma = n0(merma);
+
+  const setPunto = (i: number, v: string) => setPorPunto((m) => ({ ...m, [i]: v }));
+  const valoresPorPunto = Array.from({ length: nPuntos }, (_, i) => n0(porPunto[i] ?? String(VALOR_PUNTO_FIJO)));
+
+  const setOtro = (i: number, campo: keyof OtroStr, v: string) =>
+    setOtros((os) => os.map((o, j) => (j === i ? { ...o, [campo]: v } : o)));
+  const agregarOtro = () => setOtros((os) => [...os, { label: "", valor: "" }]);
+  const quitarOtro = (i: number) => setOtros((os) => os.filter((_, j) => j !== i));
+  const otrosNum: OtroItem[] = otros.map((o) => ({ label: o.label, valor: n0(o.valor) }));
 
   const { dFlete, dSecada, dMerma, dParitaria, dEmbolsado, dOtros, totalGastos, final } = calcularPlanta({
     arranque,
     flete: n0(flete),
+    secadaModo,
     puntos: nPuntos,
     valorPunto: vPunto,
+    valoresPorPunto,
     pctMerma,
     paritaria: n0(paritaria),
     embolsado: n0(embolsado),
-    otros: n0(otros),
+    otros: otrosNum,
   });
+
+  const finalArs = Number.isFinite(final) && tcBna != null ? arsDesdeUsd(final, tcBna) : null;
+  const finalMostrado = moneda === "ARS" ? finalArs : Number.isFinite(final) ? final : null;
 
   return (
     <Panel id="calc-planta">
-      <PanelHead
-        glyph={<IconPlanta />}
-        title="Calculadora — negocios de planta"
-        sub="Pizarra menos flete, secada, merma, paritaria, embolsado y otros"
-      />
+      <PanelHead glyph={<IconPlanta />} title="Calculadora — negocios de planta" />
       <div className="calc">
-        {pizarra.length > 0 && (
-          <div className="curva-pick">
-            <span className="curva-pick-lbl">Pizarra (arranque)</span>
-            <select aria-label="Producto" value={pi} onChange={(e) => elegir(Number(e.target.value))}>
-              {pizarra.map((p, i) => (
-                <option key={p.underlying} value={i}>
-                  {p.nombre}
-                  {p.usd != null ? ` · ${nfmt(p.usd, 2)} USD` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <PickerPizarra granos={pizarra} onPick={pd.elegir} label="Pizarra (arranque)" />
 
         <div className="calc-grid">
           <div className="calc-field">
             <span>
               Precio de arranque (USD)
-              {editada && (
-                <button
-                  type="button"
-                  className="pz-reset"
-                  title="Volver a la pizarra"
-                  onClick={() => setPrecio(pizarraUsd != null ? String(pizarraUsd) : "")}
-                >
-                  ↺
-                </button>
+              {pd.editado && (
+                <button type="button" className="pz-reset" title="Volver a la pizarra" onClick={pd.reset}>↺</button>
               )}
             </span>
             <input
               inputMode="decimal"
-              value={precio}
+              className={pd.editado ? "manual" : undefined}
+              value={pd.usd}
               placeholder="—"
               aria-label="Precio de arranque (USD)"
-              onChange={(e) => setPrecio(e.target.value)}
+              onChange={(e) => pd.setUsd(e.target.value)}
+            />
+          </div>
+          <div className="calc-field">
+            <span>Precio de arranque ($)</span>
+            <input
+              inputMode="decimal"
+              className={pd.editado ? "manual" : undefined}
+              value={pd.ars}
+              placeholder="—"
+              aria-label="Precio de arranque (pesos)"
+              onChange={(e) => pd.setArs(e.target.value)}
             />
           </div>
 
           <label className="calc-field"><span>Contra flete (USD)</span>
             <input inputMode="decimal" value={flete} placeholder="0" onChange={(e) => setFlete(e.target.value)} /></label>
 
-          <label className="calc-field calc-mode"><span>Secada — valor del punto</span>
+          <label className="calc-field calc-mode"><span>Secada</span>
             <select value={secadaModo} onChange={(e) => setSecadaModo(e.target.value as "fijo" | "libre")}>
-              <option value="fijo">Fijo (5 USD/punto)</option>
-              <option value="libre">No fijo (editar USD/punto)</option>
+              <option value="fijo">Fijo (mismo USD/punto)</option>
+              <option value="libre">No fijo (un valor por cada punto)</option>
             </select></label>
 
           <label className="calc-field"><span>Secada — puntos</span>
             <input inputMode="decimal" value={puntos} placeholder="0" onChange={(e) => setPuntos(e.target.value)} /></label>
 
-          {secadaModo === "libre" && (
+          {secadaModo === "fijo" && (
             <label className="calc-field"><span>USD por punto</span>
               <input inputMode="decimal" value={valorPunto} placeholder="5" onChange={(e) => setValorPunto(e.target.value)} /></label>
           )}
@@ -134,40 +143,97 @@ export function CalcPlanta({ pizarra = [] }: { pizarra?: PizarraProducto[] }) {
 
           <label className="calc-field"><span>Embolsado (USD)</span>
             <input inputMode="decimal" value={embolsado} placeholder="0" onChange={(e) => setEmbolsado(e.target.value)} /></label>
+        </div>
 
-          <label className="calc-field"><span>Otros — concepto</span>
-            <input value={otrosLbl} placeholder="Otros" onChange={(e) => setOtrosLbl(e.target.value)} /></label>
+        {secadaModo === "libre" && nPuntos > 0 && (
+          <div className="plt-puntos">
+            {Array.from({ length: nPuntos }, (_, i) => (
+              <label className="plt-punto" key={i}>
+                <span>Punto {i + 1} (USD)</span>
+                <input
+                  inputMode="decimal"
+                  value={porPunto[i] ?? ""}
+                  placeholder={String(VALOR_PUNTO_FIJO)}
+                  onChange={(e) => setPunto(i, e.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+        )}
 
-          <label className="calc-field"><span>Otros (USD)</span>
-            <input inputMode="decimal" value={otros} placeholder="0" onChange={(e) => setOtros(e.target.value)} /></label>
+        <div className="calc-field">
+          <span>Otros conceptos</span>
+        </div>
+        {otros.map((o, i) => (
+          <div className="plt-otros-row" key={i}>
+            <label className="calc-field"><span>Concepto</span>
+              <input value={o.label} placeholder="Sanidad, análisis…" onChange={(e) => setOtro(i, "label", e.target.value)} /></label>
+            <label className="calc-field"><span>USD</span>
+              <input inputMode="decimal" value={o.valor} placeholder="0" onChange={(e) => setOtro(i, "valor", e.target.value)} /></label>
+            {otros.length > 1 && (
+              <button type="button" className="cell-del" onClick={() => quitarOtro(i)} aria-label="Quitar concepto">×</button>
+            )}
+          </div>
+        ))}
+        <div className="calc-btns">
+          <button type="button" className="calc-add" onClick={agregarOtro}>+ otro concepto</button>
         </div>
 
         <div className="calc-out">
           <div className="calc-res">
-            <span className="calc-res-lbl">Precio final (USD)</span>
-            <span className="calc-res-val">{Number.isFinite(final) ? nfmt(final, 2) : "—"}</span>
-            <span className="calc-res-sub">arranque − gastos</span>
-          </div>
-          <div className="calc-meta">
-            <span>Total de gastos: <b>{nfmt(totalGastos, 2)} USD</b></span>
-            <span>Contra flete: <b>{nfmt(dFlete, 2)}</b></span>
-            <span>
-              Secada ({nfmt(nPuntos, nPuntos % 1 === 0 ? 0 : 2)} {nPuntos === 1 ? "punto" : "puntos"} ×{" "}
-              {nfmt(vPunto, 2)} USD): <b>{nfmt(dSecada, 2)}</b>
+            <span className="calc-res-lbl">
+              Precio final
+              <span className="plt-moneda" role="group" aria-label="Moneda del resultado">
+                <button type="button" aria-pressed={moneda === "USD"} onClick={() => setMoneda("USD")}>USD</button>
+                <button type="button" aria-pressed={moneda === "ARS"} onClick={() => setMoneda("ARS")} disabled={tcBna == null}>$</button>
+              </span>
             </span>
-            <span>Merma {nfmt(pctMerma, 2)}%: <b>{nfmt(dMerma, 2)}</b></span>
-            <span>Paritaria: <b>{nfmt(dParitaria, 2)}</b></span>
-            <span>Embolsado: <b>{nfmt(dEmbolsado, 2)}</b></span>
-            <span>{otrosLbl.trim() || "Otros"}: <b>{nfmt(dOtros, 2)}</b></span>
+            <span className="calc-res-val">{finalMostrado != null ? nfmt(finalMostrado, 2) : "—"}</span>
+            <span className="calc-res-sub">
+              arranque − gastos{moneda === "ARS" && tcBna != null ? ` · BNA ${nfmt(tcBna, 2)}` : ""}
+            </span>
+          </div>
+        </div>
+
+        <div className="plt-breakdown">
+          <div className="plt-item">
+            <span className="plt-item-lbl">Contra flete</span>
+            <span className="plt-item-val">{nfmt(dFlete, 2)}</span>
+          </div>
+          <div className="plt-item">
+            <span className="plt-item-lbl">
+              Secada ({nfmt(nPuntos, nPuntos % 1 === 0 ? 0 : 2)} {nPuntos === 1 ? "punto" : "puntos"})
+            </span>
+            <span className="plt-item-val">{nfmt(dSecada, 2)}</span>
+          </div>
+          <div className="plt-item">
+            <span className="plt-item-lbl">Merma {nfmt(pctMerma, 2)}%</span>
+            <span className="plt-item-val">{nfmt(dMerma, 2)}</span>
+          </div>
+          <div className="plt-item">
+            <span className="plt-item-lbl">Paritaria</span>
+            <span className="plt-item-val">{nfmt(dParitaria, 2)}</span>
+          </div>
+          <div className="plt-item">
+            <span className="plt-item-lbl">Embolsado</span>
+            <span className="plt-item-val">{nfmt(dEmbolsado, 2)}</span>
+          </div>
+          <div className="plt-item">
+            <span className="plt-item-lbl">Otros</span>
+            <span className="plt-item-val">{nfmt(dOtros, 2)}</span>
+          </div>
+          <div className="plt-item">
+            <span className="plt-item-lbl">Total de gastos</span>
+            <span className="plt-item-val tot">{nfmt(totalGastos, 2)}</span>
           </div>
         </div>
       </div>
       <div className="panel-note">
         <span>
           <span className="k">Planta</span> Precio final = arranque − (contra flete + secada + merma +
-          paritaria + embolsado + otros). Secada = puntos × valor del punto (fijo 5 USD/punto, o editable en
-          &quot;no fijo&quot;). Merma = {nfmt(pctMerma, 2)}% sobre el precio de arranque. El arranque trae la
-          pizarra USD del grano elegido y es editable. Todo en USD.
+          paritaria + embolsado + otros). Secada fijo = puntos × un valor único; no fijo = un valor propio
+          para cada punto. El arranque trae la pizarra del grano elegido (USD y $, editable en los dos). El
+          resultado se puede ver en USD o pesificado con el BNA del día.
         </span>
       </div>
     </Panel>
