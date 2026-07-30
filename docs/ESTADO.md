@@ -19,7 +19,38 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 📊 C28/R7: gráficos + producción, HECHO)
+## Ahora (última actualización: 30/07/2026 — 🚢 C28/R8: comercio (DJVE+empresas), HECHO salvo 0-buques)
+
+**🚢 C28 — LOTE R8 (COMERCIO: DJVE + EMPRESAS) — HECHO salvo un punto explícitamente pendiente —
+misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2/R5/R7
+seguían sin mergear al arrancar R8, ver bitácora; Lautaro confirmó otra vez explícitamente que NO
+va a mergear todavía, que siga avanzando con el plan).** Ejecuta el prompt R8 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 52 y 55).
+**Build**: DJVE (`djve-panel.tsx`) reescrito para agrupar por **familia** (Maíz/Soja/Trigo/
+Girasol/Cebada y malta/Otros — mapeo nuevo `src/lib/djve-familias.ts`, por palabra clave,
+**verificado contra los 88 productos reales de `djve_resumen`** por SQL antes de codear), familias
+**ordenadas por volumen** (Maíz 29,18 Mt → … → Otros 0,82 Mt, sorgo) · **fecha completa de última
+actualización arriba** (helper nuevo `fechaHoraCordoba()`) · sacada la línea "N productos
+ocultos". Empresas: **"Originado"→"Embarcado"** y **"Cobertura"→"Cumplimiento"** de punta a punta
+(tabla de empresas, tabla por producto, KPI, headers del CSV) · **`ratioFmt` a % es-AR** (antes
+ratio crudo `0.87`, ahora `87%` — función compartida, también mejora `/comercio/senal` sin tocar
+sus etiquetas). **"Quitar empresas con 0 buques" queda EXPLÍCITAMENTE sin tocar**: gateado por la
+pregunta 9 de §5, que sigue sin contestar — el resto del lote no dependía de esa respuesta.
+
+**Verificado de punta a punta** (lint/tsc/**408 tests**/build ✅ — 6 nuevos de
+`djve-familias.test.ts` + Playwright real, claro/oscuro/desktop/mobile, cero errores de
+consola/scroll horizontal): DJVE con las 6 familias en el orden correcto por volumen (coincide
+exacto con la consulta SQL directa) · Empresas con **bypass temporal** de `requireAdmin()`
+(revertido, `git diff` limpio) mostrando "30% · cumplimiento global 60d" y los headers "Emb.
+60d"/"Cump." — confirmado que las empresas con 0 buques siguen apareciendo (filtro gateado
+intacto).
+
+**Próximo paso**: seguir con **R9** (comercio: camiones) según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10) — el prompt pide maqueta en el PR para el OK de Lautoro ANTES
+de codear el layout final. Detalle:
+[`sesiones/2026-07-30-r8-djve-empresas.md`](sesiones/2026-07-30-r8-djve-empresas.md).
+
+## Anterior (30/07/2026 — 📊 C28/R7: gráficos + producción, HECHO)
 
 **📊 C28 — LOTE R7 (GRÁFICOS + PRODUCCIÓN) — HECHO — misma rama `claude/website-changes-review-
 ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2/R5 seguían sin mergear al arrancar R7, ver

@@ -2,6 +2,9 @@ import "server-only";
 import { cache } from "react";
 import { sbSelect } from "./supabase";
 import type { Meta } from "./market";
+import { familiaDe, type Familia } from "./djve-familias";
+
+export { ORDEN_FAMILIAS, type Familia } from "./djve-familias";
 
 /**
  * DJVE — Declaraciones Juradas de Ventas al Exterior (Ley 21.453), desde MAGyP.
@@ -11,6 +14,7 @@ import type { Meta } from "./market";
 
 export type DjveRow = {
   producto: string;
+  familia: Familia;
   tonAnio: number | null;
   ton30d: number | null;
   ton7d: number | null;
@@ -60,6 +64,7 @@ export const getDjveResumen = cache(async (): Promise<DjveData> => {
     .filter((r) => r.producto)
     .map((r) => ({
       producto: r.producto,
+      familia: familiaDe(r.producto),
       tonAnio: r.ton_anio,
       ton30d: r.ton_30d,
       ton7d: r.ton_7d,

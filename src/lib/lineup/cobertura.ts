@@ -110,9 +110,10 @@ export function senalDe(declarado: number, originado: number, umbrales: Umbrales
   return { tag: "NEUTRO", intensidad: 0, racional: "Declarado y originado en línea." };
 }
 
-/** Formatea el ratio para mostrar (Infinity → "∞", null → "—"). */
+/** Formatea el ratio como % es-AR (Infinity → "∞", null → "—"). Relevamiento web R8, punto 55:
+ *  antes mostraba el ratio crudo (ej. "0.87"); ahora "87%", más legible de un vistazo. */
 export function ratioFmt(r: number | null): string {
   if (r === null) return "—";
   if (!Number.isFinite(r)) return "∞";
-  return r.toFixed(2);
+  return `${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(r * 100)}%`;
 }
