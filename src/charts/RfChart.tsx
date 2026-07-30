@@ -75,10 +75,66 @@ function conNombre<T>(eje: T, titulos: string | [string, string] | undefined, ga
   return { ...e, name: arr[0], nameLocation: "middle", nameGap: e.nameGap ?? gapDefault } as T;
 }
 
-/** Margen derecho del grid: más ancho en mobile (<560px, mismo corte que el resto
- *  del sitio) para que el endLabel (nombre de la serie) no quede cortado. */
-function rightMarginFor(containerWidth: number): number {
-  return containerWidth < 560 ? 60 : 24;
+/** Ancho real (px) del endLabel más largo entre las series que lo tengan activado —
+ *  corre el mismo formatter que va a dibujar ECharts, sobre el último punto de cada
+ *  serie, y mide con la tipografía real. Sin esto, un endLabel más largo que el
+ *  margen fijo del grid queda cortado (no es hipotético: "USDA 172,00" no entra en
+ *  24px). 0 si ninguna serie tiene endLabel o no hay `document` (SSR). */
+function medirAnchoEndLabels(series: unknown, fontFamily: string): number {
+  if (!Array.isArray(series) || typeof document === "undefined") return 0;
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return 0;
+  ctx.font = `12px ${fontFamily}`;
+  let max = 0;
+  for (const raw of series) {
+    const s = raw as {
+      name?: string;
+      data?: unknown[];
+      endLabel?: { show?: boolean; formatter?: string | ((p: unknown) => string) };
+    };
+    if (!s?.endLabel?.show) continue;
+    const data = Array.isArray(s.data) ? s.data : [];
+    const value = data[data.length - 1];
+    let texto = s.name ?? "";
+    const formatter = s.endLabel.formatter;
+    if (typeof formatter === "function") {
+      try {
+        texto = formatter({ seriesName: s.name, value, data: value });
+      } catch {
+        // el formatter puede esperar una forma de params más rica (CallbackDataParams
+        // real) que este mock parcial no cubre — degradamos al nombre de la serie.
+      }
+    } else if (typeof formatter === "string") {
+      texto = formatter.replace("{a}", s.name ?? "");
+    }
+    const w = ctx.measureText(texto).width;
+    if (w > max) max = w;
+  }
+  return max;
+}
+
+/** Margen derecho del grid: el mayor entre el mínimo por ancho de pantalla (más
+ *  ancho en mobile, <560px, mismo corte que el resto del sitio) y lo que realmente
+ *  necesitan los endLabel para no cortarse. */
+function rightMarginFor(containerWidth: number, series: unknown, fontFamily: string): number {
+  const base = containerWidth < 560 ? 60 : 24;
+  const porLabels = medirAnchoEndLabels(series, fontFamily) + 16;
+  return Math.max(base, porLabels);
+}
+
+/** La label del axisPointer de un eje `type:'time'` llega como epoch en ms (no
+ *  como Date ni como string ya formateado — `LabelFormatterParams` de ECharts no
+ *  expone el tipo de eje). Un ms reciente son ~1,7-1,8×10¹²; nada de lo que
+ *  grafica este sitio (precios, tasas, toneladas) se acerca a 10¹¹, así que la
+ *  magnitud alcanza para distinguir "es una fecha" sin más información. */
+function formatearValorEje(value: unknown): string {
+  const n = Number(value);
+  if (Number.isFinite(n) && n > 1e11) {
+    return new Intl.DateTimeFormat("es-AR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" }).format(
+      new Date(n),
+    );
+  }
+  return String(value);
 }
 
 export type RfValueFormatter = (value: number, seriesName: string) => string;
@@ -157,9 +213,9 @@ export function RfChart({
       const defaults: echarts.EChartsOption = {
         animationDuration: 700,
         textStyle: { fontFamily: ui },
-        grid: { right: rightMarginFor(containerWidth) },
-        xAxis: { nameTextStyle: { fontFamily: ui }, axisLabel: { fontFamily: mono } },
-        yAxis: { nameTextStyle: { fontFamily: ui }, axisLabel: { fontFamily: mono } },
+        grid: { right: rightMarginFor(containerWidth, option.series, mono) },
+        xAxis: { nameTextStyle: { fontFamily: ui }, axisLabel: { fontFamily: mono, hideOverlap: true } },
+        yAxis: { nameTextStyle: { fontFamily: ui }, axisLabel: { fontFamily: mono, hideOverlap: true } },
         tooltip: {
           trigger: "axis",
           axisPointer: {
@@ -171,7 +227,7 @@ export function RfChart({
               borderColor: p.tipEdge,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- LabelFormatterParams de echarts no expone axisDimension de forma utilizable en su firma pública
               formatter: (params: any) =>
-                params.axisDimension === "y" ? fmt(Number(params.value), "") : String(params.value),
+                params.axisDimension === "y" ? fmt(Number(params.value), "") : formatearValorEje(params.value),
             },
             crossStyle: { color: p.gridStrong },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,23 +309,27 @@ export function RfChart({
     [mode, option, xTitle, yTitle, dataZoom, exportName, fmt, buildWatermark],
   );
 
+  // Siempre apunta al `buildOption` más nuevo — lo usan el ResizeObserver y el
+  // montaje inicial, que viven dentro de un effect con deps propias ([mode]) y
+  // no pueden depender de `option`/`xTitle`/etc. sin recrear la instancia entera.
+  const buildOptionRef = React.useRef(buildOption);
+  React.useLayoutEffect(() => {
+    buildOptionRef.current = buildOption;
+  });
+
   React.useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const chart = echarts.init(el, mode === "dark" ? "rofoDark" : "rofoLight");
     chartRef.current = chart;
-    chart.setOption(buildOption(el.clientWidth));
+    chart.setOption(buildOptionRef.current(el.clientWidth));
     mountedOnceRef.current = true;
 
     const ro = new ResizeObserver(() => {
       chart.resize();
-      // Solo lo que depende del ANCHO, sin tocar el resto de la option (evita
-      // reaplicar un `option`/`xTitle` de closure viejo si cambiaron mientras
-      // tanto — esos ya los mantiene al día el effect de abajo).
-      chart.setOption(
-        { grid: { right: rightMarginFor(el.clientWidth) }, graphic: buildWatermark(el.clientWidth) },
-        false,
-      );
+      // Reconstruye entera (silenciosa): grid.right y la marca de agua dependen
+      // del ancho, y así nunca queda un `option` de closure vieja.
+      chart.setOption({ ...buildOptionRef.current(el.clientWidth), animation: false }, true);
     });
     ro.observe(el);
 
@@ -281,13 +341,18 @@ export function RfChart({
     };
     // Re-crea la instancia al cambiar de tema: el theme de ECharts se fija en el
     // init, no se puede "recolorear" en caliente con setOption.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   React.useEffect(() => {
     if (!mountedOnceRef.current || !chartRef.current || !containerRef.current) return;
     // Update silencioso (sin animación): Fase 2 regla 8, solo el montaje inicial anima.
+    // Deps explícitas (no `buildOption` entero): un cambio de `mode` ya dispara el
+    // efecto de arriba (dispose+init con animación) — repetirlo acá lo pisaría.
     chartRef.current.setOption({ ...buildOption(containerRef.current.clientWidth), animation: false }, true);
+    // `buildOption` deliberadamente afuera: cambia también cuando cambia `mode`, y ese
+    // caso ya lo maneja el effect de arriba (dispose+init con animación) — sumarlo acá
+    // dispararía un 2º setOption silencioso inmediatamente después que pisaría esa
+    // animación de entrada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [option, xTitle, yTitle, dataZoom]);
 
