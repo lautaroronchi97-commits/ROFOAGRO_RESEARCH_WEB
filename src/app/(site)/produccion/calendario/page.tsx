@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getEventos, type Organismo } from "@/lib/calendario";
 import { hoyCordobaISO } from "@/lib/dates";
+import { parseYmd, sumarCorridos, ymd } from "@/lib/habiles";
 import { CalendarioCliente } from "@/components/calendario-cliente";
 import { Panel } from "@/components/panel";
 import { requireSeccion } from "@/lib/auth/dal";
@@ -20,8 +21,8 @@ const ORDEN_ORG: Organismo[] = ["USDA", "CONAB", "BCR", "BCBA", "DEA", "CFTC", "
 export default async function CalendarioProduccionPage() {
   await requireSeccion("produccion");
   const hoy = hoyCordobaISO();
-  // Horizonte: resto de 2026 (el seed de fechas oficiales cubre 2026).
-  const hasta = hoy > "2026-12-31" ? hoy : "2026-12-31";
+  // Horizonte: 60 días desde hoy (relevamiento web R7, punto 49 — antes iba hasta fin de 2026).
+  const hasta = ymd(sumarCorridos(parseYmd(hoy), 60));
   const eventos = getEventos(hoy, hasta);
   const presentes = ORDEN_ORG.filter((o) => eventos.some((e) => e.organismo === o));
 

@@ -19,7 +19,42 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 📐 C28/R5: estrategias + planta, HECHO)
+## Ahora (última actualización: 30/07/2026 — 📊 C28/R7: gráficos + producción, HECHO)
+
+**📊 C28 — LOTE R7 (GRÁFICOS + PRODUCCIÓN) — HECHO — misma rama `claude/website-changes-review-
+ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2/R5 seguían sin mergear al arrancar R7, ver
+bitácora; Lautaro confirmó otra vez explícitamente que NO va a mergear todavía, que siga
+avanzando con el plan).** Ejecuta el prompt R7 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 48–50).
+**Build — Calendario (p49) y Estimaciones (p50)**: semántica de filtro invertida en los chips de
+organismo/grano (antes click = EXCLUÍA; ahora click = deja SOLO ese, re-click = todos) ·
+calendario acotado a **60 días** (antes fijo hasta fin de 2026) · estimaciones sumó **3 grupos de
+chips nuevos** (organismo, país, campaña) con el mismo componente visual del grano, combinando
+por AND.
+**Build — `/graficos` (p48)**: default de campañas = **solo la última disponible** (antes `[]` ⇒
+todas, compatibilidad con links viejos verificada) · **"Todas"/"Últ. 3" con toggle** (re-click
+vuelve a dejar solo la última) · labels de `PRESETS_PIZARRA` corregidos a mayúscula ("Pizarra
+Maíz/Soja/Trigo") · tabla de `spread-chart.tsx` **siempre descendente**, y en eje días-al-vto la
+fila de **"hoy" recuadrada primera** (nueva prop opt-in `destacada` en `ChartTabla`) · **KPIs más
+grandes y reubicados** entre el chart y su tabla (`SpreadChart` suma prop `kpis`) · **etiqueta de
+campaña en el extremo de cada línea** (`LabelList`).
+**2 bugs reales encontrados y arreglados en la propia verificación**: la etiqueta de campaña
+quedaba cortada contra el borde del SVG (margen derecho insuficiente) · los botones nuevos
+"Todas"/"Últ. 3" solo tenían `aria-pressed` sin la clase `.on` que el sitio usa para pintar el
+estado activo — el toggle funcionaba pero era invisible.
+
+**Verificado de punta a punta** (lint/tsc/**402 tests**/build ✅ + Playwright real contra
+`npm run start`, claro/oscuro/desktop/mobile, cero errores de consola/scroll horizontal):
+`/graficos` con el default nuevo (solo 2027 tildado), fila "hoy" recuadrada en dorado primera en
+la tabla, etiqueta "2027" visible completa, toggle Todas/Últ.3 con estado visual correcto en
+ambos sentidos · calendario con click-filtra-uno funcionando · estimaciones con 2 filtros
+combinados (Soja+Argentina → 4 filas exactas).
+
+**Próximo paso**: seguir con **R8** (comercio: DJVE + empresas) según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10) — parcialmente gateado por la pregunta 9 de §5 (empresas con 0
+buques), revisar si Lautoro la contestó. Detalle:
+[`sesiones/2026-07-30-r7-graficos-produccion.md`](sesiones/2026-07-30-r7-graficos-produccion.md).
+
+## Anterior (30/07/2026 — 📐 C28/R5: estrategias + planta, HECHO)
 
 **📐 C28 — LOTE R5 (ESTRATEGIAS + PLANTA) — HECHO — misma rama `claude/website-changes-review-
 ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2 seguían sin mergear al arrancar R5, ver

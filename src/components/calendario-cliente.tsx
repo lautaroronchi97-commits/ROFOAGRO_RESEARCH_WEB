@@ -30,25 +30,23 @@ export function CalendarioCliente({
   eventos: EventoCalendario[];
   organismos: Organismo[];
 }) {
-  const [off, setOff] = useState<Set<Organismo>>(new Set());
+  // Semántica de filtro (relevamiento web R7, punto 49): click en un chip deja SOLO ese
+  // organismo; re-click sobre el mismo vuelve a mostrar todos. Antes el click EXCLUÍA
+  // (semántica invertida — el pedido explícito era "queda filtrado ese", no "se apaga ese").
+  const [solo, setSolo] = useState<Organismo | null>(null);
   const [soloAlto, setSoloAlto] = useState(false);
 
   const filtrados = useMemo(
     () =>
       eventos.filter(
-        (e) => !off.has(e.organismo) && (!soloAlto || e.importancia === "alta"),
+        (e) => (solo === null || e.organismo === solo) && (!soloAlto || e.importancia === "alta"),
       ),
-    [eventos, off, soloAlto],
+    [eventos, solo, soloAlto],
   );
   const grupos = useMemo(() => porFecha(filtrados), [filtrados]);
 
-  function toggle(o: Organismo) {
-    setOff((prev) => {
-      const next = new Set(prev);
-      if (next.has(o)) next.delete(o);
-      else next.add(o);
-      return next;
-    });
+  function elegir(o: Organismo) {
+    setSolo((prev) => (prev === o ? null : o));
   }
 
   return (
@@ -58,9 +56,9 @@ export function CalendarioCliente({
           <button
             key={o}
             type="button"
-            className={`cal-fchip org-${o} ${off.has(o) ? "is-off" : ""}`}
-            aria-pressed={!off.has(o)}
-            onClick={() => toggle(o)}
+            className={`cal-fchip org-${o} ${solo !== null && solo !== o ? "is-off" : ""}`}
+            aria-pressed={solo === o}
+            onClick={() => elegir(o)}
           >
             {ORG_LABEL[o]}
           </button>

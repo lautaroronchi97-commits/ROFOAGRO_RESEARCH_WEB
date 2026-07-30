@@ -80,10 +80,12 @@ function targetsDelAnio(cat: SerieCat[], grano: string, anio: number): Target[] 
 
 /* ---------------- presets de pizarra ---------------- */
 
+// Labels con el grano capitalizado (relevamiento web R7, punto 48: "mayúscula donde
+// falte" — quedaban en minúscula acá, a diferencia de los presets de graficos-client.tsx).
 const PRESETS_PIZARRA: { grano: string; label: string; meses: string[] }[] = [
-  { grano: "maiz", label: "Pizarra maíz", meses: ["ABR", "JUL", "DIC"] },
-  { grano: "soja", label: "Pizarra soja", meses: ["MAY", "JUL", "NOV"] },
-  { grano: "trigo", label: "Pizarra trigo", meses: ["DIC", "ENE", "MAR", "JUL"] },
+  { grano: "maiz", label: "Pizarra Maíz", meses: ["ABR", "JUL", "DIC"] },
+  { grano: "soja", label: "Pizarra Soja", meses: ["MAY", "JUL", "NOV"] },
+  { grano: "trigo", label: "Pizarra Trigo", meses: ["DIC", "ENE", "MAR", "JUL"] },
 ];
 
 export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; anioActual: number }) {

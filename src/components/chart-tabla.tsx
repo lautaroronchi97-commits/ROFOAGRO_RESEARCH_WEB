@@ -49,6 +49,10 @@ export type ChartTablaProps = {
   maxFilas?: number;
   /** "desc" = la más reciente primero. Default "asc" (igual que llega `filas`). */
   orden?: "asc" | "desc";
+  /** Marca una fila como destacada (recuadro/color) — el caller decide cuál según sus propios
+   *  datos (relevamiento web R7 punto 48: la fila de "hoy" en el eje días-al-vto de
+   *  `spread-chart.tsx`). Se evalúa sobre las filas ya recortadas/ordenadas. */
+  destacada?: (fila: ChartTablaFila, i: number) => boolean;
 };
 
 function descargarCsv(columnas: ChartTablaColumna[], filas: ChartTablaFila[], filename: string) {
@@ -77,6 +81,7 @@ export function ChartTabla({
   exportCsv,
   maxFilas,
   orden = "asc",
+  destacada,
 }: ChartTablaProps) {
   let vista = filas;
   if (maxFilas != null && vista.length > maxFilas) vista = vista.slice(-maxFilas);
@@ -121,7 +126,7 @@ export function ChartTabla({
               </tr>
             ) : (
               vista.map((fila, i) => (
-                <tr key={i}>
+                <tr key={i} className={destacada?.(fila, i) ? "ct-hoy" : undefined}>
                   {columnas.map((c) => {
                     const v = fila[c.key];
                     return (

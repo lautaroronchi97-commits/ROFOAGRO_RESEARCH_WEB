@@ -299,11 +299,18 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
     return [...cand].sort();
   }, [idx, a, b]);
 
-  // Selección efectiva: lo elegido (filtrado a lo disponible) o TODAS si está vacío.
-  // Derivado (no estado): evita sincronizar en un effect.
+  // Selección efectiva: lo elegido (filtrado a lo disponible) o, si está vacío, SOLO LA ÚLTIMA
+  // campaña disponible (relevamiento web R7, punto 48 — antes caía a TODAS). Esto cubre a la vez
+  // la visita nueva (sin `?c=` en la URL, `years` arranca en `[]`) y el caso de declickear todos
+  // los chips a mano. Un link viejo compartido con `?c=2020,2021,…` sigue funcionando igual
+  // (esos años entran en `years` desde `leerURL` y `valid` no queda vacío) — la única excepción
+  // teórica es un `?c=` manualmente vaciado a mano, que nunca sale de `escribirURL` en la
+  // práctica (siempre persiste la lista real, nunca vacía).
   const effectiveYears = React.useMemo(() => {
     const valid = years.filter((y) => aniosDisponibles.includes(y));
-    return valid.length ? valid : aniosDisponibles;
+    if (valid.length) return valid;
+    const ultima = aniosDisponibles[aniosDisponibles.length - 1];
+    return ultima != null ? [ultima] : [];
   }, [years, aniosDisponibles]);
 
   // La banda solo aplica a métricas de valor único (spread/ratio), no a crudas.
@@ -725,12 +732,36 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
             </button>
           );
         })}
-        {aniosDisponibles.length > 0 && (
-          <>
-            <button type="button" className="gx-preset" onClick={() => setYears(aniosDisponibles.slice(-3))}>Últ. 3</button>
-            <button type="button" className="gx-preset" onClick={() => setYears(aniosDisponibles)}>Todas</button>
-          </>
-        )}
+        {aniosDisponibles.length > 0 && (() => {
+          const ultima = aniosDisponibles[aniosDisponibles.length - 1];
+          const ultimoAnio = ultima != null ? [ultima] : [];
+          const ult3 = aniosDisponibles.slice(-3);
+          const mismos = (x: number[], y: number[]) => x.length === y.length && x.every((v) => y.includes(v));
+          // Punto 48: click prende (todas/últ. 3); re-click con ESE mismo estado ya
+          // prendido vuelve a dejar solo la última campaña.
+          const esTodas = mismos(effectiveYears, aniosDisponibles);
+          const esUlt3 = mismos(effectiveYears, ult3);
+          return (
+            <>
+              <button
+                type="button"
+                className={`gx-preset${esUlt3 ? " on" : ""}`}
+                aria-pressed={esUlt3}
+                onClick={() => setYears(esUlt3 ? ultimoAnio : ult3)}
+              >
+                Últ. 3
+              </button>
+              <button
+                type="button"
+                className={`gx-preset${esTodas ? " on" : ""}`}
+                aria-pressed={esTodas}
+                onClick={() => setYears(esTodas ? ultimoAnio : aniosDisponibles)}
+              >
+                Todas
+              </button>
+            </>
+          );
+        })()}
       </div>
 
       <div className="gx-chart">
@@ -755,6 +786,21 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
             ma={maLines}
             pct={pctEfectivo}
             exportName={nombreArchivo(a.grano, a.mon, b?.grano, b?.mon, metric, pctEfectivo ? "pct" : null)}
+            kpis={
+              kpi && (
+                <div className="gx-kpis">
+                  <div className="gx-kpi"><span className="k">Campaña {kpi.label} · última</span><span className="v">{fmtKpi(kpi.hoy)}</span></div>
+                  <div className="gx-kpi"><span className="k">Mín ventana</span><span className="v">{fmtKpi(kpi.min)}</span></div>
+                  <div className="gx-kpi"><span className="k">Máx ventana</span><span className="v">{fmtKpi(kpi.max)}</span></div>
+                  {kpi.pct !== null && (
+                    <div className="gx-kpi">
+                      <span className="k">Percentil hoy vs {kpi.nHist} campañas</span>
+                      <span className="v">{nfmt(kpi.pct, 0)}%</span>
+                    </div>
+                  )}
+                </div>
+              )
+            }
           />
         )}
       </div>
@@ -768,20 +814,6 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
           label={`${GRANO_NOMBRE[a.grano] ?? a.grano}${a.mon ? ` ${a.mon}` : ""} (pata A)`}
           exportName={nombreArchivo(a.grano, a.mon, "volumen")}
         />
-      )}
-
-      {kpi && (
-        <div className="gx-kpis">
-          <div className="gx-kpi"><span className="k">Campaña {kpi.label} · última</span><span className="v">{fmtKpi(kpi.hoy)}</span></div>
-          <div className="gx-kpi"><span className="k">Mín ventana</span><span className="v">{fmtKpi(kpi.min)}</span></div>
-          <div className="gx-kpi"><span className="k">Máx ventana</span><span className="v">{fmtKpi(kpi.max)}</span></div>
-          {kpi.pct !== null && (
-            <div className="gx-kpi">
-              <span className="k">Percentil hoy vs {kpi.nHist} campañas</span>
-              <span className="v">{nfmt(kpi.pct, 0)}%</span>
-            </div>
-          )}
-        </div>
       )}
 
       <p className="gx-note">
