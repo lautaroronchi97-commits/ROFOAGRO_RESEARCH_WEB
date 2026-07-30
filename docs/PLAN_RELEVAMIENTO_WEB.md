@@ -318,7 +318,8 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
 ## 5. Preguntas y decisiones para Lautaro (TODAS acá, como pediste)
 
 > **Contestadas el 29/07/2026 (por AskUserQuestion, antes de arrancar R1):** 1, 2, 5 y 8 —
-> la respuesta quedó anotada debajo de cada una. Las demás siguen abiertas.
+> la respuesta quedó anotada debajo de cada una. **Contestada el 30/07/2026 (antes de R3):** 7.
+> Las demás (3, 4, 6, 9, 10) siguen abiertas.
 
 1. **Home (p20)** — Escribiste "Soja nov23 y mayo27". Asumo **NOV26 y MAY27**. ¿Correcto?
    **✅ R: NOV26 y MAY27.**
@@ -342,6 +343,7 @@ azul/negro y el helper BNA (R4/R6 lo reusan). Todo lo demás es independiente.
    el índice de calculadoras y que la URL directa dé "sin acceso" para no-admins? (recomendado)
 7. **View exportable (p30)** — ¿Te alcanza un botón "descargar PNG" en cada card del view
    (rápido), o lo querés como PDF con formato de informe (placa tipo informe diario, más trabajo)?
+   **✅ R: PNG simple.**
 8. **Cinta (p24)** — "Dejar todos los USD": hoy están Oficial (minorista), Mayorista, MEP, CCL y
    el futuro. Con "en el dólar oficial quiero el spot mayorista", ¿saco el minorista y "Oficial"
    pasa a ser el mayorista (queda una sola entrada), o dejo los dos?

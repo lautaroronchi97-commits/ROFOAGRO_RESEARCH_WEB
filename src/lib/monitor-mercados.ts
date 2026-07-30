@@ -52,6 +52,7 @@ type Instr = {
   grupo: MonitorGrupo;
   nombre: string;
   glyph: MonitorGlyph;
+  emoji: string; // relevamiento 29/07, punto 29 — uno por posición, sin repetir
   factorTn: number | null; // agro → USD/tn; null en macro
   unidad: string; // etiqueta de la unidad de origen
   unidadDec: number; // decimales del valor en unidad de origen
@@ -61,26 +62,33 @@ type Instr = {
 
 /** Orden fijo: agro primero (destacado), macro después (informativo). */
 const INSTRUMENTOS: Instr[] = [
-  { yahoo: "ZS=F", grupo: "agro", nombre: "Soja", glyph: "soja", factorTn: FACTOR_BU_SOJA_TRIGO, unidad: "¢/bu", unidadDec: 2, mercado: "CBOT", esFuturo: true },
-  { yahoo: "ZL=F", grupo: "agro", nombre: "Aceite de soja", glyph: "soja", factorTn: FACTOR_LB_ACEITE, unidad: "¢/lb", unidadDec: 2, mercado: "CBOT", esFuturo: true },
-  { yahoo: "ZM=F", grupo: "agro", nombre: "Harina de soja", glyph: "soja", factorTn: FACTOR_ST_HARINA, unidad: "USD/st", unidadDec: 1, mercado: "CBOT", esFuturo: true },
-  { yahoo: "ZC=F", grupo: "agro", nombre: "Maíz", glyph: "maiz", factorTn: FACTOR_BU_MAIZ, unidad: "¢/bu", unidadDec: 2, mercado: "CBOT", esFuturo: true },
-  { yahoo: "ZW=F", grupo: "agro", nombre: "Trigo", glyph: "trigo", factorTn: FACTOR_BU_SOJA_TRIGO, unidad: "¢/bu", unidadDec: 2, mercado: "CBOT", esFuturo: true },
-  { yahoo: "CL=F", grupo: "macro", nombre: "Petróleo WTI", glyph: null, factorTn: null, unidad: "USD/bbl", unidadDec: 2, mercado: "NYMEX", esFuturo: true },
-  { yahoo: "GC=F", grupo: "macro", nombre: "Oro", glyph: null, factorTn: null, unidad: "USD/oz", unidadDec: 1, mercado: "COMEX", esFuturo: true },
-  { yahoo: "SI=F", grupo: "macro", nombre: "Plata", glyph: null, factorTn: null, unidad: "USD/oz", unidadDec: 3, mercado: "COMEX", esFuturo: true },
-  { yahoo: "DX-Y.NYB", grupo: "macro", nombre: "Dólar (DXY)", glyph: null, factorTn: null, unidad: "índice", unidadDec: 2, mercado: "ICE", esFuturo: false },
-  { yahoo: "BRL=X", grupo: "macro", nombre: "Real (USD/BRL)", glyph: null, factorTn: null, unidad: "R$", unidadDec: 4, mercado: "FX", esFuturo: false },
-  { yahoo: "SPY", grupo: "macro", nombre: "S&P 500 (SPY)", glyph: null, factorTn: null, unidad: "USD", unidadDec: 2, mercado: "NYSE", esFuturo: false },
-  { yahoo: "^MERV", grupo: "macro", nombre: "Merval", glyph: null, factorTn: null, unidad: "índice", unidadDec: 0, mercado: "BYMA", esFuturo: false },
-  { yahoo: "EWZ", grupo: "macro", nombre: "Brasil (EWZ)", glyph: null, factorTn: null, unidad: "USD", unidadDec: 2, mercado: "NYSE", esFuturo: false },
+  { yahoo: "ZS=F", grupo: "agro", nombre: "Soja", glyph: "soja", emoji: "🫘", factorTn: FACTOR_BU_SOJA_TRIGO, unidad: "¢/bu", unidadDec: 2, mercado: "CBOT", esFuturo: true },
+  { yahoo: "ZL=F", grupo: "agro", nombre: "Aceite de soja", glyph: "soja", emoji: "🫗", factorTn: FACTOR_LB_ACEITE, unidad: "¢/lb", unidadDec: 2, mercado: "CBOT", esFuturo: true },
+  { yahoo: "ZM=F", grupo: "agro", nombre: "Harina de soja", glyph: "soja", emoji: "🥣", factorTn: FACTOR_ST_HARINA, unidad: "USD/st", unidadDec: 1, mercado: "CBOT", esFuturo: true },
+  { yahoo: "ZC=F", grupo: "agro", nombre: "Maíz", glyph: "maiz", emoji: "🌽", factorTn: FACTOR_BU_MAIZ, unidad: "¢/bu", unidadDec: 2, mercado: "CBOT", esFuturo: true },
+  { yahoo: "ZW=F", grupo: "agro", nombre: "Trigo", glyph: "trigo", emoji: "🌾", factorTn: FACTOR_BU_SOJA_TRIGO, unidad: "¢/bu", unidadDec: 2, mercado: "CBOT", esFuturo: true },
+  { yahoo: "CL=F", grupo: "macro", nombre: "Petróleo WTI", glyph: null, emoji: "🛢️", factorTn: null, unidad: "USD/bbl", unidadDec: 2, mercado: "NYMEX", esFuturo: true },
+  { yahoo: "GC=F", grupo: "macro", nombre: "Oro", glyph: null, emoji: "🥇", factorTn: null, unidad: "USD/oz", unidadDec: 1, mercado: "COMEX", esFuturo: true },
+  { yahoo: "SI=F", grupo: "macro", nombre: "Plata", glyph: null, emoji: "🥈", factorTn: null, unidad: "USD/oz", unidadDec: 3, mercado: "COMEX", esFuturo: true },
+  { yahoo: "DX-Y.NYB", grupo: "macro", nombre: "Dólar (DXY)", glyph: null, emoji: "💵", factorTn: null, unidad: "índice", unidadDec: 2, mercado: "ICE", esFuturo: false },
+  { yahoo: "BRL=X", grupo: "macro", nombre: "Real (USD/BRL)", glyph: null, emoji: "🇧🇷", factorTn: null, unidad: "R$", unidadDec: 4, mercado: "FX", esFuturo: false },
+  { yahoo: "SPY", grupo: "macro", nombre: "S&P 500 (SPY)", glyph: null, emoji: "📈", factorTn: null, unidad: "USD", unidadDec: 2, mercado: "NYSE", esFuturo: false },
+  { yahoo: "^MERV", grupo: "macro", nombre: "Merval", glyph: null, emoji: "📊", factorTn: null, unidad: "índice", unidadDec: 0, mercado: "BYMA", esFuturo: false },
+  { yahoo: "EWZ", grupo: "macro", nombre: "Brasil (EWZ)", glyph: null, emoji: "🏦", factorTn: null, unidad: "USD", unidadDec: 2, mercado: "NYSE", esFuturo: false },
 ];
+
+// Chequeo en build-time (módulo): los emoji de INSTRUMENTOS + el de Maní (agregado
+// aparte más abajo) deben ser todos distintos — "no se pueden repetir" (punto 29).
+if (new Set([...INSTRUMENTOS.map((i) => i.emoji), "🥜"]).size !== INSTRUMENTOS.length + 1) {
+  throw new Error("monitor-mercados: hay emoji repetidos en INSTRUMENTOS/Maní");
+}
 
 export type MonitorRow = {
   yahoo: string;
   grupo: MonitorGrupo;
   nombre: string;
   glyph: MonitorGlyph;
+  emoji: string;
   pos: string | null; // posición del contrato, p.ej. "NOV26"
   ultimo: number | null; // en unidad de origen
   usdTn: number | null; // solo agro
@@ -249,6 +257,7 @@ export const getMonitorMercados = cache(async (): Promise<MonitorData> => {
       grupo: def.grupo,
       nombre: def.nombre,
       glyph: def.glyph,
+      emoji: def.emoji,
       pos: def.esFuturo ? parsePos(m?.shortName ?? null) : null,
       ultimo,
       usdTn,
@@ -272,6 +281,7 @@ export const getMonitorMercados = cache(async (): Promise<MonitorData> => {
     grupo: "macro",
     nombre: "Maní",
     glyph: null,
+    emoji: "🥜",
     pos: "China", // aclaración: benchmark de Zhengzhou, no el maní argentino
     ultimo: maniUsdTn, // ya en USD/tn (el bloque de referencias muestra "ultimo")
     usdTn: maniUsdTn,

@@ -39,6 +39,9 @@
   --pos:#16A34A; --neg:#DC2626; --neu:#7E8C74;
   --pos-weak:rgba(22,163,74,.12); --neg-weak:rgba(220,38,38,.12);
   --focus:#2F6E34;
+  /* Valor cargado a mano en vez del automático (pizarra editada) — azul, deliberadamente
+     distinto de la paleta verde/oro de la marca (pedido explícito de Lautaro). */
+  --manual:#2563EB;
   /* Colores de campañas (validados con el validador dataviz, PASS 4/4 en ambos temas).
      El color sigue a la campaña SIEMPRE; la vigente se distingue por grosor, no color. */
   --camp-2020:#2A78D6; --camp-2021:#D96A2A; --camp-2022:#0891B2; --camp-2023:#B45309;
@@ -72,6 +75,7 @@
   --pos:#37D982; --neg:#FF5C5C; --neu:#8B9E85;
   --pos-weak:rgba(55,217,130,.14); --neg-weak:rgba(255,92,92,.14);
   --focus:#98CE66;
+  --manual:#5B9BFF;
   --camp-2020:#3987E5; --camp-2021:#D95926; --camp-2022:#0AA2C0; --camp-2023:#BE6A1C;
   --camp-2024:#DB639E; --camp-2025:#A55BEA; --camp-2026:#0FA38E; --camp-2027:#9085E9;
   --shadow:
@@ -372,9 +376,26 @@ table.tbl { width:100%; border-collapse:collapse; min-width:640px; }
 .grp-cell .gname { font-family:var(--font-ui); font-weight:700; font-size:var(--fs-xs);
   text-transform:uppercase; letter-spacing:.09em; color:var(--brand-deep); }
 .grp-cell .gmeta { font-family:var(--font-mono); font-size:var(--fs-2xs); color:var(--ink-2); }
+.grp-cell .gvol { margin-left:auto; white-space:nowrap; }
 .grp-cell .gglyph { display:flex; }
 .grp-cell .gglyph svg { width:15px; height:15px; }
+.grp-cell .gemoji { font-size:14px; line-height:1; }
+
+/* Toolbar de Arbitrajes: filtro de grano a la izquierda, oficial/BNA online a la
+   derecha, alineados con el nombre de los granos (relevamiento 29/07, punto 25). */
+.arb-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+  gap:10px; margin-bottom:8px; }
+.arb-fx { display:flex; align-items:center; gap:12px; font-family:var(--font-ui);
+  font-size:var(--fs-xs); color:var(--ink-2); }
+.arb-fx b { font-family:var(--font-mono); color:var(--ink); }
 .pos { color:var(--pos); } .neg { color:var(--neg); } .neu2 { color:var(--neu); }
+
+/* "Mejor para hacer caja" — grano ganador recuadrado (relevamiento 29/07, punto 27) */
+tr.mc-win td { background:color-mix(in srgb, var(--gold) 10%, transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
+.mc-badge { font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--gold-text); background:color-mix(in srgb, var(--gold) 16%, transparent);
+  padding:1px 6px; border-radius:var(--r-chip); }
 
 .chip { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-weight:700;
   font-size:12px; padding:2px 7px; border-radius:var(--r-chip); min-width:74px; justify-content:flex-end; }
@@ -563,10 +584,13 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .ruedas { display:inline-flex; align-items:center; gap:9px; }
 .rueda-tag { display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono);
   font-size:var(--fs-xs); font-weight:600; color:var(--ink-2); white-space:nowrap; }
-.pz-input { width:74px; font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:700;
+.pz-input { width:80px; font-family:var(--font-mono); font-size:var(--fs-sm); font-weight:700;
   color:var(--ink); background:var(--panel); border:1px solid var(--line-2); border-radius:5px;
-  padding:1px 5px; text-align:right; font-variant-numeric:tabular-nums; }
+  padding:2px 6px; text-align:right; font-variant-numeric:tabular-nums; }
 .pz-input:focus { outline:none; border-color:var(--brand-deep); }
+.pz-input.manual { color:var(--manual); border-color:var(--manual); }
+.pz-input:disabled { opacity:.5; cursor:not-allowed; }
+.pz-dual { display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; }
 .pz-reset { margin-left:5px; cursor:pointer; border:none; background:none; color:var(--ink-3);
   font-size:var(--fs-xs); line-height:1; padding:0 2px; }
 .pz-reset:hover { color:var(--brand-deep); }
@@ -1747,10 +1771,12 @@ a.estim-inf:hover { color:var(--gold-text); }
   font-variant-numeric:tabular-nums; color:var(--ink);
 }
 .mon-tbl tbody td.mon-tn::before { content:""; }
-/* Subtítulo del bloque informativo (macro), separado con una regla fina. */
+/* Subtítulo del bloque informativo (macro), separado con una regla fina. Alineado
+   con el mismo inset que el contenido de la tabla de abajo (relevamiento 29/07,
+   punto 29 — antes arrancaba pegado al margen, sin padding-left). */
 .mon-sub-hd {
   font-family:var(--font-ui); font-size:9px; font-weight:800; text-transform:uppercase;
-  letter-spacing:.1em; color:var(--ink-3); margin:14px 0 6px; padding-top:10px;
+  letter-spacing:.1em; color:var(--ink-3); margin:14px 0 6px; padding:10px 0 0 12px;
   border-top:1px solid var(--line);
 }
 /* Unidad chica pegada al último precio del bloque macro. */
@@ -1824,6 +1850,10 @@ a.estim-inf:hover { color:var(--gold-text); }
 .vw-rel { font-size:var(--fs-2xs); font-weight:800; letter-spacing:.06em; text-transform:uppercase;
   border:1px solid currentColor; border-radius:99px; padding:1px 8px; }
 .vw-meta { font-size:var(--fs-xs); margin-left:auto; display:inline-flex; align-items:center; gap:6px; }
+.vw-export-btn { font-family:var(--font-ui); font-size:var(--fs-2xs); font-weight:700; cursor:pointer;
+  padding:3px 9px; border-radius:999px; border:1px solid var(--line-2); background:var(--panel);
+  color:var(--ink-2); }
+.vw-export-btn:hover { color:var(--gold-text); border-color:var(--gold-hair); }
 .vw-conf { display:inline-flex; gap:2px; vertical-align:middle; }
 .vw-conf i { width:7px; height:7px; border-radius:99px; background:var(--line-2); display:inline-block; }
 .vw-conf i.on { background:var(--gold); }

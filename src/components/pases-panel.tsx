@@ -1,5 +1,6 @@
 import { getPases } from "@/lib/pases-cierres";
-import { getPasesLive, mergeLiveMeta } from "@/lib/a3-live";
+import { getPasesLive, getFuturosLive, mergeLiveMeta } from "@/lib/a3-live";
+import { esPosicionLiquida } from "@/lib/liquidez-posicion";
 import { Panel, PanelHead } from "./panel";
 import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
@@ -15,7 +16,16 @@ function IconPases() {
 }
 
 export async function PasesPanel() {
-  const [data, live] = await Promise.all([getPases(), getPasesLive()]);
+  // Mismo filtro de liquidez que Arbitrajes (relevamiento 29/07, punto 26): una
+  // posición que allá se oculta (OI<100 sin operar hoy) tampoco debe aparecer
+  // como pata de un pase acá. `futLive` es por POSICIÓN (símbolo del futuro,
+  // ej. "SOJ.ROS/JUL26"), distinto de `live` (pases ya armados, para bid/ask).
+  const [futLive, live] = await Promise.all([getFuturosLive(), getPasesLive()]);
+  const liquidaSymbol = (symbol: string, openInterest: number | null) => {
+    const volLive = futLive.puntas.get(symbol)?.vol ?? null;
+    return esPosicionLiquida({ openInterest, operoHoy: volLive != null && volLive > 0 });
+  };
+  const data = await getPases(liquidaSymbol);
   const meta = mergeLiveMeta(data.meta, live);
 
   const puntas: Record<string, PuntaPase> = {};

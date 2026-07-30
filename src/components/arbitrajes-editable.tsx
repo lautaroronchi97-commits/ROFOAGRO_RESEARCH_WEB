@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { nfmt, sfmt, pfmt, dirOf, arrowOf } from "@/lib/format";
+import { BNA_OFFSET } from "@/lib/bna-online";
 import { GlyphSoja, GlyphMaiz, GlyphTrigo } from "./icons";
 import { InfoTip } from "./infotip";
 import { FiltroGrano, type GranoFiltroValue, type GranoKey } from "./filtro-grano";
@@ -36,6 +37,9 @@ export type ArbGranoClient = {
   rows: Row[];
 };
 
+/** Pizarra en pesos y en USD por grano, editables por separado con recálculo cruzado. */
+type PzGrano = { usd: string; ars: string };
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const cls = (v: number | null) => (v == null ? "neu2" : v > 0 ? "pos" : v < 0 ? "neg" : "neu2");
 
@@ -50,15 +54,56 @@ function glyphColor(u: string) {
   return "var(--brand-deep)";
 }
 
-export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
-  const [pz, setPz] = React.useState<Record<string, string>>(() =>
+export function ArbitrajesEditable({
+  granos,
+  oficial,
+  bnaOnline,
+}: {
+  granos: ArbGranoClient[];
+  oficial: number | null;
+  bnaOnline: number | null;
+}) {
+  // TC implícito de la propia pizarra de CAC (ars/usd del día, por grano) — es lo que
+  // permite recalcular pesos↔USD reproduciendo la relación que CAC ya publica para
+  // ESE grano, en vez de aplicar un tipo de cambio genérico.
+  const tcDeGrano = (g: ArbGranoClient): number | null =>
+    g.pizarraArs != null && g.pizarraDefault != null && g.pizarraDefault > 0
+      ? g.pizarraArs / g.pizarraDefault
+      : null;
+
+  const [pz, setPz] = React.useState<Record<string, PzGrano>>(() =>
     Object.fromEntries(
-      granos.map((g) => [g.underlying, g.pizarraDefault != null ? String(g.pizarraDefault) : ""]),
+      granos.map((g) => [
+        g.underlying,
+        {
+          usd: g.pizarraDefault != null ? String(g.pizarraDefault) : "",
+          ars: g.pizarraArs != null ? String(g.pizarraArs) : "",
+        },
+      ]),
     ),
   );
   const [filtro, setFiltro] = React.useState<GranoFiltroValue>("todos");
 
-  const setOne = (u: string, v: string) => setPz((prev) => ({ ...prev, [u]: v }));
+  const setUsd = (g: ArbGranoClient, v: string) => {
+    const tc = tcDeGrano(g);
+    const n = Number(v);
+    const ars = tc != null && v !== "" && Number.isFinite(n) ? String(round2(n * tc)) : pz[g.underlying]?.ars ?? "";
+    setPz((prev) => ({ ...prev, [g.underlying]: { usd: v, ars } }));
+  };
+  const setArs = (g: ArbGranoClient, v: string) => {
+    const tc = tcDeGrano(g);
+    const n = Number(v);
+    const usd = tc != null && v !== "" && Number.isFinite(n) ? String(round2(n / tc)) : pz[g.underlying]?.usd ?? "";
+    setPz((prev) => ({ ...prev, [g.underlying]: { usd, ars: v } }));
+  };
+  const resetear = (g: ArbGranoClient) =>
+    setPz((prev) => ({
+      ...prev,
+      [g.underlying]: {
+        usd: g.pizarraDefault != null ? String(g.pizarraDefault) : "",
+        ars: g.pizarraArs != null ? String(g.pizarraArs) : "",
+      },
+    }));
 
   const visibles = filtro === "todos" ? granos : granos.filter((g) => g.underlying === filtro);
 
@@ -68,7 +113,24 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
 
   return (
     <div>
-      <FiltroGrano value={filtro} onChange={setFiltro} presentes={granos.map((g) => g.underlying as GranoKey)} />
+      <div className="arb-toolbar">
+        <FiltroGrano value={filtro} onChange={setFiltro} presentes={granos.map((g) => g.underlying as GranoKey)} />
+        {(oficial != null || bnaOnline != null) && (
+          <div className="arb-fx">
+            {oficial != null && (
+              <span>
+                Oficial <b>$ {nfmt(oficial, 2)}</b>
+              </span>
+            )}
+            {bnaOnline != null && (
+              <InfoTip term={<span>BNA online <b>$ {nfmt(bnaOnline, 2)}</b></span>}>
+                Aproximación en vivo del comprador BNA: oficial mayorista − ${BNA_OFFSET}. Cuando
+                esté confirmado el BNA de las 15hs, usá ese valor en su lugar.
+              </InfoTip>
+            )}
+          </div>
+        )}
+      </div>
       <div className="table-scroll">
       <table className="tbl" style={{ minWidth: 840 }}>
         <thead>
@@ -130,10 +192,13 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
         </thead>
         <tbody>
           {visibles.map((g) => {
-            const raw = pz[g.underlying];
-            const n = Number(raw);
-            const pizarra = raw !== "" && Number.isFinite(n) ? n : null;
-            const editada = g.pizarraDefault != null && pizarra !== g.pizarraDefault;
+            const campos = pz[g.underlying] ?? { usd: "", ars: "" };
+            const nUsd = Number(campos.usd);
+            const pizarra = campos.usd !== "" && Number.isFinite(nUsd) ? nUsd : null;
+            const tc = tcDeGrano(g);
+            const editada =
+              (g.pizarraDefault != null && pizarra !== g.pizarraDefault) ||
+              (g.pizarraArs != null && campos.ars !== "" && Number(campos.ars) !== g.pizarraArs);
             return (
               <React.Fragment key={g.underlying}>
                 <tr className="grp">
@@ -143,18 +208,29 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
                         {glyphFor(g.underlying)}
                       </span>
                       <span className="gname">{g.nombre}</span>
-                      <span className="gmeta">
-                        disponible pizarra USD{" "}
+                      <span className="gmeta pz-dual">
+                        USD{" "}
                         <input
                           type="number"
                           inputMode="decimal"
                           step="0.01"
-                          className="pz-input"
-                          value={raw}
-                          onChange={(e) => setOne(g.underlying, e.target.value)}
+                          className={`pz-input${editada ? " manual" : ""}`}
+                          value={campos.usd}
+                          onChange={(e) => setUsd(g, e.target.value)}
                           aria-label={`Pizarra USD ${g.nombre}`}
                         />
-                        {g.pizarraArs ? ` · ARS ${nfmt(g.pizarraArs, 0)}` : ""}
+                        {" · ARS "}
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="1"
+                          className={`pz-input${editada ? " manual" : ""}`}
+                          value={campos.ars}
+                          onChange={(e) => setArs(g, e.target.value)}
+                          disabled={tc == null}
+                          title={tc == null ? "Sin tipo de cambio del día para convertir" : undefined}
+                          aria-label={`Pizarra ARS ${g.nombre}`}
+                        />
                         {g.pizarraEstimativa && !editada && (
                           <span className="pz-estim" title="CAC no fijó pizarra ese día: es una estimación (Dto. 1058/99), no un precio firme. Editá el valor si tenés el real.">
                             estimativa
@@ -165,9 +241,7 @@ export function ArbitrajesEditable({ granos }: { granos: ArbGranoClient[] }) {
                             type="button"
                             className="pz-reset"
                             title="Volver al valor de CAC"
-                            onClick={() =>
-                              setOne(g.underlying, g.pizarraDefault != null ? String(g.pizarraDefault) : "")
-                            }
+                            onClick={() => resetear(g)}
                           >
                             ↺
                           </button>

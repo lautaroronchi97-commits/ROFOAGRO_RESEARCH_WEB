@@ -19,7 +19,48 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 29/07/2026 — 🎛️ C28/R1: shell + home + cinta, HECHO)
+## Ahora (última actualización: 30/07/2026 — 🌾 C28/R3: granos, HECHO)
+
+**🌾 C28 — LOTE R3 (GRANOS) — HECHO — rama `claude/website-changes-review-ttqsq4` (reiniciada
+desde `main` tras mergear el PR #111 de R1), PR #_.** Ejecuta el prompt R3 de
+`PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 25–30, todos en `/granos/*`), con la única pregunta que lo
+gateaba (§5.7, formato del export del view) contestada por Lautaro: **PNG simple**.
+**Build**: Arbitrajes con **edición dual $/USD** (cross-cálculo con el TC implícito de la propia
+pizarra CAC del grano, fallback `tcBna`; campo editado en azul —token nuevo `--manual`—) + bloque
+**Oficial (MAE) / BNA online** (`oficial−9`, `src/lib/bna-online.ts` nuevo, reusable por R4) + vol/
+OI del grupo pegado a la derecha · Pases con el **mismo filtro de liquidez** que Arbitrajes
+(extraído a `src/lib/liquidez-posicion.ts`, antes vivía solo ahí) · Caja comparando **posiciones
+fijas** (SOJ/NOV·MAI/DIC·TRI/DIC) + columna Spread + ganador resaltado · Capacidad con **"Soja
+(industria)" pegada debajo de Soja** + emojis 🌾/🌻 para sorgo/girasol · Monitor con **14 emojis
+únicos** por instrumento + alineación de "Referencias" corregida · View con el bloque de feedback
+gateado por `esAdmin` (ready para cuando se abra a clientes) + **botón "↓ PNG"** por card.
+
+**El export PNG del view cambió de técnica en la propia verificación** (2 fallas reales
+encontradas, no hipotéticas): la primera versión (rasterizar el DOM real vía
+`<svg><foreignObject>`, como ya hace `exportarSvgComoPng` con los charts) falló el 100% de las
+veces — primero por XML roto (el CSS de Tailwind v4 trae `@property { syntax: "<color>" }`, el `<`
+literal rompe el `<style>` sin CDATA) y, ya arreglado eso, por **canvas "tainted"** (limitación de
+Chrome con CUALQUIER `foreignObject` con HTML adentro, confirmado que no depende de fuentes/
+imágenes externas). Se abandonó la técnica y se reescribió como **dibujo a mano en canvas**
+(`exportarViewComoPng`, `chart-export.ts`) con los colores reales del tema — cero riesgo de taint,
+probado y funcionando en claro y oscuro.
+
+**Verificado de punta a punta** (lint/tsc/**384 tests**/build ✅ + Playwright real contra
+`npm run start` con datos de Supabase del entorno, claro/oscuro, cero errores de consola/scroll
+horizontal): Arbitrajes con cross-cálculo exacto (999 USD → 1.487.509,2 ARS) y clase `.manual`
+confirmada · Pases cruzado contra Arbitrajes (todas sus patas dentro del set visible de
+Arbitrajes) · Caja con Soja/NOV26 resaltado y spread visible · Capacidad con el orden Soja→Soja
+(industria)→Maíz→Trigo→Sorgo→Girasol en los 2 temas · Monitor con los 14 emojis distintos
+(`Set().size` verificado) · View con **bypass temporal** (`requireAdmin()` + datos sintéticos,
+revertido y `git diff` limpio): feedback visible, PNG descargado y comparado contra la card en
+pantalla en claro y oscuro — y con el código real, `/granos/view` sin sesión sigue redirigiendo a
+`/ingresar`.
+
+**Próximo paso**: seguir con **R4 (calculadoras: patrón + 7)** según el orden del plan
+(R1→R3→R4→R6→R2→R5→R7→R8→R9→R10); las preguntas 3/4/6/9/10 de §5 siguen abiertas y gatean partes
+de R4/R2/R5/R8. Detalle: [`sesiones/2026-07-30-r3-granos.md`](sesiones/2026-07-30-r3-granos.md).
+
+## Anterior (29/07/2026 — 🎛️ C28/R1: shell + home + cinta, HECHO)
 
 **🎛️ C28 — LOTE R1 (SHELL + HOME + CINTA) — HECHO — rama `claude/website-changes-review-ttqsq4`
 (reiniciada desde `main` tras mergear el PR #109 del plan), PR #_.** Ejecuta el prompt R1 de

@@ -47,6 +47,7 @@ export function MonitorAgroTabla({ rows }: { rows: MonitorRow[] }) {
                 <td className="l">
                   <span className="grp-cell">
                     <span className="gglyph" style={{ color: glyphColor(r.glyph) }}>{glyphFor(r.glyph)}</span>
+                    <span className="gemoji" aria-hidden="true">{r.emoji}</span>
                     <span className="gname">{r.nombre}</span>
                     {r.pos && <span className="gmeta">{r.pos}</span>}
                   </span>

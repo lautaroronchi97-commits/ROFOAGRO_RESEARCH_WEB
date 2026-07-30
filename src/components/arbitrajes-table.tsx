@@ -4,6 +4,9 @@ import { ruedaAgroCorrioHoy } from "@/lib/rueda";
 import { hoyCordobaISO } from "@/lib/dates";
 import { CONTRATO_GRANO_TN } from "@/lib/futuros";
 import { esModoOperado, referenciaDeFila } from "@/lib/referencia-futuro";
+import { esPosicionLiquida } from "@/lib/liquidez-posicion";
+import { getMaeOficial } from "@/lib/market/fuentes";
+import { getBnaOnline } from "@/lib/bna-online";
 import { Panel, PanelHead } from "./panel";
 import { IconArb } from "./icons";
 import { SourceStamp } from "./source-stamp";
@@ -22,8 +25,9 @@ import { ArbitrajesEditable, type ArbGranoClient } from "./arbitrajes-editable";
  * La regla vive en `src/lib/referencia-futuro.ts` (compartida con "El mercado hoy").
  */
 export async function ArbitrajesTable() {
-  const [data, live] = await Promise.all([getArbitrajes(), getFuturosLive()]);
+  const [data, live, oficial] = await Promise.all([getArbitrajes(), getFuturosLive(), getMaeOficial()]);
   const meta = mergeLiveMeta(data.meta, live);
+  const bnaOnline = oficial.valor != null ? getBnaOnline(oficial.valor) : null;
 
   const ruedaCorrio = ruedaAgroCorrioHoy();
   const hoy = hoyCordobaISO();
@@ -39,16 +43,9 @@ export async function ArbitrajesTable() {
       const volLive = p?.vol ?? null; // volumen operado HOY (A3 TV, resetea por rueda)
       const operoHoy = volLive != null && volLive > 0;
       const volumeDelDia = modoOperado ? volLive : r.volume;
-      // Pedido de Lautaro: posiciones poco líquidas (< 100 contratos de interés
-      // abierto) son ruido si nadie las está operando — se ocultan salvo que
-      // hayan operado HOY de verdad (volumen en vivo de A3, `operoHoy` — no el
-      // volumen del último cierre, que podría ser de una rueda vieja y no dice
-      // nada de la actividad de hoy). Sin A3 en vivo (fuera de rueda / feed
-      // caído) no hay forma de confirmarlo, así que queda oculta. Sin dato de OI
-      // (hueco del cierre) NO se oculta, mismo criterio conservador que el resto
-      // del filtrado de posiciones vivas.
-      const oi = r.openInterest;
-      if (oi != null && oi < 100 && !operoHoy) return [];
+      // Filtro de liquidez compartido con Pases (relevamiento 29/07, punto 26) —
+      // ver el criterio completo en `liquidez-posicion.ts`.
+      if (!esPosicionLiquida({ openInterest: r.openInterest, operoHoy })) return [];
       // Referencia + variación + punto "en vivo": regla compartida (ver docstring).
       const rf = referenciaDeFila({
         modoOperado,
@@ -103,7 +100,7 @@ export async function ArbitrajesTable() {
         sub="Pizarra (disponible) vs A3 (futuro)"
         stamp={<SourceStamp meta={meta} />}
       />
-      <ArbitrajesEditable granos={granos} />
+      <ArbitrajesEditable granos={granos} oficial={oficial.valor} bnaOnline={bnaOnline} />
       <QueEsEsto
         paraQue="Te muestra cuánto te reconoce el mercado por esperar a entregar tu grano más adelante en vez de venderlo hoy. Si esa espera rinde una tasa alta en dólares, conviene vender a futuro y cobrar después; si rinde poco, conviene hacer caja hoy."
         comoSeCalcula="Toma el precio de venta de hoy y el precio del futuro en cada posición. Fuera de rueda ese precio del futuro es el último ajuste; durante la rueda se borra el ajuste y pasa a ser el último operado en vivo, hasta que salga el próximo ajuste. La diferencia contra el precio de hoy es el spread; puesta como porcentaje es la tasa directa, y anualizada por los días que faltan, la tasa anual en dólares. Podés cargar tu propio precio de hoy y todo se recalcula. Comprador y Vendedor son las puntas del futuro en la rueda, cuando está abierta."

@@ -40,12 +40,15 @@ export type CapIndustriaClient = {
   cfg: CapacidadIndustriaCfg;
 };
 
-// Sorgo y girasol no tienen glifo propio todavía (solo soja/maíz/trigo tienen futuro A3) —
-// se muestran sin ícono en vez de reusar uno ajeno.
+// Sorgo y girasol no tienen glifo SVG propio (solo soja/maíz/trigo tienen futuro
+// A3) — llevan emoji (pedido explícito, relevamiento 29/07 punto 28), no un ícono
+// SVG ajeno.
 function glyphFor(u: string) {
   if (u === "SOJ") return <GlyphSoja />;
   if (u === "MAI") return <GlyphMaiz />;
   if (u === "TRI") return <GlyphTrigo />;
+  if (u === "SOR") return <span className="gemoji">🌾</span>;
+  if (u === "GIR") return <span className="gemoji">🌻</span>;
   return null;
 }
 function glyphColor(u: string) {
@@ -179,18 +182,34 @@ export function CapacidadEditable({ granos, industria }: { granos: CapGranoClien
           </thead>
           <tbody>
             {filas.map(({ g, fasNuestro }) => (
-              <FilaResultado
-                key={g.underlying}
-                nombre={g.nombre}
-                glyph={
-                  <span className="gglyph" style={{ color: glyphColor(g.underlying) }}>
-                    {glyphFor(g.underlying)}
-                  </span>
-                }
-                fasBcr={g.fasBcr}
-                fasNuestro={fasNuestro}
-                pizarra={g.pizarra}
-              />
+              <React.Fragment key={g.underlying}>
+                <FilaResultado
+                  nombre={g.nombre}
+                  glyph={
+                    <span className="gglyph" style={{ color: glyphColor(g.underlying) }}>
+                      {glyphFor(g.underlying)}
+                    </span>
+                  }
+                  fasBcr={g.fasBcr}
+                  fasNuestro={fasNuestro}
+                  pizarra={g.pizarra}
+                />
+                {/* Industria pegada debajo de soja común, no al final de la tabla
+                    (relevamiento 29/07, punto 28). */}
+                {g.underlying === "SOJ" && industria && (
+                  <FilaResultado
+                    nombre={industria.nombre}
+                    glyph={
+                      <span className="gglyph" style={{ color: glyphColor("SOJ") }}>
+                        {glyphFor("SOJ")}
+                      </span>
+                    }
+                    fasBcr={industria.fasBcr}
+                    fasNuestro={fasNuestroIndustria}
+                    pizarra={industria.pizarra}
+                  />
+                )}
+              </React.Fragment>
             ))}
             {filas.length === 0 && (
               <tr>
@@ -198,19 +217,6 @@ export function CapacidadEditable({ granos, industria }: { granos: CapGranoClien
                   Sin datos de capacidad de pago todavía.
                 </td>
               </tr>
-            )}
-            {industria && (
-              <FilaResultado
-                nombre={industria.nombre}
-                glyph={
-                  <span className="gglyph" style={{ color: glyphColor("SOJ") }}>
-                    {glyphFor("SOJ")}
-                  </span>
-                }
-                fasBcr={industria.fasBcr}
-                fasNuestro={fasNuestroIndustria}
-                pizarra={industria.pizarra}
-              />
             )}
           </tbody>
         </table>
