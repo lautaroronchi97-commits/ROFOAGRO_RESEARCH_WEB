@@ -34,6 +34,22 @@ export function diasHasta(hastaISO: string): number {
 }
 
 /**
+ * Epoch ms (mediodía Córdoba) de la fecha de referencia OPERATIVA: sábado/domingo anclan al
+ * viernes anterior (no hay rueda ese fin de semana — sin esto, un plazo a vencimiento calculado
+ * en sábado/domingo contaría días de mercado cerrado que el jueves/viernes anterior no contaba,
+ * "moviendo" la TNA solo por el paso del fin de semana). Lunes en adelante es directamente hoy.
+ * `ahora` es inyectable para tests (default: instante real). Uso puntual: anualización de
+ * sintéticos (relevamiento web R6, punto 34).
+ */
+export function hoyOperativoMs(ahora: Date = new Date()): number {
+  const d = new Date(`${fechaCordobaISO(ahora)}T12:00:00-03:00`);
+  const dow = d.getUTCDay(); // mediodía fijo → estable ante zona horaria (0=domingo..6=sábado)
+  if (dow === 6) d.setUTCDate(d.getUTCDate() - 1);
+  else if (dow === 0) d.setUTCDate(d.getUTCDate() - 2);
+  return d.getTime();
+}
+
+/**
  * Util única de mes/posición A3 (lote L1, auditoría E4 hallazgo #11: 9 archivos
  * tenían cada uno su copia de este dict/regex). "Posición" = ticker corto de A3,
  * ej. "JUL26" (mes abreviado ES + 2 dígitos de año). `MONTH_LETTER` (bonos AR,

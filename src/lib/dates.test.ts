@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  hoyCordobaISO, diasEntre, diasHasta,
+  hoyCordobaISO, diasEntre, diasHasta, hoyOperativoMs, fechaCordobaISO,
   MESES_ES, mesIndice, parsePosicion, vencKeyDePosicion, vtoDePosicion, posicionDeFecha, hoyVencKey,
 } from "./dates";
 
@@ -13,6 +13,31 @@ describe("dates.ts", () => {
   it("diasEntre / diasHasta ya cubiertos en habiles.test.ts (ficha 6.7)", () => {
     expect(diasEntre("2026-01-01", "2026-01-05")).toBe(4);
     expect(diasHasta(hoyCordobaISO())).toBe(0);
+  });
+});
+
+/**
+ * hoyOperativoMs (relevamiento web R6, punto 34, pregunta 3): sábado/domingo anclan al viernes
+ * anterior — no hay rueda ese fin de semana, así que el plazo a vencimiento de los sintéticos no
+ * debe "correr" solo por el paso del sábado/domingo. Fechas de referencia: 2026-08-07 es viernes,
+ * 08 sábado, 09 domingo, 10 lunes.
+ */
+describe("dates.ts — hoyOperativoMs", () => {
+  it("de lunes a viernes, es directamente hoy", () => {
+    const viernes = new Date("2026-08-07T15:00:00Z");
+    expect(fechaCordobaISO(new Date(hoyOperativoMs(viernes)))).toBe("2026-08-07");
+    const lunes = new Date("2026-08-10T15:00:00Z");
+    expect(fechaCordobaISO(new Date(hoyOperativoMs(lunes)))).toBe("2026-08-10");
+  });
+
+  it("sábado ancla al viernes anterior", () => {
+    const sabado = new Date("2026-08-08T15:00:00Z");
+    expect(fechaCordobaISO(new Date(hoyOperativoMs(sabado)))).toBe("2026-08-07");
+  });
+
+  it("domingo también ancla al mismo viernes (no al sábado)", () => {
+    const domingo = new Date("2026-08-09T15:00:00Z");
+    expect(fechaCordobaISO(new Date(hoyOperativoMs(domingo)))).toBe("2026-08-07");
   });
 });
 

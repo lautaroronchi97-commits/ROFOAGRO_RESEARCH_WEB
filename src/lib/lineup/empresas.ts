@@ -6,7 +6,14 @@ import { PRODUCTOS, productoDe, type Familia } from "./config";
 import { zonaCarga, type Zona } from "./zonas";
 import { canonShipper } from "./shippers";
 import { campaniaIniYear, campanaLabel, parseFechaUTC } from "./campanas";
-import { senalDe, ratioCobertura, umbralesPorPercentil, type Senal, type UmbralesCobertura } from "./cobertura";
+import {
+  senalDe,
+  ratioCobertura,
+  umbralesPorPercentil,
+  DECLARADO_MIN_SIGNIFICATIVO,
+  type Senal,
+  type UmbralesCobertura,
+} from "./cobertura";
 
 /**
  * Panel de empresas del comercio exterior (Fase 2). Cruza la DJVE (declarado) con el
@@ -284,7 +291,14 @@ export const getEmpresas = cache(async (): Promise<EmpresasData> => {
   for (const nombre of nombres) {
     if (nombre === "OTROS") continue; // OTROS se maneja como bucket final si hace falta
     const a = emp.get(nombre);
+    const buques = a?.buques.size ?? 0;
     const decl60 = [...(decl60Emp.get(nombre)?.values() ?? [])].reduce((s, v) => s + v, 0);
+    // Relevamiento web R8, punto 55 (pregunta 9, respondida 30/07): afuera las empresas que no
+    // operan — sin ningún buque en la última rueda Y sin un programa declarado (60d) que llegue
+    // al piso de "significativo" (mismo DECLARADO_MIN_SIGNIFICATIVO que usa senalDe, para no
+    // inventar un segundo umbral). Mantiene a las que tienen embarques programados de verdad
+    // aunque hoy no haya ningún buque suyo en la foto; saca a las de una operación puntual.
+    if (buques === 0 && decl60 < DECLARADO_MIN_SIGNIFICATIVO) continue;
     const orig60 = a ? [...a.orig60.values()].reduce((s, v) => s + v, 0) : 0;
     const r = ritmo(nombre);
     empresas.push({
@@ -293,7 +307,7 @@ export const getEmpresas = cache(async (): Promise<EmpresasData> => {
       faltaCubrir: decl60 - orig60, ratio: ratioCobertura(decl60, orig60),
       senal: senalDe(decl60, orig60, umbralesPool), // mezcla productos → umbral pooleado (L4)
       declaradoCamp: declCampEmp.get(nombre) ?? 0, originadoCamp: origCampEmp.get(nombre) ?? 0,
-      buques: a?.buques.size ?? 0, standing: a?.standing ?? 0, transito: a?.transito ?? 0,
+      buques, standing: a?.standing ?? 0, transito: a?.transito ?? 0,
       ritmoActual: r.actual, ritmoNormal: r.normal, ritmoRatio: r.ratio, ritmoN: r.n,
       porProducto: a ? [...a.porProd.entries()].map(([display, ton]) => ({ display, ton })).sort((x, y) => y.ton - x.ton) : [],
       porZona: a ? [...a.porZona.entries()].map(([zona, ton]) => ({ zona, ton })).filter((z) => z.zona !== "Otros" && z.ton > 0).sort((x, y) => y.ton - x.ton) : [],
