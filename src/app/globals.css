@@ -1405,7 +1405,11 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-hero-cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:32px 0 0; }
 .lp-btn-lg { width:auto; min-width:172px; padding:13px 26px; font-size:var(--fs-md); }
 .lp-btn-inline { margin-top:26px; }
-.lp-hero-foot { margin:18px 0 0; font-size:var(--fs-sm); color:var(--ink-3); }
+.lp-hero-foot { display:inline-flex; align-items:center; gap:8px; margin:22px auto 0; padding:8px 16px;
+  font-size:var(--fs-sm); font-weight:700; color:var(--gold-text); letter-spacing:.01em;
+  background:color-mix(in srgb, var(--gold) 12%, transparent); border:1px solid var(--gold-hair);
+  border-radius:999px; }
+.lp-hero-foot-dot { width:6px; height:6px; border-radius:999px; background:var(--gold); flex:0 0 auto; }
 
 /* --- Problema --- */
 .lp-pain { list-style:none; padding:0; margin:24px 0 0; display:grid; gap:12px;
@@ -1436,7 +1440,8 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-card-icon svg { width:22px; height:22px; }
 .lp-card-t { font-size:var(--fs-md); font-weight:800; color:var(--ink); margin:14px 0 7px; }
 .lp-card-p { font-size:var(--fs-base); line-height:1.55; color:var(--ink-2); margin:0; }
-.lp-services-foot { margin-top:26px; color:var(--ink-3); }
+.lp-services-foot { margin:26px auto 0; max-width:56ch; text-align:center; font-size:var(--fs-lg);
+  font-weight:700; line-height:1.5; color:var(--ink); }
 @media (max-width:900px){ .lp-services { grid-template-columns:1fr 1fr; } }
 @media (max-width:600px){ .lp-services { grid-template-columns:1fr; } }
 
@@ -1452,6 +1457,7 @@ a.estim-inf:hover { color:var(--gold-text); }
 .lp-teaser-fade { position:absolute; left:0; right:0; bottom:0; height:64px; pointer-events:none;
   background:linear-gradient(to bottom, transparent, var(--panel)); }
 .lp-mock { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:14px; }
+.lp-mock-wide { grid-column:1 / -1; }
 .lp-mock-hd { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.08em; font-weight:800;
   color:var(--brand-deep); margin-bottom:10px; }
 .lp-mock-tbl { width:100%; border-collapse:collapse; font-size:var(--fs-xs); }

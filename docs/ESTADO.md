@@ -19,7 +19,42 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 💵 C28/R6: dólar, HECHO salvo p34)
+## Ahora (última actualización: 30/07/2026 — 🏛️ C28/R2: landing, HECHO)
+
+**🏛️ C28 — LOTE R2 (LANDING) — HECHO — misma rama `claude/website-changes-review-ttqsq4`,
+PR #112 (sigue ampliándose — R3/R4/R6 seguían sin mergear al arrancar R2, ver bitácora; Lautaro
+confirmó explícitamente que NO va a mergear todavía, que siga avanzando con el plan y que mañana
+desde la PC revisa todo junto).** Ejecuta el prompt R2 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos
+1–12, todos en `/bienvenida`), con `ui-ux-pro-max` y `voz-lautaro` cargadas, copy **redactado**
+(no copiado textual) donde Lautaro dio letra.
+**Build**: hero con "comprar o vender" (antes solo "vender") + "Servicio a medida para
+productores y acopios" pasó de texto apagado a **badge destacado** (píldora dorada) · las 6
+tarjetas de Servicios reescritas para dar **indicios** en vez de listar funciones internas
+literales · frase de cierre de Servicios ("no solo datos") destacada visualmente (bold, tamaño
+grande) · Teaser sumó un **5º mock "Comercio exterior · Line-up de puertos"** (buques ficticios,
+sin datos reales) · "Por qué ROFO AGRO" → **"¿Por qué ROFO AGRO?"** + diferencial de foco
+redactado · Acopios sin "correacopio", nuevo heading **"Profesionalizá tu mesa de negocios"** +
+copy con las 4 ideas dadas · FAQ corredor ampliada a **acopio/cooperativa/exportador/corredor** +
+FAQ tiempo real con **"conectada a mercado real time" + "interpretada por nuestros
+especialistas"** · contacto con heading **"Sumá toda nuestra experiencia a tu equipo"** + las 2
+menciones de "tablero" DE ESA SECCIÓN (nota + link) pasadas a **"web"** (acotado a ese anclaje, sin
+tocar el resto de las menciones de "tablero" de la landing) · cierre con **"equipo de
+profesionales"** en vez de "mesa de granos".
+
+**Verificado de punta a punta** (lint/tsc/**397 tests**/build ✅ + Playwright real contra
+`npm run start`, claro/oscuro/desktop/mobile, `reducedMotion:"reduce"`, cero errores de
+consola/scroll horizontal, capturas dirigidas del hero/teaser/servicios confirmando el badge, la
+frase destacada y el mock nuevo). **Sin verificar**: a qué mail llega hoy el formulario de
+contacto (`ADMIN_EMAILS` en Vercel) — el MCP de Vercel de este entorno no expone ningún tool para
+leer env vars, y `get_runtime_logs` devolvió `ExceedsBillingLimitError` (logs gateados por el plan
+del equipo); el código confirma que el destino es 100% esa env var y que degrada en silencio si
+falta, pero el valor real solo lo puede confirmar Lautoro a mano en el dashboard de Vercel.
+
+**Próximo paso**: seguir con **R5** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→R9→R10); las
+preguntas 3/9/10 de §5 siguen abiertas y gatean partes de R5/R8. Detalle:
+[`sesiones/2026-07-30-r2-landing.md`](sesiones/2026-07-30-r2-landing.md).
+
+## Anterior (30/07/2026 — 💵 C28/R6: dólar, HECHO salvo p34)
 
 **💵 C28 — LOTE R6 (DÓLAR) — HECHO salvo un punto explícitamente pendiente — misma rama
 `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose — R3/R4 seguían sin mergear al
