@@ -101,23 +101,22 @@ export async function SenalCamionesPanel() {
       <QueEsEsto
         paraQue={
           <>
-            Cruza la <strong>demanda física</strong> (line-up de buques esperando carga, en percentil
-            estacional) contra la <strong>reposición física</strong> (camiones descargados, media móvil
-            de 7 días hábiles, mismo percentil). Un diferencial positivo grande (bodega en máximos, camiones
-            flojos) es tensión <strong>alcista</strong>: el exportador puede pagar más para atraer
-            mercadería. Un diferencial negativo (camiones en máximos sin bodega esperando) es{" "}
-            <strong>bajista</strong> en el margen. Idea original de Lautaro, research en{" "}
-            <code>docs/negocio/09_camiones_vs_lineup_senal.md</code>.
+            Cruza la <strong>demanda física</strong> (buques esperando carga, en percentil estacional)
+            contra la <strong>reposición física</strong> (camiones descargados, mismo percentil). Un
+            diferencial positivo grande (bodega en máximos, camiones flojos) es tensión{" "}
+            <strong>alcista</strong>: el exportador puede pagar más para atraer mercadería. Un
+            diferencial negativo (camiones en máximos sin bodega esperando) es <strong>bajista</strong> en
+            el margen.
           </>
         }
         comoSeCalcula={
           <>
-            SEÑAL = percentil estacional de la densidad de line-up (ETB ≤ 30 días, solo puertos
-            argentinos) − percentil estacional de la media móvil 7 días de camiones. Ambos percentiles
-            comparan el valor de hoy contra la misma fecha (±15 días) de años anteriores — nunca un
-            ratio con umbral fijo. Umbral de &quot;neutro&quot; ±10 (provisorio, pendiente de calibración L4).
-            Limitaciones conocidas: sin matriz zona×producto, consumo interno (molienda) mezclado con
-            exportación, Gran Rosario no distingue Up River Norte/Sur.
+            Diferencia entre el percentil estacional de la bodega esperando y el de los camiones
+            descargados (media móvil de 7 días hábiles) — ambos comparan el valor de hoy contra la misma
+            época del año en las campañas anteriores, nunca un ratio con umbral fijo. Diferenciales
+            chicos se leen como neutros. Limitaciones conocidas: no cruza zona con producto, el consumo
+            interno (molienda) queda mezclado con la exportación, y Gran Rosario no distingue Up River
+            Norte de Sur.
           </>
         }
       />

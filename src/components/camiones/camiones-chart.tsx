@@ -56,7 +56,23 @@ function tablaDeSeries(series: SerieCamiones[]): { columnas: ChartTablaColumna[]
   return { columnas, filas };
 }
 
-export function CamionesChart({ series, colorClassPrefix, tituloAria }: { series: SerieCamiones[]; colorClassPrefix: string; tituloAria: string }) {
+export function CamionesChart({
+  series,
+  colorClassPrefix,
+  tituloAria,
+  tablaColapsable = false,
+  tablaAbierta,
+  onToggleTabla,
+}: {
+  series: SerieCamiones[];
+  colorClassPrefix: string;
+  tituloAria: string;
+  /** Opt-in (relevamiento web R9 punto 53): la `ChartTabla` interna arranca cerrada, coordinada
+   *  por el padre (`abierta`/`onToggleAbierta`). Sin esto, sigue siempre-visible como hoy. */
+  tablaColapsable?: boolean;
+  tablaAbierta?: boolean;
+  onToggleTabla?: () => void;
+}) {
   const [hi, setHi] = useState<number | null>(null);
 
   const flat: Flat[] = [];
@@ -157,7 +173,14 @@ export function CamionesChart({ series, colorClassPrefix, tituloAria }: { series
           ))}
         </div>
       </div>
-      <ChartTabla columnas={tabla.columnas} filas={tabla.filas} nota="Una fila por día con dato; cantidad de CAMIONES (no toneladas)." />
+      <ChartTabla
+        columnas={tabla.columnas}
+        filas={tabla.filas}
+        nota="Una fila por día con dato; cantidad de CAMIONES (no toneladas)."
+        colapsable={tablaColapsable}
+        abierta={tablaAbierta}
+        onToggleAbierta={onToggleTabla}
+      />
     </>
   );
 }

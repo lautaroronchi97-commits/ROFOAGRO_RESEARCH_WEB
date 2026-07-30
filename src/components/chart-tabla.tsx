@@ -26,6 +26,10 @@ import * as React from "react";
  *     `orden="desc"` invierte el resultado para mostrar la más reciente primero.
  *     Sin estas props, la tabla sigue mostrando TODO en el orden que llega (el
  *     resto de los ~11 consumidores no cambia).
+ *   - `colapsable` (opt-in, relevamiento web R9 punto 53): arranca cerrada, con un
+ *     botón para expandir. Sin `abierta`/`onToggleAbierta` el estado es interno;
+ *     pasando ambos, el PADRE controla qué tabla está abierta (varias `ChartTabla`
+ *     coordinando "máx una abierta a la vez"). Sin `colapsable`, sigue igual.
  */
 
 export type ChartTablaColumna = {
@@ -53,6 +57,11 @@ export type ChartTablaProps = {
    *  datos (relevamiento web R7 punto 48: la fila de "hoy" en el eje días-al-vto de
    *  `spread-chart.tsx`). Se evalúa sobre las filas ya recortadas/ordenadas. */
   destacada?: (fila: ChartTablaFila, i: number) => boolean;
+  /** Opt-in: arranca cerrada, con botón para expandir/colapsar. */
+  colapsable?: boolean;
+  /** Estado controlado (junto con `onToggleAbierta`) para coordinar varias tablas. */
+  abierta?: boolean;
+  onToggleAbierta?: () => void;
 };
 
 function descargarCsv(columnas: ChartTablaColumna[], filas: ChartTablaFila[], filename: string) {
@@ -82,7 +91,15 @@ export function ChartTabla({
   maxFilas,
   orden = "asc",
   destacada,
+  colapsable = false,
+  abierta,
+  onToggleAbierta,
 }: ChartTablaProps) {
+  const [abiertaInterna, setAbiertaInterna] = React.useState(false);
+  const controlada = abierta !== undefined && onToggleAbierta !== undefined;
+  const estaAbierta = !colapsable || (controlada ? abierta : abiertaInterna);
+  const toggle = controlada ? onToggleAbierta : () => setAbiertaInterna((v) => !v);
+
   let vista = filas;
   if (maxFilas != null && vista.length > maxFilas) vista = vista.slice(-maxFilas);
   if (orden === "desc") vista = [...vista].reverse();
@@ -90,7 +107,13 @@ export function ChartTabla({
   return (
     <div className="ct">
       <div className="ct-hd">
-        <span>{titulo}</span>
+        {colapsable ? (
+          <button type="button" className="ct-toggle" aria-expanded={estaAbierta} onClick={toggle}>
+            <span className="ct-toggle-ico">{estaAbierta ? "▾" : "▸"}</span> {titulo}
+          </button>
+        ) : (
+          <span>{titulo}</span>
+        )}
         {vista.length > 0 && (
           <span className="ct-n">
             {vista.length} {vista.length === 1 ? "fila" : "filas"}
@@ -106,6 +129,8 @@ export function ChartTabla({
           </button>
         )}
       </div>
+      {!estaAbierta ? null : (
+      <>
       <div className="ct-scroll" tabIndex={0}>
         <table className="tbl">
           <thead>
@@ -142,6 +167,8 @@ export function ChartTabla({
         </table>
       </div>
       {nota && <p className="ct-nota">{nota}</p>}
+      </>
+      )}
     </div>
   );
 }

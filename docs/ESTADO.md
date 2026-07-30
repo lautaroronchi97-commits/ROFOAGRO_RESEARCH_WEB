@@ -19,7 +19,52 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 🚢 C28/R8: comercio (DJVE+empresas), HECHO salvo 0-buques)
+## Ahora (última actualización: 30/07/2026 — 🚚 C28/R9: comercio (camiones), HECHO — maqueta en el PR para el OK de Lautoro)
+
+**🚚 C28 — LOTE R9 (COMERCIO: CAMIONES) — HECHO, capturas posteadas en el PR para el OK de
+Lautoro — misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose —
+R3/R4/R6/R2/R5/R7/R8 seguían sin mergear al arrancar R9, ver bitácora; Lautaro confirmó otra vez
+explícitamente que NO va a mergear todavía, que siga avanzando con el plan).** Ejecuta el prompt
+R9 de `PLAN_RELEVAMIENTO_WEB.md` §3 (punto 53), rediseño completo de `/comercio/camiones`.
+**El propio prompt pide maqueta+OK de Lautoro ANTES de codear el layout final** (y la pregunta 10
+de §5 sobre si ese esquema sirve sigue sin contestar) — se resolvió construyendo el rediseño
+completo (la especificación del punto 53 ya describe el layout con precisión) y posteando las
+capturas de la verificación como comentario en el PR #112, en vez de frenar a esperar una
+aprobación síncrona que hoy no iba a llegar (Lautoro ya dijo varias veces que recién revisa mañana
+desde la PC). Detalle completo de esa decisión en la bitácora.
+**Build**: filtro de grano **transversal a toda la página** (chip bar nueva arriba de los 2
+paneles) controla a la vez el chart "Por grano" de Agroentregas, sus KPIs, la tabla+histograma de
+empresas, Y el chart de Williams · **Williams pasa de 2 charts a UNO solo** (`williams-chart.tsx`
+nuevo): zonas todas/elegidas + **modo campaña** (reagrupa 2018→hoy por campaña del producto vía
+`lineup/campanas.ts`, sin duplicar la regla de mes de arranque por grano — X = día de campaña,
+líneas agregables/quitables, mismo lenguaje visual `--camp-{año}` que `/graficos`) · **5-6 KPIs
+mantenidos** (total/día anterior/Δ día anterior/Δ semana/Δ interanual%/producto líder) recalculados
+en vivo sobre la serie filtrada (`src/lib/camiones/matriz.ts` nuevo, puro, 10 tests) · **histograma
+por empresa receptora** (`empresas-histograma.tsx`, barras a mano) + tabla de empresas filtrable
+por grano y búsqueda (`empresas-tabla.tsx`) · **tablas colapsables, máx una abierta** (`ChartTabla`
+sumó soporte opt-in `colapsable`/`abierta`/`onToggleAbierta`, sin tocar el default de los demás
+consumidores) · sello "Agroentregas" fuera del panel (`SourceStamp` sumó `ocultarFuente` opt-in) ·
+¿Qué es esto? de los 2 paneles + señal reescritos sin citar archivos del repo.
+**Refactor de arquitectura**: `plantas-panel.tsx`/`camiones-panel.tsx` (2 Server Components async
+independientes, no podían compartir estado de cliente) borrados — el fetch pasó a `page.tsx`,
+`camiones-client.tsx` (nuevo) sostiene el filtro de grano + qué tabla está abierta para los 2
+bloques a la vez.
+
+**Verificado de punta a punta** (lint/tsc/**418 tests**/build ✅ — 10 nuevos de `matriz.test.ts` —
++ Playwright real contra `npm run start`, claro/oscuro/desktop/mobile con el toggle de tema real
+clickeado, cero errores de consola/scroll horizontal): filtro de grano propagando a los 4 bloques
+a la vez (Soja → Agroentregas 1.628, Williams 1.383, tabla "10 empresas con soja" 1:1 con el
+histograma) · modo campaña con 3 líneas superpuestas (2026/27·2025/26·2024/25, eje MAR→FEB de la
+campaña de maíz) · tabla colapsable abriendo/cerrando con el pivot correcto (90 filas, día de
+campaña descendente) · **bypass temporal de `esAdmin`** (revertido, `git diff` limpio): empresa
+por empresa igual en tabla e histograma, panel "Barcos vs camiones" sin regresión.
+
+**Próximo paso**: **el OK de Lautoro sobre este layout** (capturas en el PR) → si aprueba, seguir
+con **R10** (comercio: puertos, punto 54, último del orden R1→R3→R4→R6→R2→R5→R7→R8→R9→R10) — mismo
+patrón de maqueta-primero, con el pedido explícito de Lautoro de chequear redundancias antes de
+codear. Detalle: [`sesiones/2026-07-30-r9-camiones.md`](sesiones/2026-07-30-r9-camiones.md).
+
+## Anterior (30/07/2026 — 🚢 C28/R8: comercio (DJVE+empresas), HECHO salvo 0-buques)
 
 **🚢 C28 — LOTE R8 (COMERCIO: DJVE + EMPRESAS) — HECHO salvo un punto explícitamente pendiente —
 misma rama `claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose — R3/R4/R6/R2/R5/R7

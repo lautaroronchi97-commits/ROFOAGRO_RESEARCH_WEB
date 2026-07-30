@@ -1114,6 +1114,16 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 .cam-SORGHUM          { --org-c:#B06A4A; }
 .cam-SFSEED           { --org-c:#3E86A0; }
 
+/* R9: chart único de camiones (williams-chart.tsx) — toolbar de controles + histograma de empresas */
+.williams-chart { margin-top:6px; }
+.cam-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:14px 20px; margin-bottom:10px; }
+.emp-histo { display:flex; flex-direction:column; gap:7px; margin-top:6px; }
+.emp-histo-fila { display:grid; grid-template-columns:min(38%,160px) 1fr auto; align-items:center; gap:8px; }
+.emp-histo-nombre { font-size:var(--fs-xs); color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.emp-histo-barra-wrap { height:9px; border-radius:5px; background:var(--panel-3); overflow:hidden; }
+.emp-histo-barra { display:block; height:100%; border-radius:5px; background:var(--gold); }
+.emp-histo-valor { font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:700; text-align:right; min-width:3.5ch; }
+
 .cal-org { font-family:var(--font-mono); font-weight:700; font-size:var(--fs-2xs); letter-spacing:.04em;
   text-transform:uppercase; white-space:nowrap; padding:2.5px 7px; border-radius:var(--r-chip);
   color:var(--org-c); background:color-mix(in srgb, var(--org-c) 12%, transparent);
@@ -1919,6 +1929,10 @@ a.estim-inf:hover { color:var(--gold-text); }
   font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.07em; font-weight:700;
   color:var(--ink-3); }
 .ct-hd .ct-n { margin-left:auto; font-family:var(--font-mono); font-weight:600; letter-spacing:.02em; }
+.ct-toggle { display:inline-flex; align-items:baseline; gap:5px; background:none; border:none; padding:0;
+  font:inherit; text-transform:inherit; letter-spacing:inherit; color:inherit; cursor:pointer; }
+.ct-toggle:hover { color:var(--ink); }
+.ct-toggle-ico { font-size:.85em; color:var(--gold-text); }
 .ct-scroll { overflow:auto; max-height:320px; border:1px solid var(--line); border-radius:8px;
   background:var(--panel); -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
 .ct-scroll:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
