@@ -75,6 +75,7 @@ export type NoteRow = {
   px_bid: number | null;
   px_ask: number | null;
   pct_change: number | null;
+  v: number | null;
 };
 
 export const getNotes = cache(async (): Promise<NoteRow[] | null> => {
@@ -94,6 +95,7 @@ export const getNotes = cache(async (): Promise<NoteRow[] | null> => {
       px_bid: asNum(o.px_bid),
       px_ask: asNum(o.px_ask),
       pct_change: asNum(o.pct_change),
+      v: asNum(o.v),
     });
   }
   return rows.length ? rows : null;
@@ -121,6 +123,7 @@ export const getBonds = cache(async (): Promise<NoteRow[] | null> => {
       px_bid: asNum(o.px_bid),
       px_ask: asNum(o.px_ask),
       pct_change: asNum(o.pct_change),
+      v: asNum(o.v),
     });
   }
   return rows.length ? rows : null;

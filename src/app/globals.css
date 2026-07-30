@@ -534,16 +534,18 @@ svg.cv { width:100%; height:auto; display:block; touch-action:pan-y; }
 .cv-legend .sw { width:14px; height:2px; border-radius:2px; background:var(--brand-deep); }
 .cv-legend .sw.g { width:8px; height:8px; border-radius:50%; background:var(--gold); }
 
-/* dólar futuro: gráfico + tabla lado a lado (apilan en mobile) */
-.df-split { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; padding:2px 2px 0; }
-.df-split > .df-chart { flex:1 1 300px; min-width:0; }
-.df-split > .df-table { flex:1.6 1 430px; min-width:0; }
+/* dólar futuro: tabla primero (central), gráfico grande debajo (relevamiento web,
+   punto 31 — antes gráfico+tabla lado a lado con una ChartTabla redundante) */
+.df-stack { display:flex; flex-direction:column; gap:18px; padding:2px 2px 0; }
+.df-stack > .df-table { min-width:0; }
+.df-stack > .df-chart { min-width:0; }
 
 /* panel cambiario / volumen */
-.cbo-head { padding:10px 16px 12px; }
+.cbo-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:26px; padding:10px 16px 12px; }
 .cbo-kpi { display:inline-flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
 .cbo-kpi .k { font-size:var(--fs-2xs); text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3); font-weight:700; }
 .cbo-kpi .v { font-size:26px; font-weight:700; color:var(--ink); letter-spacing:-.01em; line-height:1; }
+.cbo-kpi + .cbo-kpi .v { font-size:20px; }
 .volcell { display:flex; align-items:center; gap:9px; }
 .vbar { position:relative; height:6px; border-radius:999px; flex:1; min-width:70px; overflow:hidden;
   background:color-mix(in srgb,var(--ink-3) 14%, transparent);

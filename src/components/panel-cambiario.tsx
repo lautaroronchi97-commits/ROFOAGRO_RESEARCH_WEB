@@ -17,12 +17,17 @@ function IconFx() {
   );
 }
 
-const GRUPOS = ["Monedas", "Contado", "Tasas"];
-const barColor = (grupo: string) => (grupo === "Monedas" ? "var(--gold)" : "var(--brand-deep)");
+const GRUPOS = ["Monedas"];
+const barColor = () => "var(--gold)";
 
 function ddmm(iso: string | null): string {
   if (!iso) return "—";
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
+
+function fmtNominal(v: number | null): string {
+  if (v == null) return "—";
+  return nfmt(v / 1e6, 0);
 }
 
 function fmtMusd(v: number | null): string {
@@ -57,6 +62,10 @@ export async function PanelCambiario() {
             </span>
           )}
         </span>
+        <span className="cbo-kpi">
+          <span className="k">Volumen dólar linked</span>
+          <span className="v mono">{fmtNominal(data.volumenLinkedNominal)} M (nominal)</span>
+        </span>
       </div>
       <div className="table-scroll">
         <table className="tbl" style={{ minWidth: 460 }}>
@@ -84,7 +93,7 @@ export async function PanelCambiario() {
                     <td className="l">
                       <span className="volcell">
                         <span className="vbar" aria-hidden="true">
-                          <i style={{ width: `${Math.min(100, c.share)}%`, background: barColor(g.grupo) }} />
+                          <i style={{ width: `${Math.min(100, c.share)}%`, background: barColor() }} />
                         </span>
                         <span className="vpct">{nfmt(c.share, 1)}%</span>
                       </span>
@@ -141,12 +150,13 @@ export async function PanelCambiario() {
         }
         comoSeCalcula={
           <>
-            El volumen sale del contado de cambios y el dólar futuro de MAE. Las compras netas BCRA
-            salen de la <strong>API v4 de estadísticas del BCRA</strong> (variable 78, &quot;Variación
-            de reservas internacionales por compra de divisas&quot;) — el dato oficial llega con
-            ~3-4 días hábiles de rezago, así que el día más reciente suele completarse con una{" "}
-            <strong>carga manual</strong> desde <Link href="/admin/datos">/admin/datos</Link> hasta
-            que llega la cifra oficial (se pisa sola). El acumulado es por mes/año calendario.
+            El volumen de Monedas sale del contado de cambios de MAE; el volumen de dólar linked es
+            el nominal operado, sumando todas las letras/bonos linked al dólar oficial que están
+            cotizando. Las compras netas BCRA salen del <strong>Banco Central</strong> — el dato
+            oficial llega con ~3-4 días hábiles de rezago, así que el día más reciente suele
+            completarse con una <strong>carga manual</strong> desde{" "}
+            <Link href="/admin/datos">/admin/datos</Link> hasta que llega la cifra oficial (se pisa
+            sola). El acumulado es por mes/año calendario.
           </>
         }
       />

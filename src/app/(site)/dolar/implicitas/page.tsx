@@ -15,7 +15,7 @@ export default async function ImplicitasPage() {
   return (
     <main className="wrap">
       <div className="col">
-        <PageHead kicker="MAE · data912" title="Tasas implícitas" lede="Futuro y linked combinados: qué tasa te rinde más en cada plazo." />
+        <PageHead kicker="MAE · Mercado de deuda local" title="Tasas implícitas" lede="Futuro, linked, sintéticos y granos combinados: qué tasa te rinde más en cada plazo." />
         <ImplicitasPanel />
       </div>
     </main>

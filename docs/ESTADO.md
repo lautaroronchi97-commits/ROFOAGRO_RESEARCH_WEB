@@ -19,7 +19,45 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 🧮 C28/R4: calculadoras, HECHO)
+## Ahora (última actualización: 30/07/2026 — 💵 C28/R6: dólar, HECHO salvo p34)
+
+**💵 C28 — LOTE R6 (DÓLAR) — HECHO salvo un punto explícitamente pendiente — misma rama
+`claude/website-changes-review-ttqsq4`, PR #112 (sigue ampliándose — R3/R4 seguían sin mergear al
+arrancar R6, ver bitácora).** Ejecuta el prompt R6 de `PLAN_RELEVAMIENTO_WEB.md` §3 (puntos 31–36,
+todos en `/dolar/*`), arrancado directo tras el mensaje de Lautaro de seguir con lo que sigue
+mientras él prepara la aclaración de estética de R4 desde la PC.
+**Build**: `/dolar/futuro` sin la `ChartTabla` duplicada, tabla de posiciones primero y gráfico
+más grande abajo (`.df-stack`) · **patrón 5-descendente + selector de rango** en los 5 charts del
+punto 32 (`ChartTabla` sumó props opcionales `maxFilas`/`orden`, sin tocar los ~11 consumidores
+que no los usan; `RangoChips` nuevo y genérico, cableado en oficial-semanal 12/26 sem. y BCRA
+30/60/90 días) · "data912" fuera de los kickers de linked/implícitas (→ "Mercado de deuda local")
+· **Implícitas con 4 series** (dólar futuro + linked + **sintéticos + granos**, ninguna
+reemplazada; tabla se oculta sola si supera 30 filas) · **Cambiario**: `GRUPOS` a solo "Monedas"
+(fuera Contado/Tasas) + **"Volumen dólar linked"** nuevo (suma del nominal `v` de TODOS los D* del
+feed de notas, etiquetado honesto como "nominal" — NO es USD, verificado con `curl` real que su
+magnitud es comparable a `q_bid`/`q_ask`, no a los USD de la tabla MAE) + texto técnico "BCRA API
+v4 (variable 78…)" fuera del ¿Qué es esto? Y TAMBIÉN de la nota de la tabla del chart de BCRA
+(mismo texto exacto, pero ahí estaba siempre visible sin colapsar — peor que el caso pedido).
+**p34 (sintéticos) queda EXPLÍCITAMENTE sin tocar**: el propio prompt trae la regla dura de
+validar la fórmula contra un ejemplo numérico del Excel de Lautaro ANTES de codear (pregunta 3 de
+§5), que sigue sin contestar — el resto del lote no dependía de esa respuesta y se hizo completo.
+
+**Verificado de punta a punta** (lint/tsc/**397 tests**/build ✅ + Playwright real contra
+`npm run start`, claro/oscuro/desktop/mobile, `reducedMotion:"reduce"` para evitar falsos
+positivos de la animación de entrada en cascada del rediseño premium, cero errores de
+consola/scroll horizontal): futuro sin tabla duplicada · los 5 charts con 5 filas descendentes y
+selector de rango funcionando (BCRA 179 M nominal de dólar linked coincide exacto con la suma
+verificada por `curl` independiente al feed de data912) · implícitas con las 4 series en gráfico y
+leyenda · cambiario con un solo grupo "Monedas" y ambos textos técnicos limpios (nota + ¿Qué es
+esto?) · grep confirma cero "data912" visible en las páginas tocadas.
+
+**Próximo paso**: seguir con **R2 (landing)** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→
+R9→R10); p34 queda pendiente hasta que Lautaro conteste la pregunta 3 de §5 (ejemplo del Excel);
+las preguntas 9/10 siguen abiertas y gatean partes de R2/R5/R8. La aclaración de estética de R4
+que Lautaro prometió mandar desde la PC no llegó todavía durante esta sesión. Detalle:
+[`sesiones/2026-07-30-r6-dolar.md`](sesiones/2026-07-30-r6-dolar.md).
+
+## Anterior (30/07/2026 — 🧮 C28/R4: calculadoras, HECHO)
 
 **🧮 C28 — LOTE R4 (CALCULADORAS: PATRÓN + 7) — HECHO — misma rama `claude/website-changes-
 review-ttqsq4`, PR #112 (ampliado — R3 seguía sin mergear al arrancar R4, ver bitácora).**
@@ -52,6 +90,21 @@ diff` limpio): desaparece de sidebar/índice, la URL directa redirige a `/sin-ac
 **Próximo paso**: seguir con **R6 (dólar)** según el orden del plan (R1→R3→R4→R6→R2→R5→R7→R8→
 R9→R10); las preguntas 3/9/10 de §5 siguen abiertas y gatean partes de R2/R5/R8. Detalle:
 [`sesiones/2026-07-30-r4-calculadoras.md`](sesiones/2026-07-30-r4-calculadoras.md).
+
+**Corrección post-feedback, misma sesión, mismo día**: al ver el Preview, Lautaro rechazó de plano
+la estética de este lote ("Los cambio es estéticos que hiciste son malísimos... No lograste lo que
+te pedí en absoluto") y señaló 3 problemas puntuales en las calculadoras — el logo mal integrado en
+las imágenes, los 2 gráficos de "A fijar" mal combinados, y los campos $/USD que pidió separar
+quedaron mal (una re-lectura del docx original mostró que el widget compacto de la primera vuelta
+duplicaba el mismo estado en dos lugares que parecían distintos, en vez de dar dos campos
+genuinamente separados). Reescrito en la misma sesión: `usePrecioDual` (hook, sin layout) +
+`PickerPizarra` (picker simple) reemplazan el widget compacto — cada calc arma su propio par de
+`.calc-field` USD/ARS reales · `DeltaTnaChart` (gráfico combinado de a de verdad, doble eje, barras
++ línea, con un bug real de colisión de etiquetas encontrado y arreglado con datos de maíz) ·
+marca de agua de `ChartMarca` con variante opcional `tamano="chico"` para gráficos con pocas
+columnas (sin tocar el tamaño/opacidad global, que Lautaro había calibrado a propósito en otra
+sesión). Detalle completo con las 3 citas exactas del docx: sección "Corrección post-feedback" al
+final de [`sesiones/2026-07-30-r4-calculadoras.md`](sesiones/2026-07-30-r4-calculadoras.md).
 
 ## Anterior (30/07/2026 — 🌾 C28/R3: granos, HECHO)
 

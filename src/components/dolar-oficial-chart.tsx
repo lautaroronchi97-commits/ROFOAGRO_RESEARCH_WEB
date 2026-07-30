@@ -135,7 +135,13 @@ export function DolarOficialChart({ serie, sinTabla = false }: { serie: PuntoDol
         </div>
       </div>
       {!sinTabla && (
-        <ChartTabla columnas={columnas} filas={filas} nota="BCRA A3500 (Comunicación 3500) — no es el spot UST$T de MAE que usa el resto de la web para el oficial mayorista; se usa acá por ser la única fuente con historial diario real." />
+        <ChartTabla
+          columnas={columnas}
+          filas={filas}
+          maxFilas={5}
+          orden="desc"
+          nota="BCRA A3500 (Comunicación 3500) — no es el spot UST$T de MAE que usa el resto de la web para el oficial mayorista; se usa acá por ser la única fuente con historial diario real."
+        />
       )}
     </>
   );

@@ -6,7 +6,7 @@ import { useCrosshair, SvgLineChartBase } from "@/components/chart-svg-base";
 type Pt = { label: string; value: number };
 
 const W = 640;
-const H = 240;
+const H = 320;
 const pad = { l: 46, r: 14, t: 14, b: 26 };
 const iw = W - pad.l - pad.r;
 const ih = H - pad.t - pad.b;

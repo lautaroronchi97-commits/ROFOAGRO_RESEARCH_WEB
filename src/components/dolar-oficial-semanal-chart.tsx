@@ -7,7 +7,14 @@ import {
 import { nfmt, pfmt } from "@/lib/format";
 import { exportarSvgComoPng, nombreArchivo } from "@/lib/chart-export";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
+import { RangoChips } from "./rango-chips";
 import type { PuntoSemanalDolar } from "@/lib/dolar-historico";
+
+type Rango = "12" | "26";
+const OPCIONES_RANGO: { label: string; value: Rango }[] = [
+  { label: "12 sem.", value: "12" },
+  { label: "26 sem.", value: "26" },
+];
 
 /**
  * Serie semanal larga del dólar oficial (P2 del backlog maestro): línea con el
@@ -21,11 +28,14 @@ function fmtSemana(fechaISO: string): string {
   return `${d}/${m}`;
 }
 
-export function DolarOficialSemanalChart({ semanas }: { semanas: PuntoSemanalDolar[] }) {
+export function DolarOficialSemanalChart({ semanas: semanasCompletas }: { semanas: PuntoSemanalDolar[] }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
-  if (semanas.length < 2) {
+  const [rango, setRango] = React.useState<Rango>("26");
+  if (semanasCompletas.length < 2) {
     return <div className="chart-wrap chart-empty">Sin suficiente historial semanal todavía.</div>;
   }
+
+  const semanas = semanasCompletas.slice(-Number(rango));
 
   const columnas: ChartTablaColumna[] = [
     { key: "fecha", label: "Semana (cierre)", align: "left" },
@@ -41,7 +51,8 @@ export function DolarOficialSemanalChart({ semanas }: { semanas: PuntoSemanalDol
   return (
     <div className="gx-volpanel">
       <div className="gx-preset-glabel">Serie semanal · últimas {semanas.length} semanas</div>
-      <div className="gx-chart-toolbar">
+      <div className="gx-chart-toolbar" style={{ justifyContent: "space-between" }}>
+        <RangoChips opciones={OPCIONES_RANGO} valor={rango} onChange={setRango} label="Plazo del gráfico" />
         <button
           type="button"
           className="gx-preset"
@@ -104,6 +115,8 @@ export function DolarOficialSemanalChart({ semanas }: { semanas: PuntoSemanalDol
       <ChartTabla
         columnas={columnas}
         filas={filas}
+        maxFilas={5}
+        orden="desc"
         nota="BCRA A3500 (Comunicación 3500) — cierre de cada semana (último dato hábil disponible) y su variación % vs la semana anterior."
         exportCsv={nombreArchivo("dolar-oficial-semanal")}
       />

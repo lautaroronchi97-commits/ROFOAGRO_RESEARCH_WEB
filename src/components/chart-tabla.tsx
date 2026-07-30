@@ -20,6 +20,12 @@ import * as React from "react";
  *     baja EXACTAMENTE lo que se ve en la tabla (mismos valores ya formateados).
  *     Sin esta prop la tabla queda 100% igual a como estaba (server-safe en la
  *     práctica: no agrega UI ni cambia nada en las páginas que no la pasan).
+ *   - `maxFilas`/`orden` (opt-in, relevamiento web R6 punto 32 — SOLO los 5 charts
+ *     de `/dolar`): `maxFilas` recorta a las N filas MÁS RECIENTES (asume `filas`
+ *     en orden cronológico ascendente, la convención del resto del sitio);
+ *     `orden="desc"` invierte el resultado para mostrar la más reciente primero.
+ *     Sin estas props, la tabla sigue mostrando TODO en el orden que llega (el
+ *     resto de los ~11 consumidores no cambia).
  */
 
 export type ChartTablaColumna = {
@@ -39,6 +45,10 @@ export type ChartTablaProps = {
   nota?: string;
   /** Nombre de archivo (sin extensión) para el botón de export CSV. Omitir = sin botón. */
   exportCsv?: string;
+  /** Recorta a las últimas N filas (las más recientes). Sin esto: todas. */
+  maxFilas?: number;
+  /** "desc" = la más reciente primero. Default "asc" (igual que llega `filas`). */
+  orden?: "asc" | "desc";
 };
 
 function descargarCsv(columnas: ChartTablaColumna[], filas: ChartTablaFila[], filename: string) {
@@ -65,21 +75,27 @@ export function ChartTabla({
   filas,
   nota,
   exportCsv,
+  maxFilas,
+  orden = "asc",
 }: ChartTablaProps) {
+  let vista = filas;
+  if (maxFilas != null && vista.length > maxFilas) vista = vista.slice(-maxFilas);
+  if (orden === "desc") vista = [...vista].reverse();
+
   return (
     <div className="ct">
       <div className="ct-hd">
         <span>{titulo}</span>
-        {filas.length > 0 && (
+        {vista.length > 0 && (
           <span className="ct-n">
-            {filas.length} {filas.length === 1 ? "fila" : "filas"}
+            {vista.length} {vista.length === 1 ? "fila" : "filas"}
           </span>
         )}
-        {exportCsv && filas.length > 0 && (
+        {exportCsv && vista.length > 0 && (
           <button
             type="button"
             className="ct-csv"
-            onClick={() => descargarCsv(columnas, filas, exportCsv)}
+            onClick={() => descargarCsv(columnas, vista, exportCsv)}
           >
             ↓ CSV
           </button>
@@ -97,14 +113,14 @@ export function ChartTabla({
             </tr>
           </thead>
           <tbody>
-            {filas.length === 0 ? (
+            {vista.length === 0 ? (
               <tr>
                 <td className="ct-vacio" colSpan={columnas.length}>
                   Sin datos para mostrar
                 </td>
               </tr>
             ) : (
-              filas.map((fila, i) => (
+              vista.map((fila, i) => (
                 <tr key={i}>
                   {columnas.map((c) => {
                     const v = fila[c.key];
