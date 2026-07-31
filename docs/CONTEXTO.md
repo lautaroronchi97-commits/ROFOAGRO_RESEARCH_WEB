@@ -16,7 +16,17 @@
 - Principiante en programación: explicá cada comando/concepto paso a paso.
 - **No supongas nada**; ante dudas de negocio/dato/alcance, preguntá antes de avanzar.
 - Incremental: plan → aprobación → construir → mostrar funcionando → validar. Commits frecuentes.
-- **Las fórmulas financieras las define él**: antes de implementar una, confirmala con un ejemplo numérico.
+- **Las fórmulas financieras las define él**: antes de implementar una, confirmala con un ejemplo
+  numérico. **NO modifiques una fórmula existente** (tasas, spreads, conversiones de días) sin
+  mostrarle el diff exacto y esperar su confirmación explícita — los tests con fixtures del Excel
+  deben seguir pasando, o hay que avisarle por qué cambian.
+- **Esquema de Supabase y API pública: avisar ANTES de tocar.** Ningún cambio de esquema (tablas,
+  RLS, policies, funciones, grants) ni de la API pública sin avisarle primero; las migraciones se
+  versionan en `supabase/migrations/` y se aplican recién con su OK explícito.
+- **Un fix por vez.** Antes de empezar cada uno, avisar qué se va a tocar. Commits chicos, uno por fix.
+- **Si algo falla, frenar**: no seguir de largo — parar y explicarle qué pasó.
+- **Nada se da por terminado sin `npm run lint` + `npx tsc --noEmit` + `npx vitest run` en verde**
+  (build incluido si se va a pushear — ver protocolo en `ESTADO.md`).
 - Secretos SOLO en variables de entorno, NUNCA en el repo.
 - Conciso, sin relleno. Español rioplatense.
 - **Voz de Lautaro**: para cualquier texto que se redacte en su nombre (informes, reportes de

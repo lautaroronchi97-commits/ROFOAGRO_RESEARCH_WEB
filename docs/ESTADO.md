@@ -9,8 +9,8 @@
 1. **Al arrancar**: leer este archivo + la última entrada de `docs/sesiones/`. Trabajar en una rama
    `claude/*` creada **desde `main`**. Si la rama de la sesión no sale de `main` actualizado, rebasear
    primero (`git fetch origin main && git rebase origin/main`).
-2. **Durante**: commits chicos y frecuentes. `npm run lint` + `npx tsc --noEmit` + `npm run build` antes
-   de pushear (el CI corre eso mismo).
+2. **Durante**: commits chicos y frecuentes. `npm run lint` + `npx tsc --noEmit` + `npx vitest run` +
+   `npm run build` antes de pushear (el CI corre eso mismo).
 3. **Al cerrar**: en el MISMO PR de la sesión —
    - crear `docs/sesiones/AAAA-MM-DD-tema.md` (copiar [`sesiones/_TEMPLATE.md`](sesiones/_TEMPLATE.md));
    - actualizar la sección **«Ahora»** de este archivo (qué quedó hecho, qué quedó en vuelo);
