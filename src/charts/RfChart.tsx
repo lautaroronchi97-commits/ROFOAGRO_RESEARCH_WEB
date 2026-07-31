@@ -122,6 +122,54 @@ function rightMarginFor(containerWidth: number, series: unknown, fontFamily: str
   return Math.max(base, porLabels);
 }
 
+function hexConAlpha(hex: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  const grupo = m?.[1];
+  if (!grupo) return hex;
+  const n = parseInt(grupo, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** 1 sola serie sin color propio → verde institucional (`brandDeep`), igual que
+ *  TODOS los charts SVG a mano existentes (`.cv-line`). La paleta categórica del
+ *  tema (los 8 colores de campaña, validados con `dataviz/validate_palette.js`)
+ *  es para 2+ series — mezclarla con brandDeep como "serie 1" rompía el chequeo
+ *  de contraste en modo oscuro (medido), así que el caso de 1 serie se resuelve
+ *  acá, no en el theme. Si ya trae `itemStyle`/`lineStyle` propios, no se toca. */
+function aplicarColorSerieUnica(series: unknown, brandDeep: string): unknown {
+  if (!Array.isArray(series) || series.length !== 1) return series;
+  const s = series[0] as Record<string, unknown>;
+  if (s?.itemStyle || s?.lineStyle) return series;
+  const conArea = s?.areaStyle !== undefined;
+  return [
+    {
+      ...s,
+      itemStyle: { color: brandDeep },
+      lineStyle: s.type === "line" ? { color: brandDeep, width: 2 } : undefined,
+      ...(conArea
+        ? {
+            areaStyle: {
+              color: {
+                type: "linear",
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: hexConAlpha(brandDeep, 0.2) },
+                  { offset: 1, color: hexConAlpha(brandDeep, 0) },
+                ],
+              },
+            },
+          }
+        : {}),
+    },
+  ];
+}
+
 /** La label del axisPointer de un eje `type:'time'` llega como epoch en ms (no
  *  como Date ni como string ya formateado — `LabelFormatterParams` de ECharts no
  *  expone el tipo de eje). Un ms reciente son ~1,7-1,8×10¹²; nada de lo que
@@ -240,7 +288,6 @@ export function RfChart({
               seriesName: string;
               value: unknown;
               color: string;
-              marker: string;
             }>;
             if (arr.length === 0) return "";
             const filas = arr
@@ -253,8 +300,13 @@ export function RfChart({
               .sort((a, b) => b.num - a.num)
               .map(
                 (p2) =>
-                  `<div style="display:flex;justify-content:space-between;gap:14px;padding:1.5px 0;">
-                    <span>${p2.marker}${p2.seriesName}</span>
+                  // Line-key (rayita), no el marker circular default de ECharts: mismo
+                  // lenguaje que `.cv-legend .sw` (14px×2.5px) en todo el resto del sitio.
+                  `<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:1.5px 0;">
+                    <span style="display:inline-flex;align-items:center;gap:6px">
+                      <span style="display:inline-block;width:12px;height:2.5px;border-radius:2px;background:${p2.color}"></span>
+                      ${p2.seriesName}
+                    </span>
                     <b style="margin-left:10px">${Number.isFinite(p2.num) ? fmt(p2.num, p2.seriesName) : "—"}</b>
                   </div>`,
               )
@@ -268,8 +320,9 @@ export function RfChart({
           right: 8,
           bottom: 0,
           itemSize: 13,
-          iconStyle: { borderColor: p.ink3 },
-          emphasis: { iconStyle: { borderColor: p.ink } },
+          // Sutil por default (no compite con los datos), full al pasar el mouse.
+          iconStyle: { borderColor: p.ink3, opacity: 0.45 },
+          emphasis: { iconStyle: { borderColor: p.ink, opacity: 1 } },
           feature: {
             dataZoom: { title: { zoom: "Zoom", back: "Restablecer" }, yAxisIndex: "none" as const },
             saveAsImage: {
@@ -303,6 +356,7 @@ export function RfChart({
         ...option,
         xAxis: conNombre(option.xAxis, xTitle, 30),
         yAxis: conNombre(option.yAxis, yTitle, Array.isArray(yTitle) ? 52 : 46),
+        series: aplicarColorSerieUnica(option.series, p.brandDeep) as echarts.EChartsOption["series"],
       };
       return deepMerge(defaults, withAxes);
     },

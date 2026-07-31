@@ -11,10 +11,22 @@
  * porque `next/font` genera nombres de clase con hash en build — no hay un
  * string estático que copiar acá sin arriesgarse a que quede desactualizado.
  *
- * Paleta de series (orden fijo, Fase 2 del prompt de migración):
- *   1) verde institucional (`--brand-deep`) · 2) dorado (`--gold-text`) ·
- *   3) gris neutro (`--neu`) · 4-11) los 8 colores de campaña `--camp-2020..2027`
- *   ya usados en los charts multi-año existentes (williams-chart, condicion-panel).
+ * Paleta de series — CORREGIDA (30/07, feedback real: "los gráficos quedaron
+ * horribles") corriendo `scripts/validate_palette.js` de la skill `dataviz`
+ * contra lo que había, en vez de seguir a ojo:
+ *   - verde institucional + dorado como serie 1/serie 2 (lo que pedía la Fase 2
+ *     del prompt original) FALLA el chequeo — ΔE 12,2 en visión normal (piso 15),
+ *     ni con daltonismo ni sin él se distinguen bien. Y el dorado como color de
+ *     serie completa contradice la regla propia del proyecto (CONTEXTO.md:
+ *     "Oro SOLO como acento... mantener esa avaricia").
+ *   - Los 8 colores de campaña (`--camp-2020..2027`, ya usados en williams-chart/
+ *     condicion-panel) SÍ pasan los 5 checks completos, en los dos temas, sin
+ *     tocarles un hex — son la paleta categórica real para 2+ series.
+ *   - Para 1 sola serie (el caso más común) el criterio de CVD no aplica —
+ *     ahí se usa `brandDeep` (verde institucional), igual que todos los charts
+ *     SVG a mano existentes (`.cv-line`), sin cambio visual.
+ *   - El dorado queda reservado para acento puntual (punto destacado, foco del
+ *     hover) — nunca como fill de una serie entera.
  */
 
 export interface RofoPalette {
@@ -92,16 +104,25 @@ function buildTheme(p: RofoPalette) {
     nameTextStyle: { color: p.ink3, fontSize: 11 },
   };
   return {
-    color: [p.brandDeep, p.goldText, p.neu, ...p.camp],
+    // Paleta categórica para 2+ series: SOLO los 8 colores de campaña
+    // (validados). `brandDeep` para 1 sola serie lo aplica RfChart aparte
+    // (ver `aplicarColorSerieUnica` en RfChart.tsx) — no va acá porque mezclado
+    // con los 8 de campaña en modo oscuro rompe la banda de luminancia (medido).
+    color: [...p.camp],
     backgroundColor: "transparent",
     textStyle: { color: p.ink },
     grid: { left: 48, right: 24, top: 28, bottom: 56, containLabel: true },
     categoryAxis: axisCommon,
     valueAxis: {
       ...axisCommon,
-      splitLine: { show: true, lineStyle: { color: p.grid, type: [1, 5] as [number, number] } },
+      // Grilla SÓLIDA, no punteada: la skill dataviz marca el grid punteado como
+      // anti-patrón explícito ("reads as noise / projection"), aunque los charts
+      // SVG viejos del sitio la usaban punteada — se corrige acá, no se repite.
+      splitLine: { show: true, lineStyle: { color: p.grid, type: "solid" } },
     },
-    line: { itemStyle: { borderWidth: 1.8 }, lineStyle: { width: 1.8 }, symbol: "circle", symbolSize: 6 },
+    // symbolSize 8 (r=4): piso de la skill dataviz para que el marcador sea un
+    // hit-target real, no solo decorativo (antes 6px).
+    line: { itemStyle: { borderWidth: 1.8 }, lineStyle: { width: 2 }, symbol: "circle", symbolSize: 8 },
     bar: { itemStyle: { borderRadius: 0 } },
     legend: { textStyle: { color: p.ink2 } },
     tooltip: {

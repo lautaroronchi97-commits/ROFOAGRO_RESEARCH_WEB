@@ -6,14 +6,22 @@ import type { SerieEvol } from "@/lib/estimaciones";
 import { RfChart } from "@/charts/RfChart";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 
-/** Colores por organismo — copiados literal de `.org-*` en globals.css (misma
- *  semántica de color en toda la web: USDA/CONAB/BCR/BCBA/DEA/CFTC/EIA/NOPA). */
+/** Colores por organismo — misma familia de tono que `.org-*` en globals.css
+ *  (USDA azulado, CONAB verde, BCR dorado/marrón, BCBA azul-violeta, DEA violeta,
+ *  CFTC rojizo), pero retocados en luminancia/saturación: corridos los 6 contra
+ *  `scripts/validate_palette.js` (skill `dataviz`) el `.org-*` original FALLABA
+ *  duro — USDA y DEA leían casi grises (chroma bajo el piso) y BCR↔CONAB eran
+ *  indistinguibles para protanopía (ΔE 1,2, piso 8). Este set pasa los 5 checks
+ *  en claro Y oscuro. Ajuste acotado a ESTE chart (no toca `.org-*`, que además
+ *  pinta badges en otras páginas — separado a propósito, fuera del alcance de
+ *  la migración a ECharts). EIA/NOPA quedan igual (gris, ya comparten hex a
+ *  propósito, no coexisten en el mismo combo grano/país). */
 const ORG_COLOR: Record<string, string> = {
-  USDA: "#3E86A0",
+  USDA: "#1E7FA8",
   CONAB: "#4E9C3A",
-  BCR: "#C08A2E",
+  BCR: "#8F5A16",
   BCBA: "#5B7FC7",
-  DEA: "#8A6D9E",
+  DEA: "#7A3FA0",
   CFTC: "#B06A4A",
   EIA: "#7E8C74",
   NOPA: "#7E8C74",
