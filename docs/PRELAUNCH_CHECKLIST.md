@@ -33,13 +33,16 @@
   1 h). Sin `.env` commiteado; historial sin secretos (E5, 139 commits).
 - [x] Headers (CSP Report-Only + HSTS) · `INFORME_TOKEN` por Bearer + `timingSafeEqual` · RPC
   `admin_*` con guard `is_admin()` — E5.
-- [ ] **S1 (importante-alto)**: cerrar `lineup` + 5 vistas + 2 matviews a `anon` — migración
-  `20260731170000_cierre_lineup_anon.sql` versionada, **aplicar con OK explícito**.
-- [ ] **S2 (importante)**: revoke `refresh_compras_avance()` a anon —
-  `20260731170500_revoke_refresh_compras_avance.sql`, ídem.
-- [ ] **S3 (puede esperar)**: limpieza de EXECUTE sobrante de anon en ~10 funciones SECURITY
-  DEFINER — `20260731171000_limpieza_execute_definer.sql`, ídem (mantiene `authenticated`;
-  `is_admin()` y las trigger functions con reglas especiales documentadas en la migración).
+- [x] **S1 (importante-alto)**: cerrar `lineup` + 5 vistas + 2 matviews a `anon` — migración
+  `20260731170000_s1_cierre_lineup_anon.sql`, **APLICADA por MCP con OK de Lautaro (31/07)**.
+  Verificado por SQL: `anon` → `permission denied for table lineup`; lo público intacto.
+- [x] **S2 (importante)**: revoke `refresh_compras_avance()` a anon —
+  `20260731170500_s2_revoke_refresh_compras_avance.sql`, **APLICADA (31/07)**.
+- [x] **S3 (puede esperar)**: limpieza de EXECUTE sobrante de anon en 10 funciones SECURITY
+  DEFINER — `20260731171000_s3_limpieza_execute_definer.sql`, **APLICADA (31/07)** (mantiene
+  `authenticated`; `is_admin()` y las trigger functions con reglas especiales documentadas en
+  la migración). Verificado por SQL: `anon` → `permission denied for function is_admin`;
+  `authenticated` la sigue ejecutando y lee `empresas` (policies con `is_admin()` sanas).
 - [ ] `/security-review` sobre el diff de cada PR de fixes (el comando revisa diffs; sobre rama
   limpia no tiene material — la auditoría proyecto-completo de hoy lo cubrió).
 - [ ] `npm audit` como paso del CI (hoy no está; `npm ci` + lockfile sí).

@@ -76,11 +76,17 @@
 
 ## Quedó pendiente / en vuelo
 
-- **Aplicar las 3 migraciones por MCP** — esperando el OK explícito de Lautaro (pedido al cierre
-  de la sesión). Verificación post-aplicación planeada: `get_advisors` (deben caer los WARN de
-  matviews y los `anon_security_definer` de las funciones tocadas), REST con anon key a `lineup`
-  → permission denied, `/comercio/puertos` y `/comercio/camiones` con datos en producción, y
-  login → `/admin` → beacon en Preview (valida S3).
+- ~~Aplicar las 3 migraciones por MCP~~ → **✅ APLICADAS (misma sesión, 31/07)** con el OK
+  explícito de Lautaro (eligió "Aplicar las 3"). **Verificado por SQL contra la base real**:
+  `set local role anon` → `permission denied` en `lineup` Y en `is_admin()` · `authenticated`
+  sigue ejecutando `is_admin()` y leyendo `empresas` (las policies gateadas quedaron sanas) ·
+  lo público intacto (futuros 31.285 / djve_resumen 88 / noticias 2.313 filas visibles como
+  anon) · ACLs releídas de `pg_class`/`pg_proc`: los 8 objetos de line-up SIN grants para
+  anon/authenticated, `refresh_compras_avance` solo service_role, las 10 RPC con
+  authenticated+service_role. Falta solo el vistazo de Lautaro logueado a `/comercio/*` y
+  `/admin` en producción (esperado: idéntico a antes) — la re-corrida de `get_advisors` quedó
+  bloqueada por una caída transitoria del clasificador de permisos del entorno al cierre; las
+  ACLs verificadas por SQL son la fuente de la que esos WARN derivan.
 - **Resto del checklist por partes** (performance, cálculos, datos, backups, deployment) —
   auditar contra `PRELAUNCH_CHECKLIST.md`; el crítico abierto es backups (Supabase Pro).
 - Los 🖐 manuales de Lautaro: Dependabot, branch protection de `main`, Supabase Pro, acceso de
