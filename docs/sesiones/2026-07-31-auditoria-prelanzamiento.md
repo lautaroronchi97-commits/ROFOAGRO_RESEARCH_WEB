@@ -92,6 +92,54 @@
 - Los 🖐 manuales de Lautaro: Dependabot, branch protection de `main`, Supabase Pro, acceso de
   emergencia para Mauro, migración a keys `sb_secret_`/`sb_publishable_`, gitleaks.
 
+## Parte 2 (01/08/2026) — cálculos, frescura, performance, deployment
+
+Lautaro pidió seguir con el resto del checklist, aclarando explícitamente que **no va a
+contratar Supabase Pro** (backups/S4 quedan como riesgo aceptado). Se auditaron las 4 partes
+restantes en solo-lectura, con 2 agentes de exploración en paralelo (cálculos+frescura /
+performance+deployment) contra el código real. Resultado completo incorporado a
+`docs/PRELAUNCH_CHECKLIST.md` fase por fase; resumen:
+
+- **Cálculos financieros**: 0 bugs. `number` puro sin decimal.js, sostenido por >90 asserts
+  `toBeCloseTo` + 426 tests con fixtures del Excel. Un bug de escala ya cazado con test
+  (`capacidad-modelo.test.ts:90-96`). `FERIADOS_AR` vive en `src/lib/habiles.ts` (no
+  `dates.ts` — corrección menor de referencia); próxima falla real del centinela: octubre 2027.
+- **Frescura de datos**: sólido (17 checks + 6 tipos de anomalía + alertas), pero 3 paneles de
+  cliente sin `SourceStamp` (`/dolar/oficial`, `/graficos`, cinta del home) y 8 tablas con
+  chequeo de frescura pero sin chequeo de VALOR — 2 de ellas (`pas_zonas`/`pas_condicion`) son
+  100% carga manual, las más expuestas a error humano. Este segundo hallazgo no estaba en
+  ninguno de los 3 informes de Lautaro — lo encontró la auditoría cruzando el catálogo de
+  anomalías contra el de frescura.
+- **Performance**: base sólida (headers de seguridad completos, ISR consistente, 9 deps de
+  producción sin hinchazón) pero CERO medición real de Core Web Vitals — nadie sabe hoy si el
+  sitio es rápido de verdad para un cliente en producción.
+- **Deployment/CI**: el CI corre pero NO bloquea merges (sin branch protection en `main`) · sin
+  `npm audit` · Dependabot a medias (version-updates commiteado, alertas de seguridad sin
+  prender) · los Preview deployments de Vercel leen la base de PRODUCCIÓN (sin staging) ·
+  Vercel Pro confirmado contratado pero Instant Rollback sin documentar en ningún runbook (que
+  tampoco existe todavía).
+- **Operación** (Fase 5): confirmado que NINGUNO de los 3 existe hoy: `/api/health`,
+  kill-switch/banner de "datos en revisión", `error.tsx`/`global-error.tsx`.
+
+**Decisión de Lautaro**: sin Supabase Pro por ahora → el dump versionado propio de las tablas
+de carga manual (ya estaba en el checklist como "evaluar") pasa a ser la ÚNICA red de backups
+real, sube de prioridad.
+
+## Verificado (parte 2)
+
+- lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ (diff 100% docs,
+  `docs/PRELAUNCH_CHECKLIST.md`, cero cambios en `src/` — todavía no se construyó ningún fix,
+  solo se documentó el estado real con evidencia archivo:línea).
+
+## Quedó pendiente / en vuelo (parte 2)
+
+- Ningún fix de código todavía — esta parte fue 100% auditoría. Repriorizado en el checklist:
+  runbook+kill-switch+`/api/health`+`error.tsx` (operación crítica, nada existe) → dump de
+  backups (única red real) → branch protection+`npm audit` (gates baratos) → gaps de
+  `SourceStamp`+extender anomalías → legal → OG/CWV → staging (evaluar si se justifica) → beta.
+  Falta que Lautaro elija por dónde arrancar a construir (mismo patrón que S1-S3: reportar,
+  preguntar, recién ahí tocar código).
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace

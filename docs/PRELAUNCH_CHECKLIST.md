@@ -45,8 +45,13 @@
   `authenticated` la sigue ejecutando y lee `empresas` (policies con `is_admin()` sanas).
 - [ ] `/security-review` sobre el diff de cada PR de fixes (el comando revisa diffs; sobre rama
   limpia no tiene material — la auditoría proyecto-completo de hoy lo cubrió).
-- [ ] `npm audit` como paso del CI (hoy no está; `npm ci` + lockfile sí).
-- [ ] 🖐 **Dependabot** (GitHub → Settings → Code security) — alertas + updates mensuales agrupados.
+- [ ] `npm audit` como paso del CI (01/08: confirmado que `ci.yml` — único job `build`, 30
+  líneas — corre `lint`+`typecheck`+`test`+`build` y NO tiene `npm audit`; ningún otro workflow
+  de los 17 en `.github/workflows/` lo tiene tampoco).
+- [x] `.github/dependabot.yml` **ya está committeado** (npm + github-actions, updates mensuales
+  agrupados, `open-pull-requests-limit: 10`) — es el mecanismo de **version-updates** (PRs
+  automáticos). Falta el otro mecanismo, distinto: 🖐 **alertas de seguridad** (GitHub → Settings
+  → Code security → Dependabot alerts), que se prende con un clic y no está en este archivo.
 - [ ] 🖐 Re-scan del historial con **gitleaks** (E5 revisó a mano hasta el commit 139) — o correrlo
   en una sesión de código si el sandbox lo permite.
 - [ ] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — las legacy
@@ -61,10 +66,24 @@
   push/PR. El Excel sigue siendo la fuente de verdad (regla en `CONTEXTO.md`).
 - [x] Bases de días auditadas (act/365 consistente, E2) · feriados `FERIADOS_AR` con test
   centinela que exige cargar el año próximo desde octubre (E5).
-- [ ] Auditar precisión decimal en la CAPA VISIBLE (formateo/redondeo es-AR): el repo usa `number`
-  IEEE 754 sin decimal.js — evaluar si algún redondeo mostrado difiere del Excel. **Sin tocar
-  ninguna fórmula sin diff aprobado** (regla dura).
-- [ ] Property-based tests (fast-check) para invariantes (TEA ≥ TNA, spread+inverso=0) — opcional.
+- [x] **Auditado 01/08/2026 (solo lectura, cero bugs encontrados)**: confirmado `number` IEEE 754
+  puro en los 12 módulos de cálculo (`src/lib/{arbitraje,pases,sinteticos,diferido,capacidad-
+  modelo,capacidad-industria-modelo,fijar,fijar-canon,djve,estimaciones,precio-dual,porcentaje,
+  curva}.ts`), sin `decimal.js`/`big.js` en `package.json`. **Redondeo NO unificado** (mezcla de
+  `Math.round(n×10^k)/10^k` dentro de varios `src/lib/*.ts` — ej. `arbitrajes-cierres.ts:21`,
+  `capacidad.ts:95`, `capacidad-modelo.ts:107,119-120` — con `Intl.NumberFormat` es-AR en
+  `format.ts:3-39` para la capa visible). Red de contención real: **>90 asserts `toBeCloseTo`**
+  en los tests (4-9 dígitos de tolerancia, no igualdad exacta) + 1 bug de escala ya cazado y
+  guardado con test (`capacidad-modelo.test.ts:90-96`, fracción vs. % de gastos comerciales).
+  **Veredicto: sin librería decimal el repo depende 100% de esos tests para no repetir ese tipo
+  de bug — sólido hoy, pero fragil a fórmulas nuevas sin su propio `toBeCloseTo`.** No se tocó
+  ninguna fórmula (regla dura respetada).
+- [ ] Property-based tests (fast-check) para invariantes (TEA ≥ TNA, spread+inverso=0) — opcional,
+  requiere sumar una dependencia nueva (avisar antes).
+- [x] `FERIADOS_AR` vive en `src/lib/habiles.ts:9-23` (no en `dates.ts`) — 2025/2026/2027 cargados
+  (2027 marcado "estimado"), test centinela en `habiles.test.ts:47-54` verificado línea por línea:
+  desde octubre exige el año siguiente cargado. **Próximo punto real de falla: octubre de 2027**
+  (exigirá 2028, hoy sin cargar) — sin acción hasta entonces.
 
 ## Fase 2 — Frescura y calidad de datos (Informe complementario §2)
 
@@ -78,9 +97,26 @@
 - [x] Alertas Resend en los workflows críticos + panel `/admin/conexiones` (crons, Routines,
   cargas manuales, A3, matviews).
 - [x] Sanity checks en uploaders manuales (identidades contables, rangos físicos, guard ÷1000).
-- [ ] Auditar que TODOS los paneles de cliente muestren el sello "datos al HH:MM" en hora AR y
-  evaluar el semáforo visual de dato viejo (los `SourceStamp` existen desde la auditoría de
-  07/07; verificar cobertura completa página por página).
+- [ ] **Auditado 01/08/2026 (página por página) — 3 gaps reales de `SourceStamp` en cliente**:
+  `SourceStamp` (`src/components/source-stamp.tsx:14-29`) ya muestra fuente + "Actualizado HH:MM"
+  en hora Córdoba real (`horaCordoba()`) y está en 20 de los 23 paneles de cliente. Faltan:
+  **`/dolar/oficial`** (`dolar-oficial-panel.tsx` — tiene una fecha del dato pero no el formato
+  estándar) · **`/graficos`** (`graficos-client.tsx` — sin ningún sello) · **la `Cinta`** del home
+  (`cinta.tsx:39-54` — badge "prov." pero nunca timestamp; es un ribbon en marquee, sumarle un
+  sello es más una decisión de diseño que un fix mecánico). Las páginas mesa-only
+  (`/comercio/negociado`, `/produccion/{condicion,zonas}`, `/granos/view`) NO cuentan como gap
+  — confirmado `requireAdmin()` en las 4.
+- [ ] **Nuevo (no estaba en los informes)**: el detector de anomalías (D7) cubre 9 series
+  (`src/lib/anomalias-series.ts:51-169`) pero el healthcheck de frescura cubre 17 tablas — **8
+  tablas sin chequeo de VALOR** (solo de frescura): `djve`, `lineup`, `camiones_plantas`,
+  `noticias`, `views_mercado`, `pas_zonas`, `pas_condicion`, `lecap_pago_final`. Las 2 BCBA-PAS
+  son las que más preocupan: son 100% carga manual (más expuestas a error humano) y hoy solo se
+  valida "¿llegó el dato?", no "¿el valor tiene sentido?". No es una regresión — nunca se
+  construyó — pero vale la pena que Lautaro lo sepa antes de decidir si extender el catálogo.
+- [ ] No existe semáforo visual de antigüedad por tiempo transcurrido (verde/rojo según reloj del
+  cliente) — hoy el ⚠ de `SourceStamp` es estático (lo setea el server al momento del fetch, vía
+  `meta.problemas`), no recalcula edad en el navegador. Baja prioridad: el timestamp exacto ya es
+  visible donde `SourceStamp` está presente.
 
 ## Fase 3 — Control de acceso comercial (Informe complementario §3)
 
@@ -97,19 +133,28 @@
 
 ## Fase 4 — Backups y entornos (checklist "backups" + Informe complementario §6)
 
-- [ ] 🖐 **CRÍTICO — Supabase Pro (US$25/mes)**: hoy el proyecto está en plan Free (verificado
-  22/07) ⇒ **sin backups automáticos** de una base con años de series y cargas manuales
-  irreproducibles. Pro da backup diario 7 días (+PITR opcional) y de paso destraba leaked
-  password protection (S4). Decisión de Lautaro.
-- [ ] Evaluar respaldo versionado propio de las tablas de carga manual (`compras`, `camiones`,
+- [ ] ~~🖐 CRÍTICO — Supabase Pro~~ → **DECIDIDO 01/08/2026: Lautaro NO va a contratarlo por
+  ahora.** Riesgo aceptado explícitamente: plan Free = sin backup automático de una base con
+  años de series y cargas manuales irreproducibles (y leaked password protection, S4, sigue sin
+  poder prenderse). Mitigación que SÍ queda en pie (ver siguiente ítem): el dump versionado
+  propio cubre al menos las tablas de carga manual, que son las irreproducibles de verdad (las
+  automáticas se re-ingieren solas desde la fuente si hace falta).
+- [ ] Respaldo versionado propio de las tablas de carga manual (`compras`, `camiones`,
   `estimaciones_produccion` manuales, `lecap_pago_final`, `pas_*`) — dump periódico a `data/`
-  vía workflow, como red extra independiente del plan.
+  vía workflow, como red extra independiente del plan de Supabase. **Pasa a ser la única red de
+  seguridad de backups** tras la decisión de arriba — subir su prioridad.
 - [ ] Staging: 2º proyecto Supabase (gratis) para Previews — hoy los Previews de Vercel leen la
-  base de PRODUCCIÓN con la anon key. Con S1 aplicado, además, los Previews pierden lo de mesa
-  (sin service key de preview) — decidir si se configura staging o se acepta la degradación.
+  base de PRODUCCIÓN con la anon key (confirmado 01/08 — no hay ninguna mención de un 2º
+  proyecto en el repo, es 100% una recomendación pendiente). Con S1 aplicado, además, los
+  Previews pierden lo de mesa (sin service key de preview) — decidir si se configura staging o
+  se acepta la degradación.
 - [ ] 🖐 **Branch protection en `main`**: require PR + checks del CI requeridos + bloquear
-  force-push (GitHub → Settings → Branches).
-- [ ] Documentar Instant Rollback de Vercel (Pro ya contratado) en el runbook (Fase 5).
+  force-push (GitHub → Settings → Branches). Confirmado 01/08: hoy CI corre en cada push/PR pero
+  NO bloquea el merge (no hay ningún archivo de config de branch protection, ni debería haberlo
+  — vive en GitHub Settings) — cualquiera puede mergear a `main` con el CI en rojo.
+- [x] Vercel Pro confirmado contratado (múltiples menciones cruzadas en `ESTADO.md`/E5/E7).
+- [ ] Documentar Instant Rollback de Vercel (Pro ya contratado) en el runbook (Fase 5) — sigue
+  sin existir `docs/RUNBOOK.md`.
 
 ## Fase 5 — Operación (Informe 3 §6 — runbook para un fundador solo-técnico)
 
@@ -118,9 +163,12 @@
   después) · C) cliente reporta dato (reproducir contra fuente primaria → banner → fix aislado →
   comunicar) · D) contactos/accesos.
 - [ ] **Kill-switch / banner "Datos en revisión — no operar con esta información"**: env var +
-  banner en el layout compartido. No existe hoy y es más urgente que en una app común.
+  banner en el layout compartido. **Confirmado 01/08: no existe** (grep completo sin resultados
+  reales en `src/`) — es más urgente que en una app común.
 - [ ] **`/api/health`** público liviano (app viva + Supabase responde) para monitoreo externo
-  (UptimeRobot free) — `/admin/conexiones` es el tablero interno, no sirve de probe.
+  (UptimeRobot free) — **confirmado 01/08: no existe** (`src/app/api/` solo tiene `log-seccion`,
+  `series`, `informes/datos`, `views/insumos`) — `/admin/conexiones` es el tablero interno, no
+  sirve de probe.
 - [ ] 🖐 Acceso de emergencia para **Mauro** con cuenta propia (ya es admin de la web): Vercel
   (miembro del team), Supabase (Organization → Team), GitHub (colaborador). Sin compartir
   contraseñas; 2FA cada uno.
@@ -143,18 +191,47 @@
 
 - [x] 404 branded (E3) · favicon · títulos/descripciones por página · formulario de contacto
   (landing, Resend) · indicador de rueda abierta/cerrada + hora Córdoba en toda la web.
-- [ ] Auditar `error.tsx`/`global-error.tsx` (500 branded — el 404 existe, el error boundary hay
-  que verificarlo/crearlo).
+- [ ] **Confirmado 01/08: `error.tsx`/`global-error.tsx` NO existen** (glob completo de
+  `src/app/**`, solo hay `layout.tsx`/`not-found.tsx`/`theme-provider.tsx` en la raíz) — el 500
+  hoy cae al genérico de Next en inglés, sin marca.
 - [ ] **OG tags para WhatsApp**: `og:title/description/image` (1200×630, logo centrado, URL
   absoluta) — los clientes agro comparten TODO por WhatsApp; verificar con el Sharing Debugger.
 - [ ] Performance: Core Web Vitals reales de producción (base E4 ya medida: bundle −235 KB, ISR
-  por página) — auditoría de la parte "performance" del checklist.
+  por página) — **confirmado 01/08: sin `@vercel/analytics`/Speed Insights instalado, sin medir
+  hoy**. Lo demás auditado y sólido: `next.config.ts` con headers completos, ISR consistente
+  (30s rueda en vivo / 60s dólar-calcs / 3600s baja frecuencia), 9 deps de producción sin
+  hinchazón (`@supabase/ssr`, `@supabase/supabase-js`, `next`, `next-themes`, `react`,
+  `react-dom`, `recharts`, `server-only`, `ws` — todas justificadas, 0 código muerto, E4). 13
+  páginas sin `revalidate` explícito son en su mayoría mesa-only (esperado, dinámicas por
+  `requireAdmin`) — sin evidencia de que sea un olvido real.
 - [ ] 🖐 Beta cerrada: 1-2 clientes de confianza, canal de feedback, criterios go/no-go definidos
   ANTES (ej.: 0 bugs críticos abiertos · 0 reportes de dato incorrecto sin resolver en la última
   semana · clientes llegan al momento de valor). La beta termina con una decisión.
 
 ---
 
-**Orden sugerido de lo pendiente**: S1→S3 (migraciones ya versionadas, aplicar con OK) → Fase 4
-backups (el único crítico abierto) → Fase 5 runbook+kill-switch+health → Fase 2/7 (sellos, OG,
-error.tsx) → Fase 6 legal → beta. Los 🖐 corren en paralelo cuando Lautaro tenga un rato.
+## Auditoría 01/08/2026 — cálculos, frescura, performance, deployment (parte 2 del checklist)
+
+Corrida en solo-lectura contra el código real (2 agentes en paralelo + verificación cruzada),
+sin tocar nada — mismo protocolo que la parte de seguridad. Resumen ejecutivo (detalle
+incorporado arriba en cada fase correspondiente):
+
+- **Cálculos financieros**: 0 bugs encontrados. Sin librería decimal, pero sostenido por >90
+  asserts `toBeCloseTo` + 426 tests con fixtures reales del Excel — sólido hoy, exige disciplina
+  de tests en cada fórmula nueva.
+- **Frescura de datos**: sólido en general (17 checks de frescura, 6 tipos de anomalía, alertas).
+  3 gaps de `SourceStamp` en cliente (`/dolar/oficial`, `/graficos`, cinta del home) + 8 tablas
+  sin chequeo de VALOR (solo frescura), 2 de ellas 100% manuales (`pas_zonas`/`pas_condicion`).
+- **Performance**: base sólida (headers, ISR, deps limpias) pero sin medición real de Core Web
+  Vitals — nadie mide hoy si el sitio es rápido de verdad para un cliente.
+- **Deployment/CI**: CI corre pero no bloquea merges (sin branch protection) · sin `npm audit` ·
+  Dependabot a medias (version-updates sí, alertas de seguridad no) · Previews leen la base de
+  PRODUCCIÓN (sin staging) · Vercel Pro confirmado pero Instant Rollback sin documentar.
+- **Backups**: Lautaro decidió NO contratar Supabase Pro por ahora — riesgo aceptado
+  explícitamente; el dump versionado propio (Fase 4) pasa a ser la única red real.
+
+**Orden sugerido de lo pendiente** (repriorizado tras esta parte): Fase 5 runbook+kill-
+switch+`/api/health`+`error.tsx` (operación crítica, ninguno existe hoy) → dump versionado de
+backups (única red desde que se descartó Pro) → branch protection + `npm audit` en CI (gates
+baratos) → gaps de `SourceStamp` + extender detector de anomalías → Fase 6 legal → OG tags/CWV →
+staging (evaluar si se justifica) → beta. Los 🖐 corren en paralelo cuando Lautaro tenga un rato.
