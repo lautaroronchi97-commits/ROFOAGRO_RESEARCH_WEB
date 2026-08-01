@@ -1,0 +1,42 @@
+name: Backup tablas de carga manual
+
+# Única red de backups real mientras Supabase siga en plan Free (sin backup automático —
+# decisión de Lautaro, 01/08/2026, ver docs/PRELAUNCH_CHECKLIST.md Fase 4). Vuelca las tablas
+# de carga manual/irreproducible a data/backups/*.json y las commitea al repo — git guarda el
+# historial de versiones, no hace falta un archivo por fecha.
+#
+# Necesita permiso de ESCRITURA sobre el repo (única excepción al mínimo privilegio de E5 #12d
+# en este proyecto — el resto de los workflows solo leen). Acotado a este workflow, no al default.
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 11 * * 0" # domingo 08:00 ART
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+      - name: Volcar tablas a data/backups/
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/backup-tablas-manuales.mjs
+      - name: Commitear si cambió algo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/backups/
+          if git diff --cached --quiet; then
+            echo "Sin cambios en los backups — nada que commitear."
+          else
+            git commit -m "Backup semanal de tablas de carga manual [skip ci]"
+            git push
+          fi

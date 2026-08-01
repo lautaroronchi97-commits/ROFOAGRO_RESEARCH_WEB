@@ -92,6 +92,257 @@
 - Los 🖐 manuales de Lautaro: Dependabot, branch protection de `main`, Supabase Pro, acceso de
   emergencia para Mauro, migración a keys `sb_secret_`/`sb_publishable_`, gitleaks.
 
+## Parte 2 (01/08/2026) — cálculos, frescura, performance, deployment
+
+Lautaro pidió seguir con el resto del checklist, aclarando explícitamente que **no va a
+contratar Supabase Pro** (backups/S4 quedan como riesgo aceptado). Se auditaron las 4 partes
+restantes en solo-lectura, con 2 agentes de exploración en paralelo (cálculos+frescura /
+performance+deployment) contra el código real. Resultado completo incorporado a
+`docs/PRELAUNCH_CHECKLIST.md` fase por fase; resumen:
+
+- **Cálculos financieros**: 0 bugs. `number` puro sin decimal.js, sostenido por >90 asserts
+  `toBeCloseTo` + 426 tests con fixtures del Excel. Un bug de escala ya cazado con test
+  (`capacidad-modelo.test.ts:90-96`). `FERIADOS_AR` vive en `src/lib/habiles.ts` (no
+  `dates.ts` — corrección menor de referencia); próxima falla real del centinela: octubre 2027.
+- **Frescura de datos**: sólido (17 checks + 6 tipos de anomalía + alertas), pero 3 paneles de
+  cliente sin `SourceStamp` (`/dolar/oficial`, `/graficos`, cinta del home) y 8 tablas con
+  chequeo de frescura pero sin chequeo de VALOR — 2 de ellas (`pas_zonas`/`pas_condicion`) son
+  100% carga manual, las más expuestas a error humano. Este segundo hallazgo no estaba en
+  ninguno de los 3 informes de Lautaro — lo encontró la auditoría cruzando el catálogo de
+  anomalías contra el de frescura.
+- **Performance**: base sólida (headers de seguridad completos, ISR consistente, 9 deps de
+  producción sin hinchazón) pero CERO medición real de Core Web Vitals — nadie sabe hoy si el
+  sitio es rápido de verdad para un cliente en producción.
+- **Deployment/CI**: el CI corre pero NO bloquea merges (sin branch protection en `main`) · sin
+  `npm audit` · Dependabot a medias (version-updates commiteado, alertas de seguridad sin
+  prender) · los Preview deployments de Vercel leen la base de PRODUCCIÓN (sin staging) ·
+  Vercel Pro confirmado contratado pero Instant Rollback sin documentar en ningún runbook (que
+  tampoco existe todavía).
+- **Operación** (Fase 5): confirmado que NINGUNO de los 3 existe hoy: `/api/health`,
+  kill-switch/banner de "datos en revisión", `error.tsx`/`global-error.tsx`.
+
+**Decisión de Lautaro**: sin Supabase Pro por ahora → el dump versionado propio de las tablas
+de carga manual (ya estaba en el checklist como "evaluar") pasa a ser la ÚNICA red de backups
+real, sube de prioridad.
+
+## Verificado (parte 2)
+
+- lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ (diff 100% docs,
+  `docs/PRELAUNCH_CHECKLIST.md`, cero cambios en `src/` — todavía no se construyó ningún fix,
+  solo se documentó el estado real con evidencia archivo:línea).
+
+## Quedó pendiente / en vuelo (parte 2)
+
+- Ningún fix de código todavía — esta parte fue 100% auditoría. Repriorizado en el checklist:
+  runbook+kill-switch+`/api/health`+`error.tsx` (operación crítica, nada existe) → dump de
+  backups (única red real) → branch protection+`npm audit` (gates baratos) → gaps de
+  `SourceStamp`+extender anomalías → legal → OG/CWV → staging (evaluar si se justifica) → beta.
+  Falta que Lautaro elija por dónde arrancar a construir (mismo patrón que S1-S3: reportar,
+  preguntar, recién ahí tocar código).
+
+## Parte 3 (01/08/2026) — build de "Operación crítica"
+
+Con el reporte de la parte 2 en mano, Lautaro eligió por dónde arrancar a construir: **Operación
+crítica** (kill-switch + `/api/health` + `error.tsx`/`global-error.tsx`, los 3 confirmados
+inexistentes en la auditoría). Los 3 son código nuevo sin tocar esquema ni fórmulas — no
+necesitaban aviso previo especial más allá de la elección ya hecha.
+
+- **`src/app/error.tsx`** + **`src/app/global-error.tsx`**: 500 branded, mismo lenguaje visual que
+  `not-found.tsx` (`.aviso-card`, botones Reintentar/Volver al inicio). `global-error.tsx` con
+  estilos inline (reemplaza el root layout completo, no puede depender de `globals.css`).
+- **`src/app/api/health/route.ts`**: GET público, `force-dynamic` (sin caché), SELECT liviano
+  contra `vencimientos` vía `sbSelect` (mismo helper que toda la lectura de Supabase) — 200 si
+  responde, 503 si no.
+- **`src/components/kill-switch-banner.tsx`**: banner condicionado a `KILL_SWITCH_ACTIVO` (env
+  var), mensaje personalizable con `KILL_SWITCH_MENSAJE`, cableado en `(site)/layout.tsx` arriba
+  del masthead. CSS nuevo (`.ks-banner*`) reusando el token `--neg` ya existente.
+
+**Verificación real, no solo build**: con las creds reales de Supabase del entorno (proceso, no
+`.env.local`), se levantó el server 3 veces — (1) `/api/health` contra la base real: `{"status":
+"ok","checks":{"app":true,"supabase":true},...}` · (2) rebuild con `KILL_SWITCH_ACTIVO=true` +
+capturas de Playwright en claro y oscuro (el toggle de tema real, no `prefers-color-scheme` — el
+sitio no lo sigue) confirmando el banner arriba del masthead en las dos pieles · (3) página
+temporal con `throw` forzado (`force-dynamic` para que no rompiera el build al pre-renderizar) →
+HTTP 500 confirmado + captura del `error.tsx` real, después **borrada sin dejar rastro**
+(`git status` limpio antes del commit).
+
+**Trampa real encontrada**: el kill-switch no se vio en el primer intento de verlo en el navegador
+— la home es ISR (`revalidate=60`) y quedó pre-renderizada en el build hecho ANTES de setear
+`KILL_SWITCH_ACTIVO=true`. Confirma en la práctica el caveat que ya se había documentado a mano en
+`.env.local.example`: en Vercel, cambiar el env var no alcanza, hace falta un Redeploy.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ (con un `.next` corrupto por la página temporal
+borrada — limpiado con `rm -rf .next` antes de repetir, mismo tipo de trampa que ya había pasado
+en la sesión del rediseño premium del 28/07) · **426/426 tests** ✅ · `npm run build` ✅.
+
+**Quedó pendiente**: `docs/RUNBOOK.md` (documentaría cómo usar estas 3 piezas en una emergencia
+real) — no estaba en el alcance elegido, es el siguiente paso natural. El resto del backlog
+repriorizado de la parte 2 sigue completo en `PRELAUNCH_CHECKLIST.md`.
+
+## Parte 4 (01/08/2026) — RUNBOOK.md + npm audit en CI
+
+Lautaro pidió seguir con lo que quedara pendiente. Se completó el resto de "Operación crítica":
+
+- **`docs/RUNBOOK.md`**: 1 página, los 4 escenarios del Informe 3 (§6) — A) web caída (usa
+  `/api/health` recién construido + Instant Rollback de Vercel Pro, con el paso a paso de
+  menús) · B) dato incorrecto (kill-switch primero: los pasos EXACTOS para prenderlo desde
+  Vercel, incluido el Redeploy obligatorio) · C) cliente reporta un dato · D) contactos/accesos
+  (deja anotado que el acceso de emergencia de Mauro sigue pendiente). Escrito para Lautaro, sin
+  dar por sabido ningún menú de Vercel/Supabase.
+- **`npm audit` en CI** (`ci.yml`): agregado `continue-on-error: true` a propósito — corrido en
+  este mismo repo dio **4 altas, las 3 con fix disponible son transitivas de `next`**
+  (postcss/sharp), y el único remedio (`npm audit fix --force`) bumpea Next fuera del rango
+  declarado. Bumpear la versión de Next de un proyecto que trae la advertencia explícita "esto
+  NO es el Next.js que conocés, hay breaking changes" (`AGENTS.md`) no es una decisión para
+  meter de paso en un gate de CI — queda anotada como pendiente real para que Lautaro decida,
+  no escondida bajo un `continue-on-error` silencioso.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅.
+
+**Con esto, el bucket "Operación crítica" que Lautaro eligió en la parte 2 queda 100%
+completo** (kill-switch + `/api/health` + `error.tsx`/`global-error.tsx` + `RUNBOOK.md`). Lo que
+sigue del backlog repriorizado (dump de backups, branch protection 🖐, gaps de `SourceStamp`,
+detector de anomalías extendido, legal, OG/CWV, staging) sigue en `PRELAUNCH_CHECKLIST.md`, sin
+tocar.
+
+## Parte 5 (01/08/2026) — dump versionado de backups
+
+Siguiente ítem del backlog repriorizado: la única red de backups real ahora que Lautaro descartó
+Supabase Pro. Primero se buscó si el repo ya tenía algún patrón de "generar y commitear de vuelta"
+en un workflow — no existía ninguno (los 17 workflows previos son 100% solo-lectura hacia el repo,
+E5 estableció ese mínimo privilegio a propósito) — así que este es el primer workflow con permiso
+de escritura, acotado explícitamente a sí mismo, no al default.
+
+- **`scripts/backup-tablas-manuales.mjs`**: mismo patrón de paginación que `chequeo-anomalias.mjs`
+  (offset + orden total por PK real, verificado migración por migración para las 6 tablas —
+  `compras` PK `id`, `camiones` PK `(fecha,zona,producto,fuente)`, `estimaciones_produccion` PK de
+  6 columnas, `lecap_pago_final` PK `ticker`, `pas_zonas`/`pas_condicion` con sus PKs compuestas).
+  Vuelca cada tabla a `data/backups/<tabla>.json`, ruta fija (el historial de versiones lo da git,
+  no nombres con fecha — evita crecimiento sin límite).
+- **Guard nuevo, no pedido explícitamente pero necesario**: si una tabla trae 0 filas o cae más de
+  50% vs. el backup ya commiteado, ESE archivo no se toca (protege contra que un fetch roto borre
+  un backup bueno) — el resto de las tablas se procesan igual, falla parcial en vez de atómica.
+  Mismo espíritu que el detector de anomalías (D7): un backup que se sobreescribe solo con datos
+  malos no es un backup.
+- **`.github/workflows/backup-tablas-manuales.yml`**: cron domingos 08:00 ART + dispatch manual,
+  `permissions: contents: write` (única excepción de todo el repo al mínimo privilegio).
+
+**Corrido en vivo contra la base real** (creds del entorno), dos veces seguidas para confirmar
+idempotencia: compras 9.569 · camiones 42.636 · estimaciones_produccion 5.929 · lecap_pago_final
+12 · pas_zonas 1.837 · pas_condicion 1.872 filas. Los últimos 3 coinciden EXACTOS con los números
+ya documentados en sesiones anteriores (pas_zonas/pas_condicion del 29/07, lecap_pago_final del
+24/07) — confirma que la paginación con orden total no repite ni saltea filas. ~16,6 MB el dump
+inicial, incluido en este mismo commit para que arranque con datos reales en vez de vacío (el
+próximo domingo el cron ya solo commitea el diff).
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ (los 6
+JSON no afectan lint/build, son datos, no código).
+
+## Parte 6 (01/08/2026) — 3 gaps de SourceStamp en cliente
+
+Siguiente ítem del backlog: los 3 paneles de cliente sin sello de frescura que había encontrado
+la auditoría de la parte 2. Antes, se confirmó que este entorno no tiene ningún tool de GitHub
+para branch protection (búsqueda explícita) — sigue 🖐 100% manual, sin acción posible acá.
+
+- **`/dolar/oficial`**: `metaOficial()` (función de módulo, no dentro del componente) construye
+  el `Meta` a partir de `v.actual`, cableado en `PanelHead.stamp` (mismo patrón que
+  `DolarFuturoPanel`).
+- **`/graficos`**: `metaCatalogo()` en `page.tsx`, sello propio bajo el lede (clase `.gx-stamp`
+  nueva, `display:flex;justify-content:flex-end`) — esta página no usa el layout `Panel`/
+  `PanelHead`, así que no podía reusar el `stamp` prop de los demás paneles.
+- **Cinta del home**: en vez de un overlay nuevo (CSS de posicionamiento absoluto sobre un
+  marquee, riesgoso), se sumó "Actualizado HH:MM" como UN ÍTEM MÁS del propio ticker (mismo
+  `.rib`, sin borde derecho) — así scrollea/marquea con el resto sin tocar el mecanismo de
+  animación. `CintaData` ya traía `meta` en su tipo, solo faltaba renderizarlo.
+
+**Trampa real encontrada**: las primeras versiones de `/dolar/oficial` y `/graficos` armaban el
+`Meta` con `Date.now()` directo en el cuerpo del Server Component — dispara
+`react-hooks/purity` ("Cannot call impure function during render"). Ni `market/dolar-futuro.ts`
+ni ningún otro componente del repo lo hacían así: el patrón real es construir el objeto en una
+función de módulo aparte (no un componente/hook por naming), y el lint no la analiza. Corregido
+en los 2 archivos.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ +
+Playwright real contra `npm run start` con datos de Supabase del entorno (capturas de los 3
+lugares, el sello se integra con el diseño existente sin romper nada).
+
+## Parte 7 (01/08/2026) — Fase 6 legal (disclaimer CNV + Ley 25.326)
+
+Siguiente ítem: el disclaimer CNV y la auditoría de `/privacidad` contra Ley 25.326, con el texto
+exacto ya provisto por el informe complementario de Lautaro (§5).
+
+- **Footer del sitio** (`site-footer.tsx`): texto actualizado con la fórmula exacta del informe
+  ("carácter general... no personalizada — Ley 26.831"), reemplaza el disclaimer genérico
+  anterior.
+- **Informes diario/semanal (placa PNG + PDF) — decisión de NO tocar**: tienen su propio
+  disclaimer (más corto), pero sus layouts son milimétricos y con contenido de longitud variable
+  (el semanal en particular: `.sem-pie` es `position:absolute; bottom:14mm` sobre la tapa, que
+  ya tiene un resumen ejecutivo de longitud variable arriba — alargar el texto ahí sin poder
+  renderizar+medir el PDF real es el tipo de cambio que rompió layouts en sesiones anteriores).
+  Se prefirió no arriesgar un template ya afinado por decisiones de diseño previas, más
+  considerando que la redacción final de este disclaimer específico está de todos modos
+  pendiente de la consulta con el abogado.
+- **`/privacidad` auditada contra Ley 25.326**: de los 4 puntos que pedía el checklist,
+  **3 cerrados**: finalidad (ya estaba) · ARCO completo (agregada "oponerte", faltaba la O) ·
+  AAIP como autoridad de control (sección nueva, mención genérica del derecho legal — no
+  requiere ningún dato específico de ROFO AGRO, así que es seguro afirmarlo sin el abogado).
+  **1 sin poder cerrar**: "responsable y domicilio" necesita el nombre legal + dirección real de
+  la entidad — dato que no existe en ningún lado del repo (la cuestión de razón social/SRL de
+  ROFO AGRO quedó explícitamente sin resolver en la sesión de rebranding del 23/07). No se
+  inventó nada — queda anotado como lo que falta, para que Lautaro lo confirme.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ +
+Playwright real (captura de página completa de `/privacidad`, las 9 secciones numeradas
+correctamente, el footer con el texto nuevo sin overflow en 3 líneas).
+
+## Parte 8 (01/08/2026) — detector de anomalías (investigado, no extendido) + OG tags
+
+Siguiente ítem: extender el detector de anomalías (D7) a `pas_zonas`/`pas_condicion`, las 2
+tablas más urgentes (100% carga manual, sin chequeo de VALOR hoy). Antes de escribir el catálogo
+nuevo, se leyó a fondo `chequeo-anomalias.mjs` y `anomalias.ts` — **encontró un problema real de
+diseño, no una tarea de 5 minutos**: el barrido separa histórico/nuevo comparando la fecha contra
+un corte ISO (`fecha >= DESDE`), y esas 2 tablas no tienen columna de fecha real (`campania` es
+texto tipo "2000/01", `semana` es 0-53 sin fecha). Forzarlas tal cual haría que el corte nunca
+dispare → cada corrida diaria reprocesaría la tabla ENTERA como "nuevo", con riesgo de re-alertar
+todos los días desvíos ya conocidos y aceptados (ej. la brecha de cebada cervecera que D7 ya había
+encontrado y decidido no tocar) — el mismo "detector que grita se ignora" que la calibración
+original de D7 trabajó para evitar. Se decidió NO forzar un fix a medias: esto necesita una
+calibración retroactiva propia, del mismo tamaño que la sesión original de D7, no un parche.
+Documentado en el checklist con el razonamiento completo para que quede como tarea real, no
+perdida.
+
+**OG tags para WhatsApp** (siguiente ítem, sin la misma complicación): `src/app/opengraph-image.tsx`
+usa la convención de archivo de Next.js (`next/og`, sin dependencia nueva) — genera un PNG
+1200×630 con el wordmark en los colores reales de marca (verde ROFO/AGRO + línea dorada +
+tagline), sirviéndose en `/opengraph-image`. `layout.tsx` sumó `metadataBase` (con el dominio
+productivo real `rofoagro.com.ar`, no el fallback viejo `*.vercel.app` que sigue en otro archivo
+sin tocar — fuera de alcance de este fix) + `openGraph`/`twitter` con título y descripción.
+Verificado en vivo: `curl /opengraph-image` devuelve un PNG 1200×630 real, los 13 meta tags
+`og:*`/`twitter:*` aparecen en el HTML, la imagen se ve limpia (captura revisada a mano).
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ + PNG
+real descargado y revisado.
+
+## Parte 9 (01/08/2026) — Core Web Vitals (@vercel/analytics + Speed Insights)
+
+Lautaro dijo "seguí" sin más precisión sobre los 2 ítems que quedaban (CWV necesita una
+dependencia nueva, staging es una decisión de infra). Se interpretó como luz verde para el de
+menor riesgo real (paquete oficial de Vercel, ya en Pro, sin PII) y se dejó aparte el de
+staging (crea infraestructura real — un proyecto nuevo de Supabase, con su propio costo/cupo
+aunque sea gratis) para preguntar antes de aprovisionar nada.
+
+- `npm install @vercel/analytics @vercel/speed-insights` — únicas 2 dependencias de producción
+  nuevas desde la auditoría E4 del 21/07.
+- `layout.tsx`: `<Analytics />` + `<SpeedInsights />` al final del `<body>`, mismo patrón que la
+  documentación oficial. Son Client Components (`"use client"`) — no aparecen en el HTML
+  servido por `curl` (SSR), inyectan su script recién tras la hidratación en el navegador.
+  Verificado con Playwright real que el script se monta.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ +
+Playwright confirmando la inyección del script client-side. Los datos reales de Core Web Vitals
+van a aparecer en el dashboard de Vercel recién con tráfico real de producción — no hay nada más
+para verificar desde el código.
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace

@@ -18,7 +18,7 @@ export default function PrivacidadPage() {
     <article>
       <p className="lp-eyebrow lp-eyebrow-gold">Legal</p>
       <h1 className="lp-h1">Política de privacidad</h1>
-      <p className="lp-p">Última actualización: 23 de julio de 2026.</p>
+      <p className="lp-p">Última actualización: 1 de agosto de 2026.</p>
 
       <p className="lp-p">
         ROFO AGRO es una consultora de agronegocios. Esta web (el &ldquo;Sitio&rdquo;) es la
@@ -74,8 +74,11 @@ export default function PrivacidadPage() {
 
       <h2 className="lp-h2">5. Tus derechos</h2>
       <p className="lp-p">
-        Podés pedirnos en cualquier momento acceder a tus datos, corregirlos o eliminarlos, y
-        dar de baja tu cuenta. Escribinos por el formulario de contacto del{" "}
+        Como titular de tus datos personales (Ley 25.326), en cualquier momento podés pedirnos
+        <strong> acceder</strong> a tus datos, <strong>rectificarlos</strong> si están mal,
+        <strong> cancelarlos</strong> (eliminarlos) u <strong>oponerte</strong> a un uso puntual
+        que no te parezca correcto, además de dar de baja tu cuenta. Escribinos por el
+        formulario de contacto del{" "}
         <a href="/bienvenida#contacto">sitio institucional</a> y lo resolvemos.
       </p>
 
@@ -87,13 +90,21 @@ export default function PrivacidadPage() {
         solo puede tener una sesión activa a la vez.
       </p>
 
-      <h2 className="lp-h2">7. Cambios a esta política</h2>
+      <h2 className="lp-h2">7. Autoridad de control</h2>
+      <p className="lp-p">
+        Si en algún momento considerás que no respetamos tus derechos sobre tus datos
+        personales, además de escribirnos podés presentar un reclamo ante la{" "}
+        <strong>Agencia de Acceso a la Información Pública (AAIP)</strong>, el organismo que
+        controla el cumplimiento de la Ley 25.326 en Argentina.
+      </p>
+
+      <h2 className="lp-h2">8. Cambios a esta política</h2>
       <p className="lp-p">
         Si actualizamos esta política de forma relevante, lo vamos a avisar en el Sitio. Podés
         volver a esta página cuando quieras para ver la versión vigente.
       </p>
 
-      <h2 className="lp-h2">8. Contacto</h2>
+      <h2 className="lp-h2">9. Contacto</h2>
       <p className="lp-p">
         Ante cualquier duda sobre tus datos, escribinos por el formulario de contacto de{" "}
         <a href="/bienvenida#contacto">rofoagro</a>.

@@ -1,0 +1,74 @@
+[
+  {
+    "ticker": "S13N6",
+    "pago_final": 109.65,
+    "fecha_vencimiento": "2026-11-13",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S14G6",
+    "pago_final": 108.03,
+    "fecha_vencimiento": "2026-08-14",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S15S6",
+    "pago_final": 107.21,
+    "fecha_vencimiento": "2026-09-15",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S30N6",
+    "pago_final": 129.89,
+    "fecha_vencimiento": "2026-11-30",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S30O6",
+    "pago_final": 135.28,
+    "fecha_vencimiento": "2026-10-30",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S30S6",
+    "pago_final": 117.54,
+    "fecha_vencimiento": "2026-09-30",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S31G6",
+    "pago_final": 127.06,
+    "fecha_vencimiento": "2026-08-31",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "S31L6",
+    "pago_final": 117.68,
+    "fecha_vencimiento": "2026-07-31",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "T15E7",
+    "pago_final": 161.1,
+    "fecha_vencimiento": "2027-01-15",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "T30A7",
+    "pago_final": 157.34,
+    "fecha_vencimiento": "2027-04-30",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "T30J7",
+    "pago_final": 156.04,
+    "fecha_vencimiento": "2027-06-30",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  },
+  {
+    "ticker": "T31Y7",
+    "pago_final": 151.56,
+    "fecha_vencimiento": "2027-05-31",
+    "actualizado_en": "2026-07-27T17:12:14.032404+00:00"
+  }
+]

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Source_Serif_4, Source_Sans_3, Source_Code_Pro } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 
@@ -32,13 +34,33 @@ const sourceCode = Source_Code_Pro({
   display: "swap",
 });
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://rofoagro.com.ar").replace(/\/$/, "");
+const TITULO = "ROFO AGRO · Pizarra electrónica de granos";
+const DESCRIPCION =
+  "Research de mercado de granos de Argentina: arbitrajes pizarra vs A3, dólar futuro, tasas implícitas. ROFO AGRO — Consultora de granos.";
+
 export const metadata: Metadata = {
-  title: "ROFO AGRO · Pizarra electrónica de granos",
-  description:
-    "Research de mercado de granos de Argentina: arbitrajes pizarra vs A3, dólar futuro, tasas implícitas. ROFO AGRO — Consultora de granos.",
+  metadataBase: new URL(SITE_URL),
+  title: TITULO,
+  description: DESCRIPCION,
   // El noindex global se sacó en E3 (fase 2) al conectar la pizarra real de CAC y quitar las
   // implícitas de granos de ejemplo (ya no queda dato falso a la vista). Las páginas de mesa
   // (admin, comercio/*, produccion, granos/view) mantienen su `robots: index:false` propio.
+  // OG/Twitter (Fase 7, 01/08/2026): la imagen sale sola de opengraph-image.tsx (convención de
+  // archivo de Next.js) — acá solo van los campos de texto, para que WhatsApp/Slack/etc. tengan
+  // título+descripción propios en vez de repetir el <title> genérico.
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "ROFO AGRO",
+    title: TITULO,
+    description: DESCRIPCION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITULO,
+    description: DESCRIPCION,
+  },
 };
 
 export default function RootLayout({
@@ -52,6 +74,11 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        {/* Core Web Vitals reales de producción (Fase 7, 01/08/2026) — paquetes oficiales de
+            Vercel, cero configuración extra (ya estamos en Vercel Pro). Sin cookies, sin PII;
+            degradan solos fuera de Vercel (dev local, otro hosting). */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

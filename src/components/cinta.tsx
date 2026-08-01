@@ -1,5 +1,5 @@
 import type { CintaData } from "@/lib/market";
-import { nfmt, pfmt, dirOf, arrowOf } from "@/lib/format";
+import { nfmt, pfmt, dirOf, arrowOf, horaCordoba } from "@/lib/format";
 
 /** Una tanda de indicadores (JSX reusado dos veces para el marquee sin costura). */
 function Tanda({ data, duplicado }: { data: CintaData; duplicado: boolean }) {
@@ -24,6 +24,18 @@ function Tanda({ data, duplicado }: { data: CintaData; duplicado: boolean }) {
           </span>
         );
       })}
+      {/* Sello de frescura de la cinta entera (Fase 2, 01/08/2026): un ítem más del mismo
+          ticker, no un overlay aparte — así scrollea/marquee con el resto sin CSS nuevo. */}
+      {data.meta.updatedAt !== null && (
+        <span
+          className="rib rib-stamp"
+          key={`${duplicado ? "dup-" : ""}stamp`}
+          aria-hidden={duplicado || undefined}
+        >
+          <span className="rl">Actualizado</span>
+          <span className="rv">{horaCordoba(new Date(data.meta.updatedAt), false)}</span>
+        </span>
+      )}
     </>
   );
 }

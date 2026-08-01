@@ -17,8 +17,9 @@ export function SiteFooter() {
         <span className="src-chip">Elaboración propia · datos de mercado</span>
       </div>
       <p className="disc">
-        Información de mercado con fines informativos. No constituye recomendación ni
-        asesoramiento de inversión. Las decisiones y su resultado son responsabilidad del usuario.
+        Información y análisis de mercado de carácter general. No constituye asesoramiento ni
+        recomendación de inversión personalizada (Ley 26.831). Las decisiones y su resultado son
+        responsabilidad del usuario.
       </p>
       <p className="foot-legal">
         <Link href="/privacidad">Política de privacidad</Link>
