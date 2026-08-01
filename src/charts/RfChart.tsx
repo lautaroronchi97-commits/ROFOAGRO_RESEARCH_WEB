@@ -258,12 +258,35 @@ export function RfChart({
     (containerWidth: number): echarts.EChartsOption => {
       const { mono, ui } = resolveFonts();
       const p = paletteFor(mode);
+      const series = Array.isArray(option.series) ? option.series : option.series ? [option.series] : [];
+      // Legend siempre presente para 2+ series (regla no-negociable de la skill
+      // dataviz) — ninguna para 1 sola serie, ahí el título ya dice qué es.
+      const conLegend = series.length >= 2;
+      // yAxis con zoom al rango real de los datos (nunca forzado a arrancar en 0)
+      // salvo que haya una serie de barras, donde el 0 es honesto/necesario para
+      // no falsear la comparación de longitudes.
+      const soloLineas = series.length > 0 && series.every((s) => (s as { type?: string })?.type !== "bar");
       const defaults: echarts.EChartsOption = {
         animationDuration: 700,
         textStyle: { fontFamily: ui },
-        grid: { right: rightMarginFor(containerWidth, option.series, mono) },
+        grid: { right: rightMarginFor(containerWidth, option.series, mono), top: conLegend ? 44 : 28 },
         xAxis: { nameTextStyle: { fontFamily: ui }, axisLabel: { fontFamily: mono, hideOverlap: true } },
-        yAxis: { nameTextStyle: { fontFamily: ui }, axisLabel: { fontFamily: mono, hideOverlap: true } },
+        yAxis: {
+          scale: soloLineas,
+          nameTextStyle: { fontFamily: ui },
+          axisLabel: { fontFamily: mono, hideOverlap: true },
+        },
+        legend: conLegend
+          ? {
+              top: 6,
+              left: "center",
+              icon: "roundRect",
+              itemWidth: 14,
+              itemHeight: 3,
+              itemGap: 18,
+              textStyle: { color: p.ink2, fontFamily: ui, fontSize: 11.5 },
+            }
+          : undefined,
         tooltip: {
           trigger: "axis",
           axisPointer: {

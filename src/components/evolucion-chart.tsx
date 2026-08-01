@@ -118,6 +118,11 @@ export function EvolucionChart({
                 <div style="opacity:.75;font-size:10.5px;margin-top:2px">${informe}</div>`;
             },
           },
+          // Sin endLabel: con 2-8 organismos las líneas convergen todas cerca del
+          // borde derecho y los nombres quedaban pegados/con bordes raros — la
+          // skill dataviz señala exactamente este caso ("cuando los end-labels
+          // colisionan... usar la leyenda + tooltip"). RfChart ya agrega la
+          // leyenda sola al ver 2+ series.
           series: series
             .filter((s) => s.puntos.length > 0)
             .map((s) => ({
@@ -125,14 +130,7 @@ export function EvolucionChart({
               type: "line",
               data: s.puntos.map((p): PuntoEvol => [epoch(p.fecha), p.valor, p.informe]),
               itemStyle: { color: ORG_COLOR[s.organismo] ?? undefined },
-              lineStyle: { color: ORG_COLOR[s.organismo] ?? undefined, width: 1.9 },
-              symbolSize: 5.5,
-              endLabel: {
-                show: true,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CallbackDataParams de echarts no tipa `value` como la tupla real que pasamos
-                formatter: (p2: any) => `${p2.seriesName}  ${nfmt((p2.value as PuntoEvol)[1], 2)}`,
-              },
-              labelLayout: { moveOverlap: "shiftY" },
+              lineStyle: { color: ORG_COLOR[s.organismo] ?? undefined, width: 2 },
             })),
         }}
       />
