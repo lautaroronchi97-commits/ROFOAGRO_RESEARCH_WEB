@@ -162,13 +162,19 @@
   → Instant Rollback → logs) · B) dato incorrecto en pantalla (kill-switch primero, investigar
   después) · C) cliente reporta dato (reproducir contra fuente primaria → banner → fix aislado →
   comunicar) · D) contactos/accesos.
-- [ ] **Kill-switch / banner "Datos en revisión — no operar con esta información"**: env var +
-  banner en el layout compartido. **Confirmado 01/08: no existe** (grep completo sin resultados
-  reales en `src/`) — es más urgente que en una app común.
-- [ ] **`/api/health`** público liviano (app viva + Supabase responde) para monitoreo externo
-  (UptimeRobot free) — **confirmado 01/08: no existe** (`src/app/api/` solo tiene `log-seccion`,
-  `series`, `informes/datos`, `views/insumos`) — `/admin/conexiones` es el tablero interno, no
-  sirve de probe.
+- [x] **Kill-switch / banner "Datos en revisión — no operar con esta información"** — HECHO
+  01/08/2026: `KillSwitchBanner` (`src/components/kill-switch-banner.tsx`) en
+  `(site)/layout.tsx`, gateado por `KILL_SWITCH_ACTIVO` (env var, "false" default, mensaje
+  personalizable con `KILL_SWITCH_MENSAJE`). Verificado con Playwright en claro/oscuro
+  (screenshots reales, banner visible arriba del masthead en toda la web de cliente). **Ojo
+  operativo, documentado en `.env.local.example`**: en Vercel cambiar el env var no alcanza —
+  las páginas ISR quedan pre-renderizadas con el valor de la última build, hace falta un
+  Redeploy (sin tocar código) para que el banner aparezca/desaparezca.
+- [x] **`/api/health`** — HECHO 01/08/2026: `src/app/api/health/route.ts`, público, sin caché
+  (`force-dynamic`), chequea Supabase con un SELECT liviano sobre `vencimientos` y devuelve
+  `{status, checks, latencyMs, timestamp}` — 200 si Supabase responde, 503 si no (para que
+  UptimeRobot/similar lo detecte como caído). Probado en vivo contra la base real:
+  `{"status":"ok","checks":{"app":true,"supabase":true},...}`.
 - [ ] 🖐 Acceso de emergencia para **Mauro** con cuenta propia (ya es admin de la web): Vercel
   (miembro del team), Supabase (Organization → Team), GitHub (colaborador). Sin compartir
   contraseñas; 2FA cada uno.
@@ -191,9 +197,12 @@
 
 - [x] 404 branded (E3) · favicon · títulos/descripciones por página · formulario de contacto
   (landing, Resend) · indicador de rueda abierta/cerrada + hora Córdoba en toda la web.
-- [ ] **Confirmado 01/08: `error.tsx`/`global-error.tsx` NO existen** (glob completo de
-  `src/app/**`, solo hay `layout.tsx`/`not-found.tsx`/`theme-provider.tsx` en la raíz) — el 500
-  hoy cae al genérico de Next en inglés, sin marca.
+- [x] **`error.tsx`/`global-error.tsx`** — HECHO 01/08/2026: `src/app/error.tsx` (boundary de
+  route segment, mismo patrón visual que `not-found.tsx` — `.aviso-card` + botones Reintentar/
+  Volver al inicio) + `src/app/global-error.tsx` (último recurso si falla el root layout
+  mismo, con estilos inline porque no puede asumir que `globals.css`/`ThemeProvider` sigan
+  montados). Verificado forzando un error real (página temporal que tira `throw`, 500
+  confirmado por HTTP + screenshot del boundary branded, borrada después — cero residuo).
 - [ ] **OG tags para WhatsApp**: `og:title/description/image` (1200×630, logo centrado, URL
   absoluta) — los clientes agro comparten TODO por WhatsApp; verificar con el Sharing Debugger.
 - [ ] Performance: Core Web Vitals reales de producción (base E4 ya medida: bundle −235 KB, ISR
@@ -235,3 +244,13 @@ switch+`/api/health`+`error.tsx` (operación crítica, ninguno existe hoy) → d
 backups (única red desde que se descartó Pro) → branch protection + `npm audit` en CI (gates
 baratos) → gaps de `SourceStamp` + extender detector de anomalías → Fase 6 legal → OG tags/CWV →
 staging (evaluar si se justifica) → beta. Los 🖐 corren en paralelo cuando Lautaro tenga un rato.
+
+## Build 01/08/2026 — kill-switch + `/api/health` + `error.tsx`/`global-error.tsx`
+
+Primer fix de código de la parte 2 (Lautaro eligió "Operación crítica" como prioridad). Los 3
+verificados con Playwright real (claro/oscuro + forzando un error real con una página temporal
+borrada después) y contra la base real (`/api/health` respondiendo `status:"ok"` con Supabase de
+verdad). `docs/RUNBOOK.md` de 1 página (que documentaría cómo usar estas 3 piezas en una
+emergencia) sigue sin existir — quedó fuera del alcance elegido, es el siguiente paso natural de
+esta misma fase. Sigue pendiente el resto de "Operación crítica" strictamente hablando: acceso de
+emergencia para Mauro (🖐, manual) y el smoke test k6 (opcional).

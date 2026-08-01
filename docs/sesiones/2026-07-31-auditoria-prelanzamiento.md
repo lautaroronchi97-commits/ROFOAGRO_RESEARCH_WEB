@@ -140,6 +140,45 @@ real, sube de prioridad.
   Falta que Lautaro elija por dónde arrancar a construir (mismo patrón que S1-S3: reportar,
   preguntar, recién ahí tocar código).
 
+## Parte 3 (01/08/2026) — build de "Operación crítica"
+
+Con el reporte de la parte 2 en mano, Lautaro eligió por dónde arrancar a construir: **Operación
+crítica** (kill-switch + `/api/health` + `error.tsx`/`global-error.tsx`, los 3 confirmados
+inexistentes en la auditoría). Los 3 son código nuevo sin tocar esquema ni fórmulas — no
+necesitaban aviso previo especial más allá de la elección ya hecha.
+
+- **`src/app/error.tsx`** + **`src/app/global-error.tsx`**: 500 branded, mismo lenguaje visual que
+  `not-found.tsx` (`.aviso-card`, botones Reintentar/Volver al inicio). `global-error.tsx` con
+  estilos inline (reemplaza el root layout completo, no puede depender de `globals.css`).
+- **`src/app/api/health/route.ts`**: GET público, `force-dynamic` (sin caché), SELECT liviano
+  contra `vencimientos` vía `sbSelect` (mismo helper que toda la lectura de Supabase) — 200 si
+  responde, 503 si no.
+- **`src/components/kill-switch-banner.tsx`**: banner condicionado a `KILL_SWITCH_ACTIVO` (env
+  var), mensaje personalizable con `KILL_SWITCH_MENSAJE`, cableado en `(site)/layout.tsx` arriba
+  del masthead. CSS nuevo (`.ks-banner*`) reusando el token `--neg` ya existente.
+
+**Verificación real, no solo build**: con las creds reales de Supabase del entorno (proceso, no
+`.env.local`), se levantó el server 3 veces — (1) `/api/health` contra la base real: `{"status":
+"ok","checks":{"app":true,"supabase":true},...}` · (2) rebuild con `KILL_SWITCH_ACTIVO=true` +
+capturas de Playwright en claro y oscuro (el toggle de tema real, no `prefers-color-scheme` — el
+sitio no lo sigue) confirmando el banner arriba del masthead en las dos pieles · (3) página
+temporal con `throw` forzado (`force-dynamic` para que no rompiera el build al pre-renderizar) →
+HTTP 500 confirmado + captura del `error.tsx` real, después **borrada sin dejar rastro**
+(`git status` limpio antes del commit).
+
+**Trampa real encontrada**: el kill-switch no se vio en el primer intento de verlo en el navegador
+— la home es ISR (`revalidate=60`) y quedó pre-renderizada en el build hecho ANTES de setear
+`KILL_SWITCH_ACTIVO=true`. Confirma en la práctica el caveat que ya se había documentado a mano en
+`.env.local.example`: en Vercel, cambiar el env var no alcanza, hace falta un Redeploy.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ (con un `.next` corrupto por la página temporal
+borrada — limpiado con `rm -rf .next` antes de repetir, mismo tipo de trampa que ya había pasado
+en la sesión del rediseño premium del 28/07) · **426/426 tests** ✅ · `npm run build` ✅.
+
+**Quedó pendiente**: `docs/RUNBOOK.md` (documentaría cómo usar estas 3 piezas en una emergencia
+real) — no estaba en el alcance elegido, es el siguiente paso natural. El resto del backlog
+repriorizado de la parte 2 sigue completo en `PRELAUNCH_CHECKLIST.md`.
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace

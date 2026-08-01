@@ -6,6 +6,7 @@ import { SeccionBeacon } from "@/components/seccion-beacon";
 import { Watermark } from "@/components/watermark";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider } from "@/components/sidebar-provider";
+import { KillSwitchBanner } from "@/components/kill-switch-banner";
 import { BIBLIOTECA, BIBLIOTECA_ADMIN } from "@/lib/biblioteca";
 import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { requireAprobado, getAcceso } from "@/lib/auth/dal";
@@ -51,6 +52,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <SidebarProvider>
       <RefreshOnFocus />
+      <KillSwitchBanner />
       <SiteHeader />
       <div className="site-shell">
         <Sidebar grupos={grupos} esAdmin={esAdmin} adminItems={BIBLIOTECA_ADMIN.items} />
