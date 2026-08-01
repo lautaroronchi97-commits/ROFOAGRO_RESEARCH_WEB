@@ -9,8 +9,8 @@
 1. **Al arrancar**: leer este archivo + la última entrada de `docs/sesiones/`. Trabajar en una rama
    `claude/*` creada **desde `main`**. Si la rama de la sesión no sale de `main` actualizado, rebasear
    primero (`git fetch origin main && git rebase origin/main`).
-2. **Durante**: commits chicos y frecuentes. `npm run lint` + `npx tsc --noEmit` + `npm run build` antes
-   de pushear (el CI corre eso mismo).
+2. **Durante**: commits chicos y frecuentes. `npm run lint` + `npx tsc --noEmit` + `npx vitest run` +
+   `npm run build` antes de pushear (el CI corre eso mismo).
 3. **Al cerrar**: en el MISMO PR de la sesión —
    - crear `docs/sesiones/AAAA-MM-DD-tema.md` (copiar [`sesiones/_TEMPLATE.md`](sesiones/_TEMPLATE.md));
    - actualizar la sección **«Ahora»** de este archivo (qué quedó hecho, qué quedó en vuelo);
@@ -19,7 +19,37 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — ✅ C28 CERRADO: sintéticos (p34) + empresas 0 buques (p55) — el relevamiento web de 56 puntos queda completo)
+## Ahora (última actualización: 31/07/2026 — 🔒 C29: auditoría de pre-lanzamiento, parte SEGURIDAD — hecha; 3 migraciones versionadas esperando el OK)
+
+**🔒 C29 — AUDITORÍA DE PRE-LANZAMIENTO (PARTE 1: SEGURIDAD) — HECHA — rama
+`claude/development-guidelines-k9firc`, PR #_.** Lautaro trajo **3 informes de research de
+pre-lanzamiento** (metodología Claude Code · "cómo ejecutar sin romper nada" · 8 puntos
+técnicos/legales) + sus 5 reglas duras de trabajo, y pidió auditar el proyecto contra ese
+checklist **por partes, en Plan Mode**, empezando por seguridad (RLS · service key ·
+`/security-review`), con hallazgo/gravedad/fix/riesgo por punto. **Auditado contra la base real
+por SQL + advisors + grep de callers.** Resultado: **RLS activo en 24/24 tablas con policies
+correctas** y **service key jamás en el cliente** (`server-only`, sin `NEXT_PUBLIC_`, sin `.env`
+commiteado) — y 4 hallazgos: **S1 (importante-alto)** `lineup` + 5 vistas + 2 matviews de
+densidad seguían legibles por anon (el remanente del cierre que E1 difirió "al prender el
+login") · **S2 (importante)** `refresh_compras_avance()` ejecutable por anon (EXECUTE default a
+PUBLIC sin revocar, misma clase que `ingest_cierres_cem` de E5) · **S3 (puede esperar)** EXECUTE
+de anon sobrante en 10 RPC con guard · **S4** leaked password protection (ya diferida; la
+resuelve Supabase Pro, que además destraba el crítico de la parte "backups": plan Free = sin
+backup automático). **Entregables**: las 5 reglas duras persistidas en `CONTEXTO.md` § "Cómo
+trabajar" + vitest sumado al protocolo pre-push de este archivo ·
+**[`PRELAUNCH_CHECKLIST.md`](PRELAUNCH_CHECKLIST.md)** (checklist maestro de los 3 informes con
+estado real, fases 0–7 — registrado como C29 en el backlog maestro) · **3 migraciones
+versionadas SIN aplicar** (`20260731170000_s1` · `_170500_s2` · `_171000_s3`, con `is_admin()`
+conservando authenticated y las trigger functions excluidas a propósito). `/security-review` no
+corrió (revisa diffs de rama y la rama estaba limpia; queda para los PRs de fixes).
+
+**Verificado**: lint/tsc/**426 tests**/build ✅ (diff docs+SQL, protocolo igual). **Próximo
+paso**: OK de Lautaro → aplicar las 3 migraciones por MCP → verificar (advisors sin los WARN,
+REST anon → denied, `/comercio/*` con datos en prod, login+/admin en Preview) → seguir con las
+próximas partes del checklist (backups es el crítico abierto). Detalle:
+[`sesiones/2026-07-31-auditoria-prelanzamiento.md`](sesiones/2026-07-31-auditoria-prelanzamiento.md).
+
+## Anterior (30/07/2026 — ✅ C28 CERRADO: sintéticos (p34) + empresas 0 buques (p55) — el relevamiento web de 56 puntos queda completo)
 
 **✅ C28 — CIERRE FINAL (sintéticos p34 + empresas 0 buques p55) — HECHO — rama
 `claude/plan-desarrollo-auditoria-ka5hyk`, PR #_.** Lautaro terminó mergeando el PR #112 (los 10
