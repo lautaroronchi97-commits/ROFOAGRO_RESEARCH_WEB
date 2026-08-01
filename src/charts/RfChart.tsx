@@ -5,6 +5,7 @@ import * as echarts from "echarts";
 import { useTheme } from "next-themes";
 import { nfmt } from "@/lib/format";
 import { rofoLight, rofoDark, paletteFor } from "./rofoTheme";
+import { ROFO_LOCALE_ID } from "./rofoLocale";
 
 // `ThemeOption` no está exportado en los tipos públicos de echarts (limitación
 // conocida del paquete) — el objeto es estructuralmente válido igual, se registra tal cual.
@@ -420,7 +421,7 @@ export function RfChart({
   React.useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const chart = echarts.init(el, mode === "dark" ? "rofoDark" : "rofoLight");
+    const chart = echarts.init(el, mode === "dark" ? "rofoDark" : "rofoLight", { locale: ROFO_LOCALE_ID });
     chartRef.current = chart;
     chart.setOption(buildOptionRef.current(el.clientWidth));
     mountedOnceRef.current = true;
