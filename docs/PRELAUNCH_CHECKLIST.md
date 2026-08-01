@@ -45,9 +45,16 @@
   `authenticated` la sigue ejecutando y lee `empresas` (policies con `is_admin()` sanas).
 - [ ] `/security-review` sobre el diff de cada PR de fixes (el comando revisa diffs; sobre rama
   limpia no tiene material — la auditoría proyecto-completo de hoy lo cubrió).
-- [ ] `npm audit` como paso del CI (01/08: confirmado que `ci.yml` — único job `build`, 30
-  líneas — corre `lint`+`typecheck`+`test`+`build` y NO tiene `npm audit`; ningún otro workflow
-  de los 17 en `.github/workflows/` lo tiene tampoco).
+- [x] `npm audit` en CI — HECHO 01/08/2026: paso nuevo en `ci.yml` (`npm audit --audit-level=
+  high`), **no bloqueante a propósito** (`continue-on-error: true`) — queda visible en cada run
+  pero no rompe el merge. Corrido hoy: **4 altas, las 3 con fix disponible son TODAS
+  transitivas de `next`** (postcss/sharp), y el único remedio es `npm audit fix --force`
+  bumpeando Next fuera del rango declarado — este repo corre una versión de Next con cambios
+  de breaking documentados (`AGENTS.md`), así que esa decisión queda para Lautaro, no para un
+  gate de CI. **Pendiente real que sigue abierto**: decidir si vale la pena actualizar Next
+  (evaluar qué tan alcanzable es explotar sharp/postcss en este proyecto — sharp es de
+  `next/image`, que hoy no parece usarse con imágenes remotas; postcss actúa sobre CSS propio,
+  no de usuario).
 - [x] `.github/dependabot.yml` **ya está committeado** (npm + github-actions, updates mensuales
   agrupados, `open-pull-requests-limit: 10`) — es el mecanismo de **version-updates** (PRs
   automáticos). Falta el otro mecanismo, distinto: 🖐 **alertas de seguridad** (GitHub → Settings
@@ -153,15 +160,15 @@
   NO bloquea el merge (no hay ningún archivo de config de branch protection, ni debería haberlo
   — vive en GitHub Settings) — cualquiera puede mergear a `main` con el CI en rojo.
 - [x] Vercel Pro confirmado contratado (múltiples menciones cruzadas en `ESTADO.md`/E5/E7).
-- [ ] Documentar Instant Rollback de Vercel (Pro ya contratado) en el runbook (Fase 5) — sigue
-  sin existir `docs/RUNBOOK.md`.
+- [x] Instant Rollback documentado — ver `docs/RUNBOOK.md` escenario A (paso 3).
 
 ## Fase 5 — Operación (Informe 3 §6 — runbook para un fundador solo-técnico)
 
-- [ ] **`docs/RUNBOOK.md` de 1 página**: A) web caída en rueda (status pages → ¿deploy reciente?
-  → Instant Rollback → logs) · B) dato incorrecto en pantalla (kill-switch primero, investigar
-  después) · C) cliente reporta dato (reproducir contra fuente primaria → banner → fix aislado →
-  comunicar) · D) contactos/accesos.
+- [x] **[`docs/RUNBOOK.md`](RUNBOOK.md)** — HECHO 01/08/2026, 1 página con los 4 escenarios
+  del informe: A) web caída (`/api/health` → ¿deploy reciente? → Instant Rollback) · B) dato
+  incorrecto (kill-switch primero, investigar después, con los pasos exactos de Vercel) · C)
+  cliente reporta un dato (reproducir contra la fuente primaria → banner → fix → comunicar) ·
+  D) contactos/accesos. Escrito para Lautaro (paso a paso, sin dar por sabido ningún menú).
 - [x] **Kill-switch / banner "Datos en revisión — no operar con esta información"** — HECHO
   01/08/2026: `KillSwitchBanner` (`src/components/kill-switch-banner.tsx`) en
   `(site)/layout.tsx`, gateado por `KILL_SWITCH_ACTIVO` (env var, "false" default, mensaje

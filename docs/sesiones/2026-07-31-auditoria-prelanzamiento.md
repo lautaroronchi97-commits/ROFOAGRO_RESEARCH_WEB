@@ -179,6 +179,32 @@ en la sesión del rediseño premium del 28/07) · **426/426 tests** ✅ · `npm 
 real) — no estaba en el alcance elegido, es el siguiente paso natural. El resto del backlog
 repriorizado de la parte 2 sigue completo en `PRELAUNCH_CHECKLIST.md`.
 
+## Parte 4 (01/08/2026) — RUNBOOK.md + npm audit en CI
+
+Lautaro pidió seguir con lo que quedara pendiente. Se completó el resto de "Operación crítica":
+
+- **`docs/RUNBOOK.md`**: 1 página, los 4 escenarios del Informe 3 (§6) — A) web caída (usa
+  `/api/health` recién construido + Instant Rollback de Vercel Pro, con el paso a paso de
+  menús) · B) dato incorrecto (kill-switch primero: los pasos EXACTOS para prenderlo desde
+  Vercel, incluido el Redeploy obligatorio) · C) cliente reporta un dato · D) contactos/accesos
+  (deja anotado que el acceso de emergencia de Mauro sigue pendiente). Escrito para Lautaro, sin
+  dar por sabido ningún menú de Vercel/Supabase.
+- **`npm audit` en CI** (`ci.yml`): agregado `continue-on-error: true` a propósito — corrido en
+  este mismo repo dio **4 altas, las 3 con fix disponible son transitivas de `next`**
+  (postcss/sharp), y el único remedio (`npm audit fix --force`) bumpea Next fuera del rango
+  declarado. Bumpear la versión de Next de un proyecto que trae la advertencia explícita "esto
+  NO es el Next.js que conocés, hay breaking changes" (`AGENTS.md`) no es una decisión para
+  meter de paso en un gate de CI — queda anotada como pendiente real para que Lautaro decida,
+  no escondida bajo un `continue-on-error` silencioso.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅.
+
+**Con esto, el bucket "Operación crítica" que Lautaro eligió en la parte 2 queda 100%
+completo** (kill-switch + `/api/health` + `error.tsx`/`global-error.tsx` + `RUNBOOK.md`). Lo que
+sigue del backlog repriorizado (dump de backups, branch protection 🖐, gaps de `SourceStamp`,
+detector de anomalías extendido, legal, OG/CWV, staging) sigue en `PRELAUNCH_CHECKLIST.md`, sin
+tocar.
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace
