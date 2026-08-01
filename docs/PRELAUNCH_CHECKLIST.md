@@ -203,14 +203,25 @@
 ## Fase 6 — Legal Argentina (Informe complementario §5)
 
 - [x] `/privacidad` y `/terminos` publicados (23/07, requisito del OAuth de Google).
-- [ ] **Disclaimer CNV** (RG 1002/2024 safe harbor): texto visible en footer + informes
-  diario/semanal — "información y análisis de carácter general, no constituye asesoramiento ni
-  recomendación personalizada (Ley 26.831)". Línea roja documentada: nunca recomendaciones
-  personalizadas por perfil de cliente.
-- [ ] Auditar `/privacidad` contra Ley 25.326: finalidad, responsable y domicilio, derechos
-  ARCO, AAIP como autoridad de control.
+- [x] **Disclaimer CNV — footer del sitio HECHO 01/08/2026**: `site-footer.tsx` actualizado con
+  el texto exacto del informe complementario ("información y análisis de mercado de carácter
+  general. No constituye asesoramiento ni recomendación de inversión personalizada — Ley
+  26.831"), verificado con Playwright que renderiza sin overflow. **Informes diario/semanal
+  (placa PNG + PDF) quedaron SIN TOCAR a propósito**: ya tienen un disclaimer básico, pero sus
+  layouts son milimétricos (`position:absolute; bottom:14mm` en el semanal, contenido variable
+  arriba) — alargar el texto ahí sin verificación visual real del PDF/placa generado es
+  arriesgado, y la redacción final la define el abogado de todos modos (ver el punto de abajo).
+  Línea roja documentada: nunca recomendaciones personalizadas por perfil de cliente.
+- [x] **Auditado `/privacidad` contra Ley 25.326 — 3 de los 4 puntos cerrados 01/08/2026**:
+  finalidad (ya estaba, §2) · **derechos ARCO completos** (sumado "oponerte", antes solo
+  A-R-C, §5) · **AAIP como autoridad de control** (sección nueva §7, mención genérica y segura
+  del derecho legal, sin inventar nada específico de ROFO AGRO). **Responsable y domicilio
+  queda sin poder completarse**: requiere el nombre legal + domicilio real de la entidad, y la
+  cuestión de razón social/SRL de ROFO AGRO sigue sin resolverse desde la sesión de rebranding
+  del 23/07 — no es algo que se pueda inventar, necesita que Lautaro lo confirme.
 - [ ] 🖐 Consulta puntual con abogado: inscripción de la base ante la AAIP (TAD) + redacción
-  final del disclaimer. Fuera de código.
+  final del disclaimer de los informes + el dato de responsable/domicilio de arriba. Fuera de
+  código.
 
 ## Fase 7 — Pulido y lanzamiento (Informe complementario §7-8)
 

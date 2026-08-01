@@ -266,6 +266,35 @@ en los 2 archivos.
 Playwright real contra `npm run start` con datos de Supabase del entorno (capturas de los 3
 lugares, el sello se integra con el diseño existente sin romper nada).
 
+## Parte 7 (01/08/2026) — Fase 6 legal (disclaimer CNV + Ley 25.326)
+
+Siguiente ítem: el disclaimer CNV y la auditoría de `/privacidad` contra Ley 25.326, con el texto
+exacto ya provisto por el informe complementario de Lautaro (§5).
+
+- **Footer del sitio** (`site-footer.tsx`): texto actualizado con la fórmula exacta del informe
+  ("carácter general... no personalizada — Ley 26.831"), reemplaza el disclaimer genérico
+  anterior.
+- **Informes diario/semanal (placa PNG + PDF) — decisión de NO tocar**: tienen su propio
+  disclaimer (más corto), pero sus layouts son milimétricos y con contenido de longitud variable
+  (el semanal en particular: `.sem-pie` es `position:absolute; bottom:14mm` sobre la tapa, que
+  ya tiene un resumen ejecutivo de longitud variable arriba — alargar el texto ahí sin poder
+  renderizar+medir el PDF real es el tipo de cambio que rompió layouts en sesiones anteriores).
+  Se prefirió no arriesgar un template ya afinado por decisiones de diseño previas, más
+  considerando que la redacción final de este disclaimer específico está de todos modos
+  pendiente de la consulta con el abogado.
+- **`/privacidad` auditada contra Ley 25.326**: de los 4 puntos que pedía el checklist,
+  **3 cerrados**: finalidad (ya estaba) · ARCO completo (agregada "oponerte", faltaba la O) ·
+  AAIP como autoridad de control (sección nueva, mención genérica del derecho legal — no
+  requiere ningún dato específico de ROFO AGRO, así que es seguro afirmarlo sin el abogado).
+  **1 sin poder cerrar**: "responsable y domicilio" necesita el nombre legal + dirección real de
+  la entidad — dato que no existe en ningún lado del repo (la cuestión de razón social/SRL de
+  ROFO AGRO quedó explícitamente sin resolver en la sesión de rebranding del 23/07). No se
+  inventó nada — queda anotado como lo que falta, para que Lautaro lo confirme.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ +
+Playwright real (captura de página completa de `/privacidad`, las 9 secciones numeradas
+correctamente, el footer con el texto nuevo sin overflow en 3 líneas).
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace
