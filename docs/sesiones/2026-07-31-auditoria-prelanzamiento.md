@@ -238,6 +238,34 @@ próximo domingo el cron ya solo commitea el diff).
 **Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ (los 6
 JSON no afectan lint/build, son datos, no código).
 
+## Parte 6 (01/08/2026) — 3 gaps de SourceStamp en cliente
+
+Siguiente ítem del backlog: los 3 paneles de cliente sin sello de frescura que había encontrado
+la auditoría de la parte 2. Antes, se confirmó que este entorno no tiene ningún tool de GitHub
+para branch protection (búsqueda explícita) — sigue 🖐 100% manual, sin acción posible acá.
+
+- **`/dolar/oficial`**: `metaOficial()` (función de módulo, no dentro del componente) construye
+  el `Meta` a partir de `v.actual`, cableado en `PanelHead.stamp` (mismo patrón que
+  `DolarFuturoPanel`).
+- **`/graficos`**: `metaCatalogo()` en `page.tsx`, sello propio bajo el lede (clase `.gx-stamp`
+  nueva, `display:flex;justify-content:flex-end`) — esta página no usa el layout `Panel`/
+  `PanelHead`, así que no podía reusar el `stamp` prop de los demás paneles.
+- **Cinta del home**: en vez de un overlay nuevo (CSS de posicionamiento absoluto sobre un
+  marquee, riesgoso), se sumó "Actualizado HH:MM" como UN ÍTEM MÁS del propio ticker (mismo
+  `.rib`, sin borde derecho) — así scrollea/marquea con el resto sin tocar el mecanismo de
+  animación. `CintaData` ya traía `meta` en su tipo, solo faltaba renderizarlo.
+
+**Trampa real encontrada**: las primeras versiones de `/dolar/oficial` y `/graficos` armaban el
+`Meta` con `Date.now()` directo en el cuerpo del Server Component — dispara
+`react-hooks/purity` ("Cannot call impure function during render"). Ni `market/dolar-futuro.ts`
+ni ningún otro componente del repo lo hacían así: el patrón real es construir el objeto en una
+función de módulo aparte (no un componente/hook por naming), y el lint no la analiza. Corregido
+en los 2 archivos.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ +
+Playwright real contra `npm run start` con datos de Supabase del entorno (capturas de los 3
+lugares, el sello se integra con el diseño existente sin romper nada).
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace

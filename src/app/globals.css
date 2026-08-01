@@ -332,6 +332,10 @@ button { font:inherit; color:inherit; background:none; border:none; }
   border:1px dashed color-mix(in srgb, var(--ribbon-ink) 35%, transparent);
   padding:0 4px; border-radius:3px; }
 
+/* sello de frescura al final de la cinta — mismo look que un ítem, sin borde derecho */
+.rib-stamp { border-right:none; }
+.rib-stamp .rv { font-size:var(--fs-sm); }
+
 /* ============================================================
    Paneles
    ============================================================ */
@@ -1052,6 +1056,7 @@ svg.ic { width:100%; height:auto; display:block; touch-action:pan-y; }
 
 .gx-chart { background:var(--panel); border:1px solid var(--line); border-radius:10px;
   padding:14px 10px 8px; box-shadow:var(--shadow); }
+.gx-stamp { display:flex; justify-content:flex-end; margin:0 0 14px; }
 .gx-empty { padding:60px 20px; text-align:center; color:var(--ink-3); font-size:var(--fs-sm); }
 .gx-note { margin-top:12px; font-size:var(--fs-2xs); color:var(--ink-3); line-height:1.5; }
 .gx-note b { color:var(--ink-2); font-weight:700; }

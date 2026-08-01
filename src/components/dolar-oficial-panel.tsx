@@ -2,8 +2,22 @@ import { getVariacionSemanalDolarOficial } from "@/lib/informe-semanal";
 import { getDolarOficialHistorico } from "@/lib/dolar-historico";
 import { nfmt, pfmt } from "@/lib/format";
 import { hoyCordobaISO } from "@/lib/dates";
+import type { Meta } from "@/lib/market/types";
 import { Panel, PanelHead } from "./panel";
 import { QueEsEsto } from "./que-es-esto";
+import { SourceStamp } from "./source-stamp";
+
+/** Fuera del componente a propósito: `Date.now()` en el cuerpo de un Server Component
+ * dispara la regla de pureza de React (react-hooks/purity) — mismo criterio que
+ * `market/dolar-futuro.ts`, que arma su `meta` en una función de lib, no en el JSX. */
+function metaOficial(actual: number | null): Meta {
+  return {
+    source: "BCRA",
+    updatedAt: actual != null ? Date.now() : null,
+    status: actual != null ? "real" : "parcial",
+    problemas: actual == null ? ["Sin datos de BCRA A3500 disponibles"] : [],
+  };
+}
 import { DolarOficialChart } from "./dolar-oficial-chart";
 import { DolarOficialSemanalChart } from "./dolar-oficial-semanal-chart";
 import { DolarOficialVolatilidadChart } from "./dolar-oficial-volatilidad-chart";
@@ -23,12 +37,14 @@ export async function DolarOficialPanel() {
     getDolarOficialHistorico(),
   ]);
   const dir = v.deltaPct == null ? null : v.deltaPct >= 0 ? "up" : "down";
+  const meta = metaOficial(v.actual);
 
   return (
     <Panel id="dolar-oficial-semanal">
       <PanelHead
         title="Dólar oficial — variación semanal"
         sub="BCRA A3500 (Comunicación 3500)"
+        stamp={<SourceStamp meta={meta} />}
       />
       <div className="cbo-head">
         <span className="cbo-kpi">

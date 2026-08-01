@@ -104,15 +104,18 @@
 - [x] Alertas Resend en los workflows críticos + panel `/admin/conexiones` (crons, Routines,
   cargas manuales, A3, matviews).
 - [x] Sanity checks en uploaders manuales (identidades contables, rangos físicos, guard ÷1000).
-- [ ] **Auditado 01/08/2026 (página por página) — 3 gaps reales de `SourceStamp` en cliente**:
-  `SourceStamp` (`src/components/source-stamp.tsx:14-29`) ya muestra fuente + "Actualizado HH:MM"
-  en hora Córdoba real (`horaCordoba()`) y está en 20 de los 23 paneles de cliente. Faltan:
-  **`/dolar/oficial`** (`dolar-oficial-panel.tsx` — tiene una fecha del dato pero no el formato
-  estándar) · **`/graficos`** (`graficos-client.tsx` — sin ningún sello) · **la `Cinta`** del home
-  (`cinta.tsx:39-54` — badge "prov." pero nunca timestamp; es un ribbon en marquee, sumarle un
-  sello es más una decisión de diseño que un fix mecánico). Las páginas mesa-only
-  (`/comercio/negociado`, `/produccion/{condicion,zonas}`, `/granos/view`) NO cuentan como gap
-  — confirmado `requireAdmin()` en las 4.
+- [x] **3 gaps de `SourceStamp` en cliente — CERRADOS 01/08/2026**: `/dolar/oficial`
+  (`dolar-oficial-panel.tsx`, sello en el `PanelHead` vía `metaOficial()`) · `/graficos`
+  (`(site)/graficos/page.tsx`, sello propio bajo el lede vía `metaCatalogo()`, clase `.gx-stamp`
+  nueva) · la `Cinta` del home (`cinta.tsx`, "Actualizado HH:MM" como un ítem más del propio
+  ticker — reusa `data.meta` que `CintaData` ya traía, sin overlay ni CSS de posicionamiento
+  nuevo). **Trampa real encontrada**: `Date.now()` en el cuerpo de un Server Component dispara
+  la regla de pureza de React (`react-hooks/purity`) — resuelto sacando la construcción del
+  `Meta` a una función de módulo fuera del componente, mismo patrón que ya usaba
+  `market/dolar-futuro.ts`. Verificado con Playwright + datos reales (capturas: el sello se ve
+  igual que en el resto del sitio en los 3 lugares). Las páginas mesa-only
+  (`/comercio/negociado`, `/produccion/{condicion,zonas}`, `/granos/view`) siguen sin contar
+  como gap — confirmado `requireAdmin()` en las 4.
 - [ ] **Nuevo (no estaba en los informes)**: el detector de anomalías (D7) cubre 9 series
   (`src/lib/anomalias-series.ts:51-169`) pero el healthcheck de frescura cubre 17 tablas — **8
   tablas sin chequeo de VALOR** (solo de frescura): `djve`, `lineup`, `camiones_plantas`,
