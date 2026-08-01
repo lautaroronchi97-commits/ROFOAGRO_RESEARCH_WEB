@@ -16,7 +16,7 @@ import {
   type SerieCampana,
 } from "@/lib/camiones/matriz";
 import { fechasDeCampana } from "@/lib/lineup/campanas";
-import { useCrosshair, SvgLineChartBase } from "@/components/chart-svg-base";
+import { RfChart } from "@/charts/RfChart";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "@/components/chart-tabla";
 
 /**
@@ -27,12 +27,6 @@ import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "@/compo
  * El modo campaña necesita un producto real (mes de arranque de campaña) — con el filtro en
  * "Todos" se deshabilita y el chart se queda en modo calendario (zona × TOTAL, como hoy).
  */
-
-const W = 660;
-const H = 280;
-const pad = { l: 48, r: 16, t: 16, b: 30 };
-const iw = W - pad.l - pad.r;
-const ih = H - pad.t - pad.b;
 
 const FALLBACK_CAMP_COLORS = ["#2A78D6", "#D96A2A", "#0891B2", "#B45309", "#DB5A9B", "#9333EA", "#0F9E8C", "#7C4FD0"];
 
@@ -63,9 +57,6 @@ function useCampanaColors(campanas: string[]): Record<string, string> {
 
 function epoch(iso: string): number {
   return Date.parse(`${iso}T00:00:00Z`);
-}
-function fmtDiaCorto(ms: number): string {
-  return new Intl.DateTimeFormat("es-AR", { timeZone: "UTC", day: "2-digit", month: "2-digit" }).format(new Date(ms));
 }
 function fmtFecha(iso: string): string {
   return new Intl.DateTimeFormat("es-AR", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" }).format(
@@ -332,44 +323,9 @@ function ChartCalendario({
   tablaAbierta: boolean;
   onToggleTabla: () => void;
 }) {
-  type Flat = { key: string; display: string; ms: number; valor: number; fecha: string };
-  const flat: Flat[] = [];
-  seriesZona.forEach((s) => s.puntos.forEach((p) => flat.push({ key: s.key, display: s.display, ms: epoch(p.fecha), valor: p.cantidad, fecha: p.fecha })));
+  const total = seriesZona.reduce((acc, s) => acc + s.puntos.length, 0);
 
-  const xs = flat.map((f) => f.ms);
-  const ys = flat.map((f) => f.valor);
-  let xMin = flat.length ? Math.min(...xs) : 0;
-  let xMax = flat.length ? Math.max(...xs) : 1;
-  if (xMin === xMax) {
-    xMin -= 15 * 86400000;
-    xMax += 15 * 86400000;
-  }
-  const yMin = 0;
-  let yMax = flat.length ? Math.max(...ys) : 1;
-  yMax += (yMax - yMin) * 0.1 || 1;
-
-  function X(ms: number) {
-    return pad.l + ((ms - xMin) / (xMax - xMin)) * iw;
-  }
-  function Y(v: number) {
-    return pad.t + (1 - (v - yMin) / (yMax - yMin)) * ih;
-  }
-
-  const { hi, onPointerMove, onPointerLeave } = useCrosshair(W, H, (px, py) => {
-    if (flat.length === 0) return null;
-    let best = 0;
-    let bd = Infinity;
-    flat.forEach((f, i) => {
-      const d = (X(f.ms) - px) ** 2 + (Y(f.valor) - py) ** 2;
-      if (d < bd) {
-        bd = d;
-        best = i;
-      }
-    });
-    return best;
-  });
-
-  if (flat.length === 0) {
+  if (total === 0) {
     return (
       <div className="williams-chart">
         <div className="cam-toolbar">
@@ -380,10 +336,6 @@ function ChartCalendario({
       </div>
     );
   }
-
-  const yTicks = Array.from({ length: 5 }, (_, k) => yMin + ((yMax - yMin) * k) / 4);
-  const xTicks = Array.from({ length: 5 }, (_, k) => xMin + ((xMax - xMin) * k) / 4);
-  const hiFlat = hi !== null ? flat[hi] : undefined;
 
   const columnas: ChartTablaColumna[] = [
     { key: "fecha", label: "Fecha", align: "left" },
@@ -408,57 +360,22 @@ function ChartCalendario({
         <ModoToggle modo={modo} setModo={setModo} esTotal={esTotal} />
         <ZonaChips value={zonas} onChange={setZonas} />
       </div>
-      <SvgLineChartBase
-        w={W}
-        h={H}
-        inner={{ x: pad.l, y: pad.t, width: iw, height: ih }}
+      <RfChart
         ariaLabel={`Camiones diarios por zona — ${productoDisplay}`}
-        yTicks={yTicks.map((t) => ({ valor: t, y: Y(t), label: nfmt(t, 0) }))}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-        after={
-          <>
-            {hiFlat && (
-              <div className="cv-tip" style={{ left: `${(X(hiFlat.ms) / W) * 100}%`, top: `${(Y(hiFlat.valor) / H) * 100}%` }}>
-                <span className="tt-x">{hiFlat.display}</span> · {nfmt(hiFlat.valor, 0)} camiones
-                <span className="cv-tip-sub">{fmtFecha(hiFlat.fecha)}</span>
-              </div>
-            )}
-            <div className="cv-legend">
-              {seriesZona.map((s) => (
-                <span className={`lk cam-${s.key}`} key={s.key}>
-                  <span className="sw evo-sw" />
-                  {s.display}
-                  <span className="lk-val">{s.puntos.length ? nfmt(s.puntos[s.puntos.length - 1]!.cantidad, 0) : "—"}</span>
-                </span>
-              ))}
-            </div>
-          </>
-        }
-      >
-        {xTicks.map((t, k) => (
-          <text key={`x${k}`} className="cv-axis" x={X(t)} y={H - 9} textAnchor="middle">
-            {fmtDiaCorto(t)}
-          </text>
-        ))}
-        {seriesZona.map((s) => {
-          const p = s.puntos;
-          if (p.length === 0) return null;
-          const d = p.map((pt, i) => `${i ? "L" : "M"}${X(epoch(pt.fecha)).toFixed(1)},${Y(pt.cantidad).toFixed(1)}`).join(" ");
-          return (
-            <g key={s.key} className={`evo-serie cam-${s.key}`}>
-              <path d={d} className="evo-line" />
-              <circle cx={X(epoch(p[p.length - 1]!.fecha))} cy={Y(p[p.length - 1]!.cantidad)} r={4} className="evo-end" />
-            </g>
-          );
-        })}
-        {hiFlat && (
-          <g className={`cam-${hiFlat.key}`}>
-            <line className="cv-cross" x1={X(hiFlat.ms)} y1={pad.t} x2={X(hiFlat.ms)} y2={pad.t + ih} />
-            <circle className="evo-focus" cx={X(hiFlat.ms)} cy={Y(hiFlat.valor)} r={5} />
-          </g>
-        )}
-      </SvgLineChartBase>
+        exportName={`camiones-calendario-${productoDisplay.toLowerCase()}`}
+        xTitle="Fecha"
+        yTitle="Camiones"
+        valueFormatter={(v) => nfmt(v, 0)}
+        option={{
+          xAxis: { type: "time" },
+          yAxis: { type: "value" },
+          series: seriesZona.map((s) => ({
+            name: s.display,
+            type: "line",
+            data: s.puntos.map((p) => [epoch(p.fecha), p.cantidad]),
+          })),
+        }}
+      />
       <ChartTabla
         titulo="Datos del gráfico"
         columnas={columnas}
@@ -506,36 +423,8 @@ function ChartCampana({
   onToggleTabla: () => void;
 }) {
   const series: SerieCampana[] = agruparPorCampana(sumada, producto, campSel);
-
-  type Flat = { campana: string; dia: number; valor: number; fecha: string };
-  const flat: Flat[] = [];
-  series.forEach((s) => s.puntos.forEach((p) => flat.push({ campana: s.campana, dia: p.dia, valor: p.cantidad, fecha: p.fecha })));
-
-  const diaMax = flat.length ? Math.max(...flat.map((f) => f.dia)) : 1;
-  const yMin = 0;
-  let yMax = flat.length ? Math.max(...flat.map((f) => f.valor)) : 1;
-  yMax += (yMax - yMin) * 0.1 || 1;
-
-  function X(dia: number) {
-    return pad.l + (dia / diaMax) * iw;
-  }
-  function Y(v: number) {
-    return pad.t + (1 - (v - yMin) / (yMax - yMin)) * ih;
-  }
-
-  const { hi, onPointerMove, onPointerLeave } = useCrosshair(W, H, (px, py) => {
-    if (flat.length === 0) return null;
-    let best = 0;
-    let bd = Infinity;
-    flat.forEach((f, i) => {
-      const d = (X(f.dia) - px) ** 2 + (Y(f.valor) - py) ** 2;
-      if (d < bd) {
-        bd = d;
-        best = i;
-      }
-    });
-    return best;
-  });
+  const totalPuntos = series.reduce((acc, s) => acc + s.puntos.length, 0);
+  const diaMax = totalPuntos ? Math.max(...series.flatMap((s) => s.puntos.map((p) => p.dia))) : 1;
 
   const toolbar = (
     <div className="cam-toolbar">
@@ -545,7 +434,7 @@ function ChartCampana({
     </div>
   );
 
-  if (flat.length === 0) {
+  if (totalPuntos === 0) {
     return (
       <div className="williams-chart">
         {toolbar}
@@ -554,9 +443,10 @@ function ChartCampana({
     );
   }
 
-  const yTicks = Array.from({ length: 5 }, (_, k) => yMin + ((yMax - yMin) * k) / 4);
   // Ticks de mes calculados sobre la primera campaña elegida (fechasDeCampana.inicio + k meses) —
-  // los 12 arranques de mes caen en un día-de-campaña prácticamente idéntico año a año.
+  // los 12 arranques de mes caen en un día-de-campaña prácticamente idéntico año a año. Posiciones
+  // EXACTAS vía `customValues` (ECharts 6): un eje `type:'value'` no alinea sus ticks automáticos
+  // a estos días irregulares (28-31), así que se los fuerza en vez de dejarlos "aproximados".
   const campRef = campSel[0] ?? campDisp[0];
   const xTicks: { dia: number; label: string }[] = [];
   if (campRef) {
@@ -567,8 +457,7 @@ function ChartCampana({
       if (dia <= diaMax + 5) xTicks.push({ dia, label: MESES_ES[d.getUTCMonth()] ?? "" });
     }
   }
-
-  const hiFlat = hi !== null ? flat[hi] : undefined;
+  const labelDeDia = new Map(xTicks.map((t) => [t.dia, t.label]));
 
   const columnas: ChartTablaColumna[] = [
     { key: "dia", label: "Día de campaña", align: "left" },
@@ -590,57 +479,32 @@ function ChartCampana({
   return (
     <div className="williams-chart">
       {toolbar}
-      <SvgLineChartBase
-        w={W}
-        h={H}
-        inner={{ x: pad.l, y: pad.t, width: iw, height: ih }}
+      <RfChart
         ariaLabel={`Camiones por campaña, superpuestas — ${productoDisplay}`}
-        yTicks={yTicks.map((t) => ({ valor: t, y: Y(t), label: nfmt(t, 0) }))}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-        after={
-          <>
-            {hiFlat && (
-              <div className="cv-tip" style={{ left: `${(X(hiFlat.dia) / W) * 100}%`, top: `${(Y(hiFlat.valor) / H) * 100}%` }}>
-                <span className="tt-x">{hiFlat.campana}</span> · {nfmt(hiFlat.valor, 0)} camiones
-                <span className="cv-tip-sub">{fmtFecha(hiFlat.fecha)}</span>
-              </div>
-            )}
-            <div className="cv-legend">
-              {series.map((s) => (
-                <span className="lk" key={s.campana} style={{ ["--org-c" as string]: colors[s.campana] ?? "#888" }}>
-                  <span className="sw evo-sw" />
-                  {s.campana}
-                  <span className="lk-val">{s.puntos.length ? nfmt(s.puntos[s.puntos.length - 1]!.cantidad, 0) : "—"}</span>
-                </span>
-              ))}
-            </div>
-          </>
-        }
-      >
-        {xTicks.map((t, k) => (
-          <text key={`x${k}`} className="cv-axis" x={X(t.dia)} y={H - 9} textAnchor="middle">
-            {t.label}
-          </text>
-        ))}
-        {series.map((s) => {
-          const p = s.puntos;
-          if (p.length === 0) return null;
-          const d = p.map((pt, i) => `${i ? "L" : "M"}${X(pt.dia).toFixed(1)},${Y(pt.cantidad).toFixed(1)}`).join(" ");
-          return (
-            <g key={s.campana} style={{ ["--org-c" as string]: colors[s.campana] ?? "#888" }} className="evo-serie">
-              <path d={d} className="evo-line" />
-              <circle cx={X(p[p.length - 1]!.dia)} cy={Y(p[p.length - 1]!.cantidad)} r={4} className="evo-end" />
-            </g>
-          );
-        })}
-        {hiFlat && (
-          <g style={{ ["--org-c" as string]: colors[hiFlat.campana] ?? "#888" }}>
-            <line className="cv-cross" x1={X(hiFlat.dia)} y1={pad.t} x2={X(hiFlat.dia)} y2={pad.t + ih} />
-            <circle className="evo-focus" cx={X(hiFlat.dia)} cy={Y(hiFlat.valor)} r={5} />
-          </g>
-        )}
-      </SvgLineChartBase>
+        exportName={`camiones-campana-${productoDisplay.toLowerCase()}`}
+        xTitle="Día de campaña"
+        yTitle="Camiones"
+        valueFormatter={(v) => nfmt(v, 0)}
+        option={{
+          xAxis: {
+            type: "value",
+            axisTick: { customValues: xTicks.map((t) => t.dia) },
+            axisLabel: {
+              customValues: xTicks.map((t) => t.dia),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- formatter de un eje numérico recibe el valor crudo, sin tipo público útil acá
+              formatter: (val: any) => labelDeDia.get(Number(val)) ?? "",
+            },
+          },
+          yAxis: { type: "value" },
+          series: series.map((s) => ({
+            name: s.campana,
+            type: "line",
+            data: s.puntos.map((p) => [p.dia, p.cantidad]),
+            itemStyle: { color: colors[s.campana] },
+            lineStyle: { color: colors[s.campana], width: 2 },
+          })),
+        }}
+      />
       <ChartTabla
         titulo="Datos del gráfico"
         columnas={columnas}
