@@ -252,7 +252,7 @@ export function EstimacionesCliente({
             </select>
           </label>
         </div>
-        <EvolucionChart series={serie} unidad={UNIDAD[gVar]} />
+        <EvolucionChart series={serie} unidad={UNIDAD[gVar]} variableLabel={VAR_LABEL[gVar]} />
         <p className="estim-units">
           {GRANO_LABEL[gGrano] ?? gGrano} · {PAIS_LABEL[paisEfectivo] ?? paisEfectivo} · campaña {gCamp} —{" "}
           {VAR_LABEL[gVar]} de cada organismo, publicación a publicación. Cada punto es un vintage guardado.

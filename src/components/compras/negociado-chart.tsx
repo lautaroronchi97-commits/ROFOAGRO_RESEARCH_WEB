@@ -4,22 +4,19 @@ import { useMemo, useState } from "react";
 import { nfmt } from "@/lib/format";
 import { MESES_ES } from "@/lib/dates";
 import type { PuntoHisto } from "@/lib/compras/negociado";
-import { useCrosshair, SvgLineChartBase } from "@/components/chart-svg-base";
+import { RfChart } from "@/charts/RfChart";
 import { ChartTabla } from "@/components/chart-tabla";
 
 /**
  * Histograma del volumen negociado (compras semanales SIO Granos): barras apiladas por
  * sector (Exportación + Industria), toggle Semanal (últimas 52 semanas) / Mensual (suma
- * calendario, últimos 24 meses) y selector de grano (Todos = suma de los 7). SVG a mano
- * (motor compartido `chart-svg-base.tsx`), mismo idioma que evolucion-chart (grilla
- * punteada, ejes mono, claro/oscuro por variables CSS). Eje y en miles de toneladas.
+ * calendario, últimos 24 meses) y selector de grano (Todos = suma de los 7). Eje Y con
+ * tick compacto en miles de toneladas; tooltip y tabla siguen en toneladas exactas.
+ * Colores: paleta categórica de RfChart (antes Exportación=verde institucional/Industria=
+ * dorado — el dorado como fill de una serie entera viola la regla propia del proyecto,
+ * "oro solo como acento"; sin otro consumidor de `.ng-bar-*` en el sitio, no hacía falta
+ * preservar ese hex puntual).
  */
-
-const W = 660;
-const H = 260;
-const pad = { l: 48, r: 16, t: 16, b: 30 };
-const iw = W - pad.l - pad.r;
-const ih = H - pad.t - pad.b;
 
 type Barra = { clave: string; label: string; exp: number; ind: number };
 
@@ -54,28 +51,9 @@ export function NegociadoChart({ serie, productos }: { serie: PuntoHisto[]; prod
     }));
   }, [serie, grano, modo]);
 
-  const maxTotal = Math.max(1, ...barras.map((b) => b.exp + b.ind));
-  const yMax = maxTotal * 1.08;
-  const paso = iw / Math.max(1, barras.length);
-  const anchoBarra = Math.max(2, paso * 0.72);
-  const X = (i: number) => pad.l + paso * i + (paso - anchoBarra) / 2;
-  const Y = (v: number) => pad.t + (1 - v / yMax) * ih;
-  const yTicks = Array.from({ length: 5 }, (_, k) => (yMax * k) / 4);
-  // ~6 etiquetas en el eje x
-  const cadaX = Math.max(1, Math.ceil(barras.length / 6));
-
-  // Histograma de barras evenly-spaced: el índice sale de la posición X directa (no hay "más
-  // cercano" que buscar entre puntos — ver chart-svg-base.tsx).
-  const { hi, onPointerMove, onPointerLeave } = useCrosshair(W, H, (px) => {
-    if (barras.length === 0) return null;
-    return Math.min(barras.length - 1, Math.max(0, Math.floor((px - pad.l) / paso)));
-  });
-
   if (serie.length === 0) {
     return <div className="chart-wrap chart-empty">Sin historia de compras para graficar.</div>;
   }
-
-  const b = hi !== null ? barras[hi] : null;
 
   return (
     <div>
@@ -96,48 +74,21 @@ export function NegociadoChart({ serie, productos }: { serie: PuntoHisto[]; prod
         </span>
       </div>
 
-      <SvgLineChartBase
-        w={W}
-        h={H}
-        inner={{ x: pad.l, y: pad.t, width: iw, height: ih }}
+      <RfChart
         ariaLabel="Histograma de volumen negociado por semana o mes, apilado por sector"
-        yTicks={yTicks.map((t) => ({ valor: t, y: Y(t), label: nfmt(t / 1000, 0) }))}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-        after={
-          <>
-            {b && hi !== null && (
-              <div className="cv-tip" style={{ left: `${((X(hi) + anchoBarra / 2) / W) * 100}%`, top: `${(Y(b.exp + b.ind) / H) * 100}%` }}>
-                <span className="tt-x">{b.label}</span> · {nfmt(b.exp + b.ind, 0)} t
-                <span className="cv-tip-sub">Exportación {nfmt(b.exp, 0)} · Industria {nfmt(b.ind, 0)}</span>
-              </div>
-            )}
-            <div className="cv-legend">
-              <span className="lk"><span className="sw ng-sw-exp" />Exportación</span>
-              <span className="lk"><span className="sw ng-sw-ind" />Industria</span>
-            </div>
-          </>
-        }
-      >
-        {barras.map((bar, i) => {
-          const x = X(i);
-          const yExp = Y(bar.exp);
-          const yTop = Y(bar.exp + bar.ind);
-          return (
-            <g key={bar.clave} className={hi === i ? "ng-g-hi" : undefined}>
-              {bar.exp > 0 && <rect className="ng-bar-exp" x={x} y={yExp} width={anchoBarra} height={pad.t + ih - yExp} />}
-              {bar.ind > 0 && <rect className="ng-bar-ind" x={x} y={yTop} width={anchoBarra} height={yExp - yTop} />}
-            </g>
-          );
-        })}
-        {barras.map((bar, i) =>
-          i % cadaX === 0 ? (
-            <text key={`x${bar.clave}`} className="cv-axis" x={X(i) + anchoBarra / 2} y={H - 9} textAnchor="middle">
-              {bar.label}
-            </text>
-          ) : null,
-        )}
-      </SvgLineChartBase>
+        exportName={`negociado-${modo}-${grano.toLowerCase()}`}
+        xTitle={modo === "semanal" ? "Semana" : "Mes"}
+        yTitle="Miles de t"
+        valueFormatter={(v) => nfmt(v, 0)}
+        option={{
+          xAxis: { type: "category", data: barras.map((b) => b.label) },
+          yAxis: { type: "value", axisLabel: { formatter: (v: number) => nfmt(v / 1000, 0) } },
+          series: [
+            { name: "Exportación", type: "bar", stack: "total", data: barras.map((b) => b.exp) },
+            { name: "Industria", type: "bar", stack: "total", data: barras.map((b) => b.ind) },
+          ],
+        }}
+      />
 
       <ChartTabla
         titulo={`Datos del gráfico · ${modo === "semanal" ? "semanal" : "mensual"}`}

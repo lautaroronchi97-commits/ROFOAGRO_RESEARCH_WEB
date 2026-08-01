@@ -19,7 +19,46 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 31/07/2026 — 🔒 C29: auditoría de pre-lanzamiento, parte SEGURIDAD — hecha; 3 migraciones versionadas esperando el OK)
+## Ahora (última actualización: 01/08/2026 — 📊 migración de gráficos a ECharts, EN CURSO — parte de los charts migrados, `spread-chart.tsx` (el más grande) sigue pendiente)
+
+**📊 MIGRACIÓN DE GRÁFICOS A ECHARTS — EN CURSO (parcial, se corta acá a pedido de Lautaro) — rama
+`claude/echarts-migration-rofo-n7xvi9`, PR #115.** Pedido de Lautaro: reemplazar TODO el motor de
+gráficos del sitio (SVG a mano + Recharts) por Apache ECharts, un estándar visual único, sin tocar
+ninguna lógica de datos — migración incremental chart por chart, con pausa para validar cada uno.
+**Infra nueva**: `src/charts/RfChart.tsx` (componente único: tema claro/oscuro, marca de agua,
+tooltip/crosshair/toolbox estandarizados, tipografía mono en ejes) + `src/charts/rofoTheme.ts`
+(paleta categórica de 8 colores VALIDADA contra la skill `dataviz` — corrigió una falla real:
+verde+dorado como serie 1/2 no distingue bien ni con daltonismo) + `src/charts/rofoLocale.ts`
+(fix real: sin esto ECharts mostraba meses en inglés, "Jul/Oct" en vez de "JUL/OCT"). **2 bugs
+reales de infra encontrados y arreglados**: (1) un artefacto de la marca de agua en tema oscuro
+(letras con hueco, ej. "A", salían con relleno gris sólido) — NO era un bug de React/timing sino
+de Chromium (su decodificador SVG-a-canvas rasteriza mal paths compuestos + alpha, confirmado
+aislando con un `echarts.init()` sin React) — fix: PNG pre-rasterizado offline con `sharp`/librsvg
+en vez del `.svg` directo; (2) `deepMerge` de RfChart reemplazaba arrays enteros en vez de
+mergearlos elemento a elemento — un `yAxis` de doble eje perdía los defaults compartidos enteros,
+ahora se inyectan a mano antes del merge.
+**Migrados esta sesión** (suman a `EvolucionChart`/`DolarFuturoChart` de sesiones previas en la
+misma rama): `WilliamsChart` (camiones, 2 modos) · `NegociadoChart` · zonas-panel (% participación
+por zona) · condicion-panel (overlay + fenología) · `CamionesChart` (Agroentregas, encontrado
+durante la sesión, no estaba en el inventario original) · los 3 charts de `/dolar/oficial` ·
+`VolumenPanel` (subpanel de `/graficos`). De paso se corrigieron varias violaciones reales de la
+regla "oro solo como acento" (dorado usado como color de serie completa en 2 charts) y un bug de
+tooltip con "NaN" en VolumenPanel (tupla `[x,y]` sin desempaquetar).
+**Verificado**: lint/tsc/build/**426 tests** verde en cada commit · Playwright real claro/oscuro/
+mobile en cada chart · páginas solo-mesa con bypass temporal de `requireAdmin()` + datos
+sintéticos (revertido, `git diff` limpio) donde el sandbox no tenía credenciales reales.
+**Corte explícito de Lautaro, no un final natural**: pidió parar acá y mergear lo migrado hasta
+ahora. **Queda pendiente, sin tocar**: `spread-chart.tsx` (el motor principal de `/graficos`, el
+más grande — 2 modos, presets, bandas, percentil) · `bcra-mulc-chart.tsx` · `implicitas-chart.tsx`
+· el chart de `calc-fijar.tsx` · el payoff de `calc-estrategias.tsx` · `empresas-histograma.tsx`.
+Recién cuando esos estén migrados: borrar `chart-svg-base.tsx` (motor SVG viejo, ya sin
+consumidores del grupo original pero vivo por si alguno de los que faltan lo necesita), sacar la
+dependencia `recharts` del `package.json`, limpiar CSS huérfano, y arrancar la **Fase 4**
+(tipografía mono en `ChartTabla`, la última fase del prompt original). Detalle completo con la
+lista exacta de trampas encontradas:
+[`sesiones/2026-08-01-echarts-migration.md`](sesiones/2026-08-01-echarts-migration.md).
+
+## Anterior (31/07/2026 — 🔒 C29: auditoría de pre-lanzamiento, parte SEGURIDAD — hecha; 3 migraciones versionadas esperando el OK)
 
 **🔒 C29 — AUDITORÍA DE PRE-LANZAMIENTO (PARTE 1: SEGURIDAD) — HECHA — rama
 `claude/development-guidelines-k9firc`, PR #_.** Lautaro trajo **3 informes de research de

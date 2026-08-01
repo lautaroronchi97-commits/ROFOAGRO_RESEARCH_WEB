@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import {
-  ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
+import { useTheme } from "next-themes";
 import { nfmt, pfmt } from "@/lib/format";
-import { exportarSvgComoPng, nombreArchivo } from "@/lib/chart-export";
+import { nombreArchivo } from "@/lib/chart-export";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 import { RangoChips } from "./rango-chips";
 import type { PuntoSemanalDolar } from "@/lib/dolar-historico";
@@ -29,8 +29,9 @@ function fmtSemana(fechaISO: string): string {
 }
 
 export function DolarOficialSemanalChart({ semanas: semanasCompletas }: { semanas: PuntoSemanalDolar[] }) {
-  const wrapRef = React.useRef<HTMLDivElement>(null);
   const [rango, setRango] = React.useState<Rango>("26");
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   if (semanasCompletas.length < 2) {
     return <div className="chart-wrap chart-empty">Sin suficiente historial semanal todavía.</div>;
   }
@@ -42,76 +43,54 @@ export function DolarOficialSemanalChart({ semanas: semanasCompletas }: { semana
     { key: "valor", label: "$ oficial (A3500)" },
     { key: "deltaPct", label: "Variación semanal" },
   ];
-  const filas: ChartTablaFila[] = semanas.map((p) => ({
-    fecha: fmtSemana(p.fecha),
-    valor: nfmt(p.valor, 2),
-    deltaPct: p.deltaPct != null ? pfmt(p.deltaPct, 2) : null,
+  const filas: ChartTablaFila[] = semanas.map((p2) => ({
+    fecha: fmtSemana(p2.fecha),
+    valor: nfmt(p2.valor, 2),
+    deltaPct: p2.deltaPct != null ? pfmt(p2.deltaPct, 2) : null,
   }));
 
   return (
     <div className="gx-volpanel">
       <div className="gx-preset-glabel">Serie semanal · últimas {semanas.length} semanas</div>
-      <div className="gx-chart-toolbar" style={{ justifyContent: "space-between" }}>
-        <RangoChips opciones={OPCIONES_RANGO} valor={rango} onChange={setRango} label="Plazo del gráfico" />
-        <button
-          type="button"
-          className="gx-preset"
-          onClick={() => exportarSvgComoPng(wrapRef.current, `${nombreArchivo("dolar-oficial-semanal")}.png`)}
-        >
-          ↓ PNG
-        </button>
-      </div>
-      <div style={{ position: "relative" }} ref={wrapRef}>
-        <ResponsiveContainer width="100%" height={220}>
-          <ComposedChart data={semanas} margin={{ top: 4, right: 16, bottom: 6, left: 4 }}>
-            <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" />
-            <XAxis
-              dataKey="fecha"
-              tickFormatter={fmtSemana}
-              tick={{ fill: "var(--ink-3)", fontSize: 10.5 }}
-              stroke="var(--line-2)"
-              height={22}
-              minTickGap={24}
-            />
-            <YAxis
-              yAxisId="nivel"
-              domain={["auto", "auto"]}
-              tickFormatter={(v: number) => nfmt(v, 0)}
-              tick={{ fill: "var(--ink-3)", fontSize: 10.5 }}
-              stroke="var(--line-2)"
-              width={58}
-            />
-            <YAxis
-              yAxisId="delta"
-              orientation="right"
-              tickFormatter={(v: number) => pfmt(v, 1)}
-              tick={{ fill: "var(--ink-3)", fontSize: 10.5 }}
-              stroke="var(--line-2)"
-              width={48}
-            />
-            <Tooltip
-              isAnimationActive={false}
-              content={({ active, payload }) => {
-                if (!active || !payload || payload.length === 0) return null;
-                const row = payload[0]!.payload as PuntoSemanalDolar; // length===0 ya salió arriba
-                return (
-                  <div className="gx-tip">
-                    <div className="gx-tip-h">Semana del {fmtSemana(row.fecha)}</div>
-                    <div className="gx-tip-row">Cierre: $ {nfmt(row.valor, 2)}</div>
-                    {row.deltaPct != null && <div className="gx-tip-row">Variación: {pfmt(row.deltaPct, 2)}</div>}
-                  </div>
-                );
-              }}
-            />
-            <Bar yAxisId="delta" dataKey="deltaPct" isAnimationActive={false}>
-              {semanas.map((p, i) => (
-                <Cell key={i} fill={p.deltaPct == null ? "var(--neu)" : p.deltaPct >= 0 ? "var(--pos)" : "var(--neg)"} opacity={0.55} />
-              ))}
-            </Bar>
-            <Line yAxisId="nivel" type="monotone" dataKey="valor" stroke="var(--gold-text)" strokeWidth={1.8} dot={false} isAnimationActive={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <RangoChips opciones={OPCIONES_RANGO} valor={rango} onChange={setRango} label="Plazo del gráfico" />
+      <RfChart
+        ariaLabel="Dólar oficial semanal: cierre y variación % semana a semana"
+        exportName={nombreArchivo("dolar-oficial-semanal")}
+        xTitle="Semana"
+        yTitle={["$ oficial (A3500)", "Variación semanal"]}
+        valueFormatter={(v, name) => (name === "Variación semanal" ? pfmt(v, 2) : `$ ${nfmt(v, 2)}`)}
+        option={{
+          xAxis: { type: "category", data: semanas.map((s) => fmtSemana(s.fecha)) },
+          yAxis: [
+            // scale:true a mano: el default de RfChart pone scale:false (honesto, arranca en 0)
+            // apenas hay una serie de barras en el chart — acá la barra vive en el 2do eje (%),
+            // el nivel en $ (1er eje) necesita zoom al rango real como cualquier chart de sólo
+            // líneas, si no la curva se ve chata contra 0.
+            { type: "value", scale: true },
+            { type: "value", axisLabel: { formatter: (v: number) => pfmt(v, 1) } },
+          ],
+          series: [
+            {
+              name: "Variación semanal",
+              type: "bar",
+              yAxisIndex: 1,
+              data: semanas.map((s) => ({
+                value: s.deltaPct,
+                itemStyle: { color: s.deltaPct == null ? p.neu : s.deltaPct >= 0 ? p.pos : p.neg, opacity: 0.55 },
+              })),
+            },
+            {
+              name: "$ oficial (A3500)",
+              type: "line",
+              yAxisIndex: 0,
+              symbol: "none",
+              itemStyle: { color: p.goldText },
+              lineStyle: { color: p.goldText, width: 1.8 },
+              data: semanas.map((s) => s.valor),
+            },
+          ],
+        }}
+      />
       <ChartTabla
         columnas={columnas}
         filas={filas}

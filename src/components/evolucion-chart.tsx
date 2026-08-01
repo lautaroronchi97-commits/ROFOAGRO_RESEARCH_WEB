@@ -3,28 +3,33 @@
 import { nfmt } from "@/lib/format";
 import { ORG_LABEL } from "@/lib/calendario";
 import type { SerieEvol } from "@/lib/estimaciones";
-import { useCrosshair, SvgLineChartBase } from "./chart-svg-base";
+import { RfChart } from "@/charts/RfChart";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 
-const W = 660;
-const H = 260;
-const pad = { l: 48, r: 16, t: 16, b: 30 };
-const iw = W - pad.l - pad.r;
-const ih = H - pad.t - pad.b;
+/** Colores por organismo — misma familia de tono que `.org-*` en globals.css
+ *  (USDA azulado, CONAB verde, BCR dorado/marrón, BCBA azul-violeta, DEA violeta,
+ *  CFTC rojizo), pero retocados en luminancia/saturación: corridos los 6 contra
+ *  `scripts/validate_palette.js` (skill `dataviz`) el `.org-*` original FALLABA
+ *  duro — USDA y DEA leían casi grises (chroma bajo el piso) y BCR↔CONAB eran
+ *  indistinguibles para protanopía (ΔE 1,2, piso 8). Este set pasa los 5 checks
+ *  en claro Y oscuro. Ajuste acotado a ESTE chart (no toca `.org-*`, que además
+ *  pinta badges en otras páginas — separado a propósito, fuera del alcance de
+ *  la migración a ECharts). EIA/NOPA quedan igual (gris, ya comparten hex a
+ *  propósito, no coexisten en el mismo combo grano/país). */
+const ORG_COLOR: Record<string, string> = {
+  USDA: "#1E7FA8",
+  CONAB: "#4E9C3A",
+  BCR: "#8F5A16",
+  BCBA: "#5B7FC7",
+  DEA: "#7A3FA0",
+  CFTC: "#B06A4A",
+  EIA: "#7E8C74",
+  NOPA: "#7E8C74",
+};
 
 function epoch(fechaISO: string): number {
   return Date.parse(`${fechaISO}T00:00:00Z`);
 }
-
-function fmtMes(ms: number, conAnio: boolean): string {
-  return new Intl.DateTimeFormat("es-AR", {
-    timeZone: "UTC",
-    month: "short",
-    ...(conAnio ? { year: "2-digit" } : {}),
-  }).format(new Date(ms));
-}
-
-type Flat = { s: number; organismo: string; ms: number; valor: number; informe: string; fecha: string };
 
 function fmtFecha(fechaISO: string): string {
   return new Intl.DateTimeFormat("es-AR", {
@@ -33,6 +38,10 @@ function fmtFecha(fechaISO: string): string {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(`${fechaISO}T00:00:00Z`));
+}
+
+function orgLabel(organismo: string): string {
+  return ORG_LABEL[organismo as keyof typeof ORG_LABEL] ?? organismo;
 }
 
 /**
@@ -46,7 +55,7 @@ function tablaDeSeries(series: SerieEvol[], unidad: string): { columnas: ChartTa
     { key: "fecha", label: "Fecha", align: "left" },
     ...series.map((serie) => ({
       key: serie.organismo,
-      label: `${ORG_LABEL[serie.organismo as keyof typeof ORG_LABEL] ?? serie.organismo} (${unidad})`,
+      label: `${orgLabel(serie.organismo)} (${unidad})`,
     })),
   ];
   const porFecha = new Map<string, ChartTablaFila>();
@@ -66,127 +75,65 @@ function tablaDeSeries(series: SerieEvol[], unidad: string): { columnas: ChartTa
   return { columnas, filas };
 }
 
+type PuntoEvol = [number, number, string]; // [ms, valor, informe]
+
 /**
  * Evolución de la estimación de una campaña, publicación a publicación. Una línea por organismo,
  * eje x = fecha de publicación (escala temporal real, así USDA y CONAB se superponen aunque tengan
- * distinta cantidad de vintages). SVG a mano (motor compartido `chart-svg-base.tsx`), mismo estilo
- * que el resto de la web.
+ * distinta cantidad de vintages).
  */
-export function EvolucionChart({ series, unidad }: { series: SerieEvol[]; unidad: string }) {
-  const flat: Flat[] = [];
-  series.forEach((serie, s) =>
-    serie.puntos.forEach((p) =>
-      flat.push({ s, organismo: serie.organismo, ms: epoch(p.fecha), valor: p.valor, informe: p.informe, fecha: p.fecha }),
-    ),
-  );
-
-  // Seguro con flat=[] (Math.min/max sin args da ±Infinity, no crashea) — el guard real de
-  // "sin datos" está más abajo, DESPUÉS de `useCrosshair` (rules-of-hooks: el hook no puede
-  // quedar detrás de un return condicional).
-  const xs = flat.map((f) => f.ms);
-  const ys = flat.map((f) => f.valor);
-  let xMin = Math.min(...xs);
-  let xMax = Math.max(...xs);
-  if (xMin === xMax) {
-    xMin -= 15 * 86400000;
-    xMax += 15 * 86400000;
-  }
-  let yMin = Math.min(...ys);
-  let yMax = Math.max(...ys);
-  const padv = (yMax - yMin) * 0.14 || Math.abs(yMax) * 0.05 || 1;
-  yMin -= padv;
-  yMax += padv;
-
-  const X = (ms: number) => pad.l + ((ms - xMin) / (xMax - xMin)) * iw;
-  const Y = (v: number) => pad.t + (1 - (v - yMin) / (yMax - yMin)) * ih;
-
-  const yTicks = Array.from({ length: 5 }, (_, k) => yMin + ((yMax - yMin) * k) / 4);
-  const spanAnios = (xMax - xMin) / (365 * 86400000);
-  const xTicks = Array.from({ length: 5 }, (_, k) => xMin + ((xMax - xMin) * k) / 4);
-
-  // Punto más cercano en (x,y) sobre el array plano de TODAS las series — necesita las dos
-  // coordenadas para desambiguar series que se cruzan (ver chart-svg-base.tsx).
-  const { hi, onPointerMove, onPointerLeave } = useCrosshair(W, H, (px, py) => {
-    if (flat.length === 0) return null;
-    let best = 0;
-    let bd = Infinity;
-    flat.forEach((f, i) => {
-      const d = (X(f.ms) - px) ** 2 + (Y(f.valor) - py) ** 2;
-      if (d < bd) {
-        bd = d;
-        best = i;
-      }
-    });
-    return best;
-  });
-
-  if (flat.length === 0) {
+export function EvolucionChart({
+  series,
+  unidad,
+  variableLabel = "Estimación",
+}: {
+  series: SerieEvol[];
+  unidad: string;
+  variableLabel?: string;
+}) {
+  const total = series.reduce((acc, s) => acc + s.puntos.length, 0);
+  if (total === 0) {
     return <div className="chart-wrap chart-empty">Sin datos para esta combinación.</div>;
   }
 
   const tabla = tablaDeSeries(series, unidad);
-  // `hi` es índice guardado en state; si `series` cambia entre renders `flat` puede achicarse y
-  // dejarlo apuntando afuera — guard real (no `!`), como en camiones-chart.tsx.
-  const hiFlat = hi !== null ? flat[hi] : undefined;
 
   return (
     <>
-      <SvgLineChartBase
-        w={W}
-        h={H}
-        inner={{ x: pad.l, y: pad.t, width: iw, height: ih }}
+      <RfChart
         ariaLabel="Evolución de la estimación de producción por organismo"
-        yTicks={yTicks.map((t) => ({ valor: t, y: Y(t), label: nfmt(t, t >= 100 ? 0 : 1) }))}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-        after={
-          <>
-            {hiFlat && (
-              <div className="cv-tip" style={{ left: `${(X(hiFlat.ms) / W) * 100}%`, top: `${(Y(hiFlat.valor) / H) * 100}%` }}>
-                <span className="tt-x">{ORG_LABEL[hiFlat.organismo as keyof typeof ORG_LABEL] ?? hiFlat.organismo}</span> · {nfmt(hiFlat.valor, 2)} {unidad}
-                <span className="cv-tip-sub">{hiFlat.informe}</span>
-              </div>
-            )}
-            <div className="cv-legend">
-              {series.map((serie) => (
-                <span className={`lk org-${serie.organismo}`} key={serie.organismo}>
-                  <span className="sw evo-sw" />
-                  {ORG_LABEL[serie.organismo as keyof typeof ORG_LABEL] ?? serie.organismo}
-                  <span className="lk-val">
-                    {serie.puntos.length ? nfmt(serie.puntos[serie.puntos.length - 1]!.valor, 2) : "—"}
-                  </span>
-                </span>
-              ))}
-            </div>
-          </>
-        }
-      >
-        {xTicks.map((t, k) => (
-          <text key={`x${k}`} className="cv-axis" x={X(t)} y={H - 9} textAnchor="middle">
-            {fmtMes(t, spanAnios > 0.9)}
-          </text>
-        ))}
-        {series.map((serie) => {
-          const pts = serie.puntos;
-          if (pts.length === 0) return null; // organismo sin puntos en esta selección
-          const d = pts.map((p, i) => `${i ? "L" : "M"}${X(epoch(p.fecha)).toFixed(1)},${Y(p.valor).toFixed(1)}`).join(" ");
-          return (
-            <g key={serie.organismo} className={`evo-serie org-${serie.organismo}`}>
-              <path d={d} className="evo-line" />
-              {pts.map((p, i) => (
-                <circle key={i} cx={X(epoch(p.fecha))} cy={Y(p.valor)} r={2.6} className="evo-dot" />
-              ))}
-              <circle cx={X(epoch(pts[pts.length - 1]!.fecha))} cy={Y(pts[pts.length - 1]!.valor)} r={4} className="evo-end" />
-            </g>
-          );
-        })}
-        {hiFlat && (
-          <g className={`org-${hiFlat.organismo}`}>
-            <line className="cv-cross" x1={X(hiFlat.ms)} y1={pad.t} x2={X(hiFlat.ms)} y2={pad.t + ih} />
-            <circle className="evo-focus" cx={X(hiFlat.ms)} cy={Y(hiFlat.valor)} r={5} />
-          </g>
-        )}
-      </SvgLineChartBase>
+        exportName={`evolucion-${variableLabel.toLowerCase()}`}
+        xTitle="Fecha de publicación"
+        yTitle={`${variableLabel} (${unidad})`}
+        option={{
+          xAxis: { type: "time" },
+          yAxis: { type: "value" },
+          tooltip: {
+            trigger: "item",
+            formatter: (p: unknown) => {
+              const params = p as { seriesName: string; value: PuntoEvol; color: string };
+              const [, valor, informe] = params.value;
+              return `<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${params.color}"></span><b>${params.seriesName}</b></div>
+                <div>${nfmt(valor, 2)} ${unidad}</div>
+                <div style="opacity:.75;font-size:10.5px;margin-top:2px">${informe}</div>`;
+            },
+          },
+          // Sin endLabel: con 2-8 organismos las líneas convergen todas cerca del
+          // borde derecho y los nombres quedaban pegados/con bordes raros — la
+          // skill dataviz señala exactamente este caso ("cuando los end-labels
+          // colisionan... usar la leyenda + tooltip"). RfChart ya agrega la
+          // leyenda sola al ver 2+ series.
+          series: series
+            .filter((s) => s.puntos.length > 0)
+            .map((s) => ({
+              name: orgLabel(s.organismo),
+              type: "line",
+              data: s.puntos.map((p): PuntoEvol => [epoch(p.fecha), p.valor, p.informe]),
+              itemStyle: { color: ORG_COLOR[s.organismo] ?? undefined },
+              lineStyle: { color: ORG_COLOR[s.organismo] ?? undefined, width: 2 },
+            })),
+        }}
+      />
       <ChartTabla
         columnas={tabla.columnas}
         filas={tabla.filas}

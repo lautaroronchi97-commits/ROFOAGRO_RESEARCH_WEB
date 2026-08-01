@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { nfmt, pfmt } from "@/lib/format";
-import { exportarSvgComoPng, nombreArchivo } from "@/lib/chart-export";
+import { nombreArchivo } from "@/lib/chart-export";
+import { RfChart } from "@/charts/RfChart";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 import type { PuntoVolDolar } from "@/lib/dolar-historico";
 
@@ -49,7 +49,6 @@ export function DolarOficialVolatilidadChart({
   semanal: PuntoVolDolar[];
   diaria: PuntoVolDolar[];
 }) {
-  const wrapRef = React.useRef<HTMLDivElement>(null);
   const [modo, setModo] = React.useState<Modo>("semanal");
   const serie = modo === "semanal" ? semanal : diaria;
   const cfg = CONFIG[modo];
@@ -59,63 +58,65 @@ export function DolarOficialVolatilidadChart({
   return (
     <div className="gx-volpanel">
       <div className="gx-preset-glabel">Volatilidad · {cfg.label}</div>
-      <div className="gx-chart-toolbar" style={{ justifyContent: "space-between" }}>
-        <div className="fg-bar" role="toolbar" aria-label="Ventana de volatilidad" style={{ margin: 0 }}>
-          <button type="button" className="fg-chip" aria-pressed={modo === "semanal"} onClick={() => setModo("semanal")}>
-            Semanal
-          </button>
-          <button type="button" className="fg-chip" aria-pressed={modo === "diaria"} onClick={() => setModo("diaria")}>
-            Diaria
-          </button>
-        </div>
-        <button
-          type="button"
-          className="gx-preset"
-          onClick={() => exportarSvgComoPng(wrapRef.current, `${nombreArchivo("dolar-oficial-volatilidad", modo)}.png`)}
-        >
-          ↓ PNG
+      <div className="fg-bar" role="toolbar" aria-label="Ventana de volatilidad">
+        <button type="button" className="fg-chip" aria-pressed={modo === "semanal"} onClick={() => setModo("semanal")}>
+          Semanal
+        </button>
+        <button type="button" className="fg-chip" aria-pressed={modo === "diaria"} onClick={() => setModo("diaria")}>
+          Diaria
         </button>
       </div>
       {conVol.length < 2 ? (
         <div className="chart-wrap chart-empty">Sin suficiente historial todavía para calcular la volatilidad.</div>
       ) : (
         <>
-          <div style={{ position: "relative" }} ref={wrapRef}>
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={conVol} margin={{ top: 4, right: 16, bottom: 6, left: 4 }}>
-                <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" />
-                <XAxis
-                  dataKey="fecha"
-                  tickFormatter={fmtFecha}
-                  tick={{ fill: "var(--ink-3)", fontSize: 10.5 }}
-                  stroke="var(--line-2)"
-                  height={22}
-                  minTickGap={28}
-                />
-                <YAxis
-                  tickFormatter={(v: number) => pfmt(v, 0)}
-                  tick={{ fill: "var(--ink-3)", fontSize: 10.5 }}
-                  stroke="var(--line-2)"
-                  width={48}
-                />
-                <Tooltip
-                  isAnimationActive={false}
-                  content={({ active, payload }) => {
-                    if (!active || !payload || payload.length === 0) return null;
-                    const row = payload[0]!.payload as PuntoVolDolar; // length===0 ya salió arriba
-                    return (
-                      <div className="gx-tip">
-                        <div className="gx-tip-h">{modo === "semanal" ? "Semana del" : "Rueda del"} {fmtFecha(row.fecha)}</div>
-                        {row.deltaPct != null && <div className="gx-tip-row">{cfg.colDelta}: {pfmt(row.deltaPct, modo === "diaria" ? 3 : 2)}</div>}
-                        <div className="gx-tip-row">Volatilidad: {row.volAnualizada != null ? pfmt(row.volAnualizada, 2) : "—"}</div>
-                      </div>
-                    );
-                  }}
-                />
-                <Line type="monotone" dataKey="volAnualizada" stroke="var(--brand-deep)" strokeWidth={1.8} dot={false} isAnimationActive={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <RfChart
+            ariaLabel={`Volatilidad del dólar oficial — ${cfg.label}`}
+            exportName={nombreArchivo("dolar-oficial-volatilidad", modo)}
+            xTitle={cfg.colFecha}
+            yTitle="Volatilidad anualizada"
+            valueFormatter={(v) => pfmt(v, 2)}
+            option={{
+              xAxis: { type: "category", data: conVol.map((p) => fmtFecha(p.fecha)) },
+              yAxis: { type: "value", axisLabel: { formatter: (v: number) => pfmt(v, 0) } },
+              tooltip: {
+                trigger: "axis",
+                // Formatter propio (no el default de RfChart): acá hace falta una línea de
+                // contexto extra (la variación %, que no es una serie dibujada) además del valor
+                // de volatilidad — mismo lenguaje visual que el default (line-key + fila), con esa
+                // línea de más intercalada.
+                formatter: (params: unknown) => {
+                  const p0 = (Array.isArray(params) ? params[0] : params) as {
+                    axisValueLabel: string;
+                    color: string;
+                    data: { value: number; deltaPct: number | null };
+                  };
+                  const deltaFila =
+                    p0.data.deltaPct != null
+                      ? `<div style="opacity:.75;font-size:10.5px;margin:1.5px 0">${cfg.colDelta}: ${pfmt(p0.data.deltaPct, modo === "diaria" ? 3 : 2)}</div>`
+                      : "";
+                  return `<div style="font-size:10.5px;opacity:.75;margin-bottom:2px">${modo === "semanal" ? "Semana del" : "Rueda del"} ${p0.axisValueLabel}</div>
+                    ${deltaFila}
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:1.5px 0;">
+                      <span style="display:inline-flex;align-items:center;gap:6px">
+                        <span style="display:inline-block;width:12px;height:2.5px;border-radius:2px;background:${p0.color}"></span>
+                        Volatilidad
+                      </span>
+                      <b style="margin-left:10px">${pfmt(p0.data.value, 2)}</b>
+                    </div>`;
+                },
+              },
+              series: [
+                {
+                  name: "Volatilidad anualizada",
+                  type: "line",
+                  symbol: "none",
+                  areaStyle: {},
+                  data: conVol.map((p) => ({ value: p.volAnualizada, deltaPct: p.deltaPct })),
+                },
+              ],
+            }}
+          />
           <ChartTabla
             columnas={[
               { key: "fecha", label: cfg.colFecha, align: "left" },

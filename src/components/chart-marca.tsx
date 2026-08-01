@@ -14,8 +14,13 @@
  *     componente es "sutil, nunca compite con las líneas de datos" (ver abajo),
  *     así que ahí es un tamaño que no cumple esa intención, no un cambio de
  *     política. La opacidad NO cambia (se mantiene igual en los dos tamaños).
- *   - Asset: `public/rofoagro-logo-marca.svg` — derivado del logo real sin los halos
- *     pálidos del auto-trace (se veían como bordes raros sobre el tema oscuro).
+ *   - Assets (30/07, reemplazan al auto-trace anterior que seguía dando halos):
+ *     `public/rofoagro-logo-marca-{claro,oscuro}.svg` — logo real (vector limpio,
+ *     no auto-trace) provisto por Lautaro en 2 variantes ya calibradas por tema
+ *     (colores/contraste propios para fondo claro y para fondo oscuro), con el
+ *     fondo propio (blanco/negro) recortado para quedar transparentes. Server-safe:
+ *     los DOS `<img>` se renderizan siempre y `globals.css` muestra uno solo según
+ *     `[data-theme]` (mismo mecanismo ya usado acá para la opacidad) — sin cliente/JS.
  *   - Queda debajo de tooltips/crosshairs (z-index:0 vs. `.cv-tip` z-index:5) y no
  *     intercepta el mouse (`pointer-events:none`).
  *
@@ -26,7 +31,9 @@ export function ChartMarca({ tamano = "normal" }: { tamano?: "normal" | "chico" 
   return (
     <div className={`cm-marca${tamano === "chico" ? " chico" : ""}`} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element -- SVG de marca estático, no imagen de contenido */}
-      <img src="/rofoagro-logo-marca.svg" alt="" loading="lazy" decoding="async" />
+      <img className="cm-marca-claro" src="/rofoagro-logo-marca-claro.svg" alt="" loading="lazy" decoding="async" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- SVG de marca estático, no imagen de contenido */}
+      <img className="cm-marca-oscuro" src="/rofoagro-logo-marca-oscuro.svg" alt="" loading="lazy" decoding="async" />
     </div>
   );
 }
