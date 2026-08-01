@@ -222,10 +222,33 @@ export function RfChart({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const chartRef = React.useRef<echarts.ECharts | null>(null);
   const mountedOnceRef = React.useRef(false);
+  // `option` de la última vez que de verdad se aplicó un setOption — no un simple
+  // flag "ya montó": React corre los 2 effects de abajo en el MISMO commit inicial,
+  // así que un flag booleano seteado dentro del 1º ya lee `true` en el 2º del mismo
+  // pase, y el 2º dispara igual (2 setOption casi simultáneos en cada montaje). No
+  // era la causa del artefacto de la marca de agua (ver `buildWatermark` más abajo),
+  // pero sigue siendo un setOption redundante real — vale la pena evitarlo igual.
+  const lastAppliedOptionRef = React.useRef<echarts.EChartsOption | null>(null);
   const { resolvedTheme } = useTheme();
   const mode = resolvedTheme === "dark" ? "dark" : "light";
   const fmt = React.useMemo<RfValueFormatter>(() => valueFormatter ?? ((v: number) => nfmt(v, 2)), [valueFormatter]);
 
+  // PNG pre-rasterizado, NO el .svg del logo: el artefacto gris relleno adentro de
+  // la "A" (y potencialmente otras letras con contorno hueco) es un bug real de
+  // Chromium, confirmado aislado de React/ECharts-lifecycle por completo — un
+  // `echarts.init()` mínimo, sin líneas, con un solo `setOption` de un `graphic`
+  // tipo imagen apuntando al .svg a opacity:0.22, reproduce el mismo relleno de
+  // forma NO determinística (5 corridas idénticas, ~1 de cada 2-3 con el defecto) —
+  // a opacity:1 nunca aparece. Es el decodificador SVG-a-canvas de Chromium
+  // rasterizando mal un path compuesto (el hueco triangular de la "A" es una
+  // sub-path del mismo `<path>`, no un elemento aparte) cuando además tiene que
+  // componer alpha — no tiene nada que ver con el timing de los effects de acá
+  // arriba. Un intento anterior de esta misma sesión ya había probado un PNG y
+  // "no arregló nada" porque ese PNG salió de rasterizar el propio SVG con
+  // Chromium (captura/canvas) — heredaba el mismo bug ya horneado en los píxeles.
+  // Este PNG sale de `sharp`/librsvg (offline, sin Chromium de por medio) — 5/5
+  // corridas limpias una vez cambiado. Los `.svg` siguen vivos para `chart-marca.tsx`
+  // (un `<img>` común, no pasa por canvas — no le aplica este bug).
   const buildWatermark = React.useCallback(
     (containerWidth: number): echarts.EChartsOption["graphic"] => {
       const chico = watermarkSize === "chico";
@@ -238,7 +261,7 @@ export function RfChart({
             id: "rf-watermark",
             type: "image",
             style: {
-              image: mode === "dark" ? "/rofoagro-logo-marca-oscuro.svg" : "/rofoagro-logo-marca-claro.svg",
+              image: mode === "dark" ? "/rofoagro-logo-marca-oscuro.png" : "/rofoagro-logo-marca-claro.png",
               width: w,
               height: w,
               opacity: mode === "dark" ? 0.22 : 0.2,
@@ -401,8 +424,21 @@ export function RfChart({
     chartRef.current = chart;
     chart.setOption(buildOptionRef.current(el.clientWidth));
     mountedOnceRef.current = true;
+    lastAppliedOptionRef.current = option;
 
+    // ResizeObserver dispara su callback inicial ni bien arranca `observe()`
+    // (comportamiento estándar, reporta el tamaño que ya tenías) — ese primer
+    // disparo es 100% redundante con el `setOption` del montaje de arriba (mismo
+    // ancho, mismo option). Ignorarlo evita un `setOption(..., notMerge:true)` de
+    // más en cada montaje (no era la causa del artefacto de la marca de agua — eso
+    // era el bug de Chromium documentado en `buildWatermark` — pero sigue siendo
+    // trabajo innecesario real, vale la pena evitarlo igual).
+    let primerDisparo = true;
     const ro = new ResizeObserver(() => {
+      if (primerDisparo) {
+        primerDisparo = false;
+        return;
+      }
       chart.resize();
       // Reconstruye entera (silenciosa): grid.right y la marca de agua dependen
       // del ancho, y así nunca queda un `option` de closure vieja.
@@ -417,11 +453,19 @@ export function RfChart({
       mountedOnceRef.current = false;
     };
     // Re-crea la instancia al cambiar de tema: el theme de ECharts se fija en el
-    // init, no se puede "recolorear" en caliente con setOption.
+    // init, no se puede "recolorear" en caliente con setOption. `option` se lee
+    // solo para guardar la referencia en `lastAppliedOptionRef` (no dispara nada
+    // si cambia) — deliberadamente afuera de las deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   React.useEffect(() => {
     if (!mountedOnceRef.current || !chartRef.current || !containerRef.current) return;
+    // El mount/cambio de tema (effect de arriba) ya aplicó ESTE mismo `option` en
+    // el mismo commit — sin este check se dispara un 2º setOption casi inmediato
+    // (ver comentario en `lastAppliedOptionRef`).
+    if (option === lastAppliedOptionRef.current) return;
+    lastAppliedOptionRef.current = option;
     // Update silencioso (sin animación): Fase 2 regla 8, solo el montaje inicial anima.
     // Deps explícitas (no `buildOption` entero): un cambio de `mode` ya dispara el
     // efecto de arriba (dispose+init con animación) — repetirlo acá lo pisaría.
