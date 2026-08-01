@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useTheme } from "next-themes";
 import { Panel, PanelHead } from "./panel";
-import { ChartMarca } from "./chart-marca";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { CurvaPicker } from "./curva-picker";
 import { nfmt, sfmt } from "@/lib/format";
 import {
@@ -70,50 +72,73 @@ function Glosario() {
   );
 }
 
-/** Gráfico de payoff: resultado por tonelada vs precio final, con breakevens y ejes con ticks. */
+/**
+ * Gráfico de payoff: resultado por tonelada vs precio final. Serie única → RfChart la
+ * pinta en verde institucional; el precio base es una línea de referencia punteada
+ * (`markLine`) y los breakeven son puntos de acento dorado sobre la curva (`markPoint`
+ * — uso válido del dorado: es UN acento sobre una serie única, no una 2ª serie
+ * compitiendo por atención). El eje Y siempre incluye el cero aunque toda la curva
+ * quede de un solo lado (mismo criterio que la versión SVG: un payoff sin la línea de
+ * cero a la vista no se puede leer).
+ */
 function PayoffChart({ serie, B, bes }: { serie: Escenario[]; B: number; bes: number[] }) {
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   if (serie.length < 2) return null;
-  const W = 620, H = 220, padL = 46, padR = 10, padT = 12, padB = 26;
   const xs = serie.map((s) => s.P);
-  const ys = serie.map((s) => s.resultado);
-  const loX = Math.min(...xs), hiX = Math.max(...xs);
-  const hiY = Math.max(0, ...ys), loY = Math.min(0, ...ys);
-  const rY = hiY - loY || 1;
-  const x = (P: number) => padL + ((P - loX) / (hiX - loX || 1)) * (W - padL - padR);
-  const y = (v: number) => padT + ((hiY - v) / rY) * (H - padT - padB);
-  const zeroY = y(0);
-  const pts = serie.map((s) => `${x(s.P).toFixed(1)},${y(s.resultado).toFixed(1)}`).join(" ");
-
-  const xTicks = Array.from({ length: 5 }, (_, i) => loX + ((hiX - loX) * i) / 4);
-  const yTicks = Array.from({ length: 4 }, (_, i) => loY + ((hiY - loY) * i) / 3);
+  const loX = Math.min(...xs);
+  const hiX = Math.max(...xs);
+  const conBase = Number.isFinite(B) && B >= loX && B <= hiX;
 
   return (
-    <div className="chart-wrap">
-      <ChartMarca />
-      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico de payoff de la estrategia: resultado por tonelada según el precio final">
-        {yTicks.map((v, i) => (
-          <g key={i}>
-            <line className="cv-grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
-            <text className="cv-axis" x={padL - 6} y={y(v) + 3} textAnchor="end">{nfmt(v, 0)}</text>
-          </g>
-        ))}
-        <line x1={padL} y1={zeroY} x2={W - padR} y2={zeroY} stroke="var(--line-2)" strokeWidth={1} />
-        {xTicks.map((v, i) => (
-          <text key={i} className="cv-axis" x={x(v)} y={H - 8} textAnchor="middle">{nfmt(v, 0)}</text>
-        ))}
-        {Number.isFinite(B) && B >= loX && B <= hiX && (
-          <line x1={x(B)} y1={padT} x2={x(B)} y2={H - padB} stroke="var(--ink-3)" strokeWidth={1} strokeDasharray="3 3" />
-        )}
-        <polyline points={pts} fill="none" stroke="var(--brand-deep)" strokeWidth={1.8} />
-        {bes.map((be, i) => (
-          <g key={i}>
-            <circle cx={x(be)} cy={zeroY} r={3} fill="var(--gold, var(--brand-deep))" />
-            <text x={x(be)} y={zeroY - 8} textAnchor="middle" fontSize={10} fill="var(--ink-3)" fontFamily="var(--font-mono)">{nfmt(be, 0)}</text>
-          </g>
-        ))}
-        <text className="cv-axis" x={W / 2} y={H - 1} textAnchor="middle">Precio final (USD)</text>
-      </svg>
-    </div>
+    <RfChart
+      ariaLabel="Gráfico de payoff de la estrategia: resultado por tonelada según el precio final"
+      exportName="estrategia-payoff"
+      xTitle="Precio final (USD)"
+      yTitle="Resultado (USD/t)"
+      height={260}
+      valueFormatter={(v) => sfmt(v, 2)}
+      option={{
+        xAxis: { type: "value" },
+        yAxis: {
+          type: "value",
+          min: (v: { min: number }) => Math.min(0, v.min),
+          max: (v: { max: number }) => Math.max(0, v.max),
+        },
+        series: [
+          {
+            type: "line",
+            symbol: "none",
+            data: serie.map((s) => [s.P, s.resultado]),
+            markLine: conBase
+              ? {
+                  silent: true,
+                  symbol: "none",
+                  lineStyle: { type: "dashed", color: p.ink3, width: 1 },
+                  label: { show: false },
+                  data: [{ xAxis: B }],
+                }
+              : undefined,
+            markPoint: bes.length
+              ? {
+                  symbol: "circle",
+                  symbolSize: 7,
+                  itemStyle: { color: p.gold },
+                  label: {
+                    show: true,
+                    position: "top",
+                    color: p.ink3,
+                    fontFamily: "var(--font-mono)",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- coord no está tipado en MarkPointDataItemOption público
+                    formatter: (pr: any) => nfmt(Number(pr.data.coord[0]), 0),
+                  },
+                  data: bes.map((be) => ({ name: "Breakeven", coord: [be, 0] })),
+                }
+              : undefined,
+          },
+        ],
+      }}
+    />
   );
 }
 

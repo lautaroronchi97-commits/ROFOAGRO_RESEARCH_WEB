@@ -61,10 +61,10 @@ export async function ImplicitasPanel() {
   // Todas las tasas disponibles en dólares (relevamiento web, punto 35) — se SUMAN
   // sintéticos y granos, no se reemplaza ninguna de las dos que ya estaban.
   const series = [
-    { name: "Dólar futuro", color: "var(--brand-deep)", points: futPts },
-    { name: "Dólar linked", color: "var(--gold-text)", points: linkPts },
-    { name: "Sintéticos", color: "#3E86A0", points: sintPts },
-    { name: "Granos", color: "#8A6D9E", points: granosPts },
+    { name: "Dólar futuro", points: futPts },
+    { name: "Dólar linked", points: linkPts },
+    { name: "Sintéticos", points: sintPts },
+    { name: "Granos", points: granosPts },
   ];
 
   // Tabla de datos del gráfico: una fila por plazo (días), una columna por serie.

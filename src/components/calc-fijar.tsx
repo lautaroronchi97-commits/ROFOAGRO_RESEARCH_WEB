@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useTheme } from "next-themes";
 import { Panel, PanelHead } from "./panel";
-import { ChartMarca } from "./chart-marca";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { sfmt, rfmt, nfmt, numDeInput as num } from "@/lib/format";
 import { evaluarFijar, type Lado, type FilaFijar } from "@/lib/fijar";
 import { hoyCordoba, parseYmd } from "@/lib/habiles";
@@ -29,83 +31,63 @@ function mesCorto(iso: string): string {
 type FilaCurva = { vto: string; precio: string; estimado: boolean };
 
 /**
- * Gráfico COMBINADO delta (barras, eje izq. USD) + TNA implícita (línea, eje
- * der. %) por plazo — un solo chart, dos escalas independientes sobre el mismo
- * eje X. Se intentó primero (pedido explícito del relevamiento: "estaría bueno
- * el gráfico combinado, si no queda legible por separado") y con 4-6 posiciones
- * queda legible: menos elementos repetidos en la página, menos superficie para
- * que la marca de agua choque con los datos.
+ * Gráfico COMBINADO delta (barras verde/roja, eje izq. USD) + TNA implícita
+ * (línea dorada, eje der. %) por plazo — mismo patrón de "1 acento + contexto"
+ * que `DolarOficialSemanalChart` (bar=contexto pos/neg · line=la curva
+ * principal, por eso el dorado acá SÍ es válido — no es 2 series categóricas
+ * compitiendo por atención). Labels siempre visibles (no solo al hover): son
+ * pocos puntos (4-6 posiciones, uso de calculadora) y el pedido original era
+ * poder comparar todas de un vistazo.
  */
 function DeltaTnaChart({ filas }: { filas: FilaFijar[] }) {
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   if (filas.length === 0) return null;
-  const W = Math.max(640, filas.length * 160);
-  const H = 300;
-  const padT = 32;
-  const padB = 34;
-  const h = H - padT - padB;
-  const bw = W / filas.length;
-
-  const deltaVals = filas.map((f) => f.delta);
-  const dMax = Math.max(0, ...deltaVals);
-  const dMin = Math.min(0, ...deltaVals);
-  const dRange = dMax - dMin || 1;
-  const yDelta = (v: number) => padT + ((dMax - v) / dRange) * h;
-  const zeroY = yDelta(0);
-
-  // La línea de TNA se queda en la franja SUPERIOR del chart (top 42%), sin
-  // compartir el resto del alto con las barras — evita que su etiqueta choque
-  // con la etiqueta del delta cuando, para alguna posición, ambos valores caen
-  // cerca del mismo punto vertical (encontrado en la verificación real con datos
-  // de maíz: la TNA más baja coincidía con la barra más negativa).
-  const tnaVals = filas.filter((f) => Number.isFinite(f.tna)).map((f) => f.tna);
-  const tMax = tnaVals.length ? Math.max(...tnaVals, 0) : 1;
-  const tMin = tnaVals.length ? Math.min(...tnaVals, 0) : 0;
-  const tRange = tMax - tMin || 1;
-  const hTna = h * 0.42;
-  const yTna = (v: number) => padT + ((tMax - v) / tRange) * hTna;
-
-  const pts = filas
-    .map((f, i) => (Number.isFinite(f.tna) ? { cx: i * bw + bw / 2, cy: yTna(f.tna), f } : null))
-    .filter((p): p is { cx: number; cy: number; f: FilaFijar } => p !== null);
-  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.cx},${p.cy}`).join(" ");
 
   return (
-    <div className="chart-wrap">
-      <ChartMarca tamano="chico" />
-      <div className="dt-legend">
-        <span><i className="dt-sw dt-sw-bar" /> Delta (USD)</span>
-        <span><i className="dt-sw dt-sw-line" /> TNA implícita (%)</span>
-      </div>
-      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico combinado: delta por plazo y curva de TNA implícita">
-        <line x1={0} y1={zeroY} x2={W} y2={zeroY} stroke="var(--line-2)" strokeWidth={1} />
-        {filas.map((f, i) => {
-          const cx = i * bw + bw / 2;
-          const barW = Math.min(38, bw * 0.36);
-          const yv = yDelta(f.delta);
-          const top = Math.min(zeroY, yv);
-          const height = Math.max(1, Math.abs(yv - zeroY));
-          const pos = f.delta >= 0;
-          return (
-            <g key={i}>
-              <rect x={cx - barW / 2} y={top} width={barW} height={height} rx={2}
-                fill={pos ? "var(--pos)" : "var(--neg)"} opacity={0.85} />
-              <text x={cx} y={pos ? top - 6 : top + height + 14} textAnchor="middle" fontSize={11}
-                fill="var(--ink-2)" fontFamily="var(--font-mono)">{sfmt(f.delta, 1)}</text>
-              <text x={cx} y={H - 7} textAnchor="middle" fontSize={10} fill="var(--ink-3)"
-                fontFamily="var(--font-mono)">{mesCorto(f.vto)}</text>
-            </g>
-          );
-        })}
-        {path && <path d={path} fill="none" stroke="var(--gold-text)" strokeWidth={2.5} />}
-        {pts.map((p, i) => (
-          <g key={`t${i}`}>
-            <circle cx={p.cx} cy={p.cy} r={4} fill="var(--gold-text)" stroke="var(--panel)" strokeWidth={1.5} />
-            <text x={p.cx} y={p.cy - 11} textAnchor="middle" fontSize={11} fontWeight={700}
-              fill="var(--gold-text)" fontFamily="var(--font-mono)">{rfmt(p.f.tna, 1)}</text>
-          </g>
-        ))}
-      </svg>
-    </div>
+    <RfChart
+      ariaLabel="Gráfico combinado: delta por plazo y curva de TNA implícita"
+      exportName="fijar-delta-tna"
+      xTitle="Vencimiento"
+      yTitle={["Delta (USD)", "TNA implícita (%)"]}
+      watermarkSize="chico"
+      height={300}
+      valueFormatter={(v, name) => (name === "TNA implícita (%)" ? rfmt(v, 1) : sfmt(v, 1))}
+      option={{
+        xAxis: { type: "category", data: filas.map((f) => mesCorto(f.vto)) },
+        yAxis: [{ type: "value" }, { type: "value", scale: true }],
+        series: [
+          {
+            name: "Delta (USD)",
+            type: "bar",
+            yAxisIndex: 0,
+            data: filas.map((f) => ({
+              value: f.delta,
+              itemStyle: { color: f.delta >= 0 ? p.pos : p.neg, opacity: 0.85 },
+              label: { show: true, position: f.delta >= 0 ? "top" : "bottom", formatter: () => sfmt(f.delta, 1) },
+            })),
+          },
+          {
+            name: "TNA implícita (%)",
+            type: "line",
+            yAxisIndex: 1,
+            symbolSize: 7,
+            connectNulls: true,
+            itemStyle: { color: p.goldText },
+            lineStyle: { color: p.goldText, width: 2.5 },
+            label: {
+              show: true,
+              position: "top",
+              fontWeight: 700,
+              color: p.goldText,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CallbackDataParams tipa `value` como unión amplia sin discriminar por eje
+              formatter: (pr: any) => rfmt(Number(pr.value), 1),
+            },
+            data: filas.map((f) => (Number.isFinite(f.tna) ? f.tna : null)),
+          },
+        ],
+      }}
+    />
   );
 }
 

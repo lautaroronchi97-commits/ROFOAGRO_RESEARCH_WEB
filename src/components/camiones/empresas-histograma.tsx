@@ -2,13 +2,15 @@
 
 import { useMemo } from "react";
 import { nfmt } from "@/lib/format";
+import { RfChart } from "@/charts/RfChart";
 import type { FilaEmpresa } from "@/lib/camiones/plantas";
 import type { ProductoSerie } from "@/lib/camiones/config";
 
 /**
  * Histograma horizontal "quién recibe" (relevamiento web R9, punto 53): un dato por empresa,
- * mismo filtro de grano que `EmpresasTabla`. Barras a mano (SVG), sin depender de Recharts —
- * el resto de los charts "a mano" del sitio sigue este mismo criterio de simplicidad.
+ * mismo filtro de grano que `EmpresasTabla`. Serie única → RfChart la pinta en verde
+ * institucional (antes usaba `--gold` como fill completo, la misma violación de "oro
+ * solo como acento" que se corrigió en el resto de los charts de esta migración).
  */
 export function EmpresasHistograma({ empresas, granoFiltro }: { empresas: FilaEmpresa[]; granoFiltro: ProductoSerie }) {
   const filas = useMemo(() => {
@@ -27,19 +29,21 @@ export function EmpresasHistograma({ empresas, granoFiltro }: { empresas: FilaEm
     return <div className="chart-wrap chart-empty">Sin empresas para este filtro.</div>;
   }
 
-  const max = Math.max(1, ...filas.map((f) => f.cantidad));
-
   return (
-    <div className="emp-histo">
-      {filas.map((f) => (
-        <div className="emp-histo-fila" key={f.empresa}>
-          <span className="emp-histo-nombre">{f.empresa}</span>
-          <span className="emp-histo-barra-wrap">
-            <span className="emp-histo-barra" style={{ width: `${Math.max(2, (f.cantidad / max) * 100)}%` }} />
-          </span>
-          <span className="emp-histo-valor">{nfmt(f.cantidad, 0)}</span>
-        </div>
-      ))}
-    </div>
+    <RfChart
+      ariaLabel="Histograma de camiones recibidos por empresa, top 12"
+      exportName="empresas-camiones"
+      xTitle="Camiones"
+      yTitle=""
+      height={Math.max(180, filas.length * 28 + 40)}
+      valueFormatter={(v) => nfmt(v, 0)}
+      option={{
+        xAxis: { type: "value" },
+        // `inverse` deja el orden del array (ya descendente) de arriba hacia abajo —
+        // sin esto ECharts dibuja categorías de abajo hacia arriba y el ranking sale al revés.
+        yAxis: { type: "category", data: filas.map((f) => f.empresa), inverse: true },
+        series: [{ type: "bar", data: filas.map((f) => f.cantidad), barMaxWidth: 18 }],
+      }}
+    />
   );
 }
