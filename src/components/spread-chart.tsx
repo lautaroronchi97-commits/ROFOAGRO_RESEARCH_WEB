@@ -1,31 +1,35 @@
 "use client";
 
 import * as React from "react";
-import {
-  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot,
-  ResponsiveContainer, LabelList,
-} from "recharts";
+import { useTheme } from "next-themes";
 import { nfmt } from "@/lib/format";
 import {
   etiquetaCalendario, mesDeFecha, mesEnRuedasAlVto,
   type BandaPunto, type Eje, type Metric, type PuntoXY,
 } from "@/lib/derivadas";
-import { exportarSvgComoPng } from "@/lib/chart-export";
-import { ChartMarca } from "./chart-marca";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 
 /**
- * Chart multi-campaña del panel de spreads. Dos vistas:
+ * Chart multi-campaña del panel de spreads (motor principal de /graficos, ECharts). Dos vistas:
  *  - "lineas": una línea por campaña, superpuestas.
- *  - "banda": las campañas históricas colapsan en una sombra min–máx + mediana,
- *    y la campaña vigente va gruesa encima (P13). Mata el spaghetti.
- * En el eje días-al-vto se muestra, además del nº de ruedas, el MES calendario
- * de la campaña vigente (pedido de Lautaro: orientarse por mes, no solo ruedas).
+ *  - "banda": las campañas históricas colapsan en una sombra min–máx + mediana (dos series `line`
+ *    apiladas con `areaStyle`, técnica estándar de ECharts para bandas de rango — sin equivalente
+ *    directo al `Area dataKey=[min,max]` de Recharts), y la campaña vigente va gruesa encima (P13).
+ * En el eje días-al-vto se muestra, además del nº de ruedas, el MES calendario de la campaña
+ * vigente vía `rich` text de dos líneas en el `axisLabel` (pedido de Lautaro: orientarse por mes).
  *
  * `ma` (P6, media móvil): líneas overlay adicionales, ya calculadas por el
  * caller — se dibujan siempre (no participan de la banda histórica ni del KPI).
  * `pct` (P6, "ratio/base en %"): formatea los valores como porcentaje.
- * `exportName` (P6, export PNG/CSV): si viene, agrega los botones de descarga.
+ * `exportName` (P6, export PNG/CSV): nombre de archivo para el toolbox de RfChart + el CSV de la tabla.
+ *
+ * Todos los `series` se alinean a un único grid `xs` (unión ordenada de los x de todas las líneas +
+ * banda, mismo criterio que `mergeRows`) con `null` explícito donde una línea no tiene dato a esa
+ * altura — sin esto, en un eje numérico (`type:"value"`) cada serie snapea de forma independiente al
+ * hover y el tooltip puede mostrar valores de alturas distintas por serie (nunca pasa acá: todas
+ * comparten exactamente los mismos x posibles).
  */
 
 export type CampLine = {
@@ -63,6 +67,11 @@ function mergeRows(lines: CampLine[], banda: BandaPunto[]): Row[] {
   return [...byX.values()].sort((a, b) => a.x - b.x);
 }
 
+// Prefijo invisible para las series helper (banda min/rango) que dibujan el área pero no deben
+// aparecer en la leyenda ni en el tooltip — se filtran por este marcador en vez de por índice,
+// más robusto si el orden del array de series cambia.
+const OCULTA = "​";
+
 export function SpreadChart({
   lines, eje, metric, anchorMes, decimals = 2, modo = "lineas", banda = [], refVto,
   ma, pct = false, exportName, kpis,
@@ -79,12 +88,13 @@ export function SpreadChart({
   ma?: CampLine[];
   /** Formatea los valores como porcentaje (P6, "ratio/base en %"). */
   pct?: boolean;
-  /** Si viene, muestra los botones de export PNG/CSV con este nombre de archivo. */
+  /** Nombre de archivo (sin extensión) para el toolbox "Guardar imagen" + el CSV de la tabla. */
   exportName?: string;
   /** KPIs del caller (R7 punto 48): se renderizan ENTRE el chart y la tabla. */
   kpis?: React.ReactNode;
 }) {
-  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   // En modo banda solo se dibuja la vigente como línea (la historia es la sombra);
   // la media móvil se agrega siempre encima (overlay), no participa de la banda.
   const drawnBase = modo === "banda" ? lines.filter((l) => l.vigente) : lines;
@@ -192,119 +202,196 @@ export function SpreadChart({
 
   const axisDecimals = pct ? 1 : metric === "ratio" ? 3 : 0;
 
-  /** Label de campaña en el extremo (último punto real) de cada línea — R7 punto 48. */
-  function labelExtremo(dataKey: string, color: string, texto: string) {
-    let lastIdx = -1;
-    rows.forEach((r, i) => { if (typeof r[dataKey] === "number") lastIdx = i; });
-    function EtiquetaExtremo(props: { x?: string | number; y?: string | number; index?: number }) {
-      const { x, y, index } = props;
-      if (index !== lastIdx || x == null || y == null) return null;
-      return (
-        <text x={Number(x) + 6} y={Number(y)} dy={3} fontSize={10} fontFamily="var(--font-mono)" fontWeight={700} fill={color}>
-          {texto}
-        </text>
-      );
-    }
-    return EtiquetaExtremo;
+  // Grid único de x (unión ordenada de todos los puntos, incl. banda): cada serie ECharts se
+  // alinea a este mismo grid con `null` donde no tiene dato — así el tooltip (trigger:"axis")
+  // muestra siempre la MISMA altura x para todas las series, igual que las `rows` de Recharts.
+  const xs = rows.map((r) => r.x);
+  const rowByX = new Map(rows.map((r) => [r.x, r]));
+
+  const lineSeries = drawn.map((ln) => ({
+    name: ln.label,
+    type: "line" as const,
+    symbol: "none" as const,
+    connectNulls: true,
+    z: 3,
+    lineStyle: {
+      color: ln.color,
+      width: ln.vigente ? 2.8 : 1.4,
+      type: (ln.dash ? [4, 3] : "solid") as "solid" | number[],
+    },
+    itemStyle: { color: ln.color },
+    data: xs.map((x) => {
+      const r = rowByX.get(x);
+      const y = r?.[`y${ln.key}`];
+      const f = r?.[`f${ln.key}`];
+      return typeof y === "number" ? [x, y, typeof f === "string" ? f : ""] : null;
+    }),
+  }));
+  if (metric !== "ratio" && lineSeries[0]) {
+    (lineSeries[0] as { markLine?: unknown }).markLine = {
+      symbol: ["none", "none"],
+      label: { show: false },
+      lineStyle: { color: p.gridStrong, type: "solid", width: 1 },
+      data: [{ yAxis: 0 }],
+    };
   }
+
+  const bandSeries = usaBanda
+    ? [
+        {
+          name: `${OCULTA}bandaMin`,
+          type: "line" as const,
+          stack: "banda",
+          symbol: "none" as const,
+          lineStyle: { opacity: 0 },
+          areaStyle: { opacity: 0 },
+          connectNulls: true,
+          silent: true,
+          tooltip: { show: false },
+          z: 1,
+          data: xs.map((x) => {
+            const br = rowByX.get(x)?.brange as [number, number] | undefined;
+            return br ? [x, br[0]] : null;
+          }),
+        },
+        {
+          name: `${OCULTA}bandaRango`,
+          type: "line" as const,
+          stack: "banda",
+          symbol: "none" as const,
+          lineStyle: { opacity: 0 },
+          areaStyle: { color: p.ink3, opacity: 0.16 },
+          connectNulls: true,
+          silent: true,
+          tooltip: { show: false },
+          z: 1,
+          data: xs.map((x) => {
+            const br = rowByX.get(x)?.brange as [number, number] | undefined;
+            return br ? [x, br[1] - br[0]] : null;
+          }),
+        },
+        {
+          name: "Mediana histórica",
+          type: "line" as const,
+          symbol: "none" as const,
+          connectNulls: true,
+          z: 2,
+          lineStyle: { color: p.ink2, width: 1.3, type: [5, 4] },
+          data: xs.map((x) => {
+            const m = rowByX.get(x)?.bmed;
+            return typeof m === "number" ? [x, m] : null;
+          }),
+        },
+      ]
+    : [];
+
+  const parcialSeries = puntosParciales.length
+    ? [
+        {
+          name: `${OCULTA}parcial`,
+          type: "scatter" as const,
+          symbol: "emptyCircle" as const,
+          symbolSize: 10,
+          silent: true,
+          tooltip: { show: false },
+          z: 6,
+          data: puntosParciales.map((pp) => ({
+            value: [pp.x, pp.y],
+            itemStyle: { color: "transparent", borderColor: pp.color, borderWidth: 1.6, borderType: [2, 2] },
+          })),
+        },
+      ]
+    : [];
+
+  const yTitle = pct ? "%" : metric === "ratio" ? "Ratio" : "Spread";
 
   return (
     <>
-      {exportName && (
-        <div className="gx-chart-toolbar">
-          <button
-            type="button"
-            className="gx-preset"
-            onClick={() => exportarSvgComoPng(wrapRef.current, `${exportName}.png`)}
-          >
-            ↓ PNG
-          </button>
-        </div>
-      )}
-      {/* El wrapper relativo ancla la marca de agua al área del chart. */}
-      <div style={{ position: "relative" }} ref={wrapRef}>
-        <ChartMarca />
-        <ResponsiveContainer width="100%" height={param(400)}>
-          {/* right:40 (no 16) — deja lugar a la etiqueta de campaña en el extremo de cada
-              línea (R7 punto 48); con 16 quedaba cortada contra el borde del SVG. */}
-          <ComposedChart data={rows} margin={{ top: 8, right: 40, bottom: 30, left: 4 }}>
-            <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" />
-            <XAxis
-              dataKey="x"
-              type="number"
-              domain={["dataMin", "dataMax"]}
-              height={eje === "vto" ? 40 : 28}
-              tick={<GxXTick eje={eje} anchorMes={anchorMes} mesEnX={mesEnX} />}
-              stroke="var(--line-2)"
-            />
-            <YAxis
-              tickFormatter={(v: number) => `${nfmt(v, axisDecimals)}${pct ? "%" : ""}`}
-              tick={{ fill: "var(--ink-3)", fontSize: 11 }}
-              stroke="var(--line-2)"
-              width={52}
-            />
-            {metric !== "ratio" && <ReferenceLine y={0} stroke="var(--line-2)" />}
-            <Tooltip
-              content={<GxTooltip lines={drawn} eje={eje} anchorMes={anchorMes} fmtValor={fmtValor} usaBanda={usaBanda} mesEnX={mesEnX} />}
-              isAnimationActive={false}
-            />
-            {usaBanda && (
-              <Area
-                dataKey="brange"
-                stroke="none"
-                fill="var(--ink-3)"
-                fillOpacity={0.16}
-                connectNulls
-                isAnimationActive={false}
-                activeDot={false}
-                legendType="none"
-              />
-            )}
-            {usaBanda && (
-              <Line
-                dataKey="bmed"
-                name="Mediana histórica"
-                stroke="var(--ink-2)"
-                strokeWidth={1.3}
-                strokeDasharray="5 4"
-                dot={false}
-                connectNulls
-                isAnimationActive={false}
-              />
-            )}
-            {drawn.map((ln) => (
-              <Line
-                key={ln.key}
-                type="monotone"
-                dataKey={`y${ln.key}`}
-                name={ln.label}
-                stroke={ln.color}
-                strokeWidth={ln.vigente ? 2.8 : 1.4}
-                strokeDasharray={ln.dash ? "4 3" : undefined}
-                dot={false}
-                activeDot={{ r: 3 }}
-                connectNulls
-                isAnimationActive={false}
-              >
-                <LabelList dataKey={`y${ln.key}`} content={labelExtremo(`y${ln.key}`, ln.color, ln.label)} />
-              </Line>
-            ))}
-            {puntosParciales.map((p) => (
-              <ReferenceDot
-                key={`parcial-${p.key}`}
-                x={p.x}
-                y={p.y}
-                r={5}
-                fill="none"
-                stroke={p.color}
-                strokeWidth={1.6}
-                strokeDasharray="2 2"
-                ifOverflow="visible"
-              />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <RfChart
+        ariaLabel={`Spread por campaña — ${eje === "vto" ? "días al vencimiento" : "eje calendario"}`}
+        exportName={exportName}
+        height={400}
+        xTitle={eje === "vto" ? "Ruedas al vto" : "Fecha"}
+        yTitle={yTitle}
+        valueFormatter={(v) => fmtValor(v)}
+        option={{
+          legend: {
+            data: [...drawn.map((ln) => ln.label), ...(usaBanda ? ["Mediana histórica"] : [])],
+          },
+          xAxis: {
+            type: "value",
+            min: "dataMin",
+            max: "dataMax",
+            axisLabel:
+              eje === "vto"
+                ? {
+                    formatter: (v: number) => `{ruedas|${-Math.round(v)}}\n{mes|${mesEnX(v)}}`,
+                    rich: { ruedas: { fontSize: 11 }, mes: { fontSize: 9.5, opacity: 0.85 } },
+                  }
+                : { formatter: (v: number) => etiquetaCalendario(v, anchorMes) },
+          },
+          yAxis: {
+            type: "value",
+            axisLabel: { formatter: (v: number) => `${nfmt(v, axisDecimals)}${pct ? "%" : ""}` },
+          },
+          tooltip: {
+            axisPointer: { snap: true },
+            formatter: (params: unknown) => {
+              const arr = (Array.isArray(params) ? params : [params]) as Array<{
+                seriesName: string;
+                color: string;
+                value: unknown;
+                axisValue?: number;
+              }>;
+              if (arr.length === 0) return "";
+              const first = arr[0];
+              const xRaw =
+                typeof first?.axisValue === "number"
+                  ? first.axisValue
+                  : Array.isArray(first?.value)
+                    ? Number((first.value as unknown[])[0])
+                    : NaN;
+              if (!Number.isFinite(xRaw)) return "";
+              const head =
+                eje === "vto" ? `${-Math.round(xRaw)} ruedas al vto · ${mesEnX(xRaw)}` : etiquetaCalendario(xRaw, anchorMes);
+              const items = arr
+                .filter((p2) => !p2.seriesName.startsWith(OCULTA))
+                .map((p2) => {
+                  const v = p2.value;
+                  const y = Array.isArray(v) ? Number((v as unknown[])[1]) : NaN;
+                  const f = Array.isArray(v) && typeof (v as unknown[])[2] === "string" ? ((v as unknown[])[2] as string) : "";
+                  return { ...p2, y, f };
+                })
+                .filter((p2) => Number.isFinite(p2.y))
+                .sort((a, b) => b.y - a.y);
+              const filasHtml = items
+                .map(
+                  (it) =>
+                    `<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:1.5px 0;">
+                      <span style="display:inline-flex;align-items:center;gap:6px">
+                        <span style="display:inline-block;width:12px;height:2.5px;border-radius:2px;background:${it.color}"></span>
+                        ${it.seriesName}
+                      </span>
+                      <b style="margin-left:10px">${fmtValor(it.y)}${it.f ? ` <span style="font-weight:400;color:${p.ink3}">· ${it.f}</span>` : ""}</b>
+                    </div>`,
+                )
+                .join("");
+              const rowX = rowByX.get(Math.round(xRaw));
+              const brange = rowX?.brange as [number, number] | undefined;
+              const bandaHtml =
+                usaBanda && brange
+                  ? `<div style="display:flex;align-items:center;gap:6px;color:${p.ink3};padding-top:2px">
+                      <span style="display:inline-block;width:12px;height:2.5px;border-radius:2px;background:${p.ink3}"></span>
+                      historia ${fmtValor(brange[0])}–${fmtValor(brange[1])}${typeof rowX?.bmed === "number" ? ` · med ${fmtValor(rowX.bmed)}` : ""}
+                    </div>`
+                  : "";
+              if (items.length === 0 && !bandaHtml) return "";
+              return `<div style="color:${p.gold};font-weight:700;margin-bottom:3px">${head}</div>${filasHtml}${bandaHtml}`;
+            },
+          },
+          series: [...bandSeries, ...lineSeries, ...parcialSeries],
+        }}
+      />
       {kpis}
       <ChartTabla
         columnas={columnas}
@@ -314,92 +401,5 @@ export function SpreadChart({
         destacada={hoyX != null ? (_, i) => i === 0 : undefined}
       />
     </>
-  );
-}
-
-function param(n: number): number {
-  return n;
-}
-
-/* ---------------- tick del eje X (nº de ruedas + mes) ---------------- */
-
-type TickProps = {
-  x?: number;
-  y?: number;
-  payload?: { value: number };
-  eje: Eje;
-  anchorMes: number;
-  mesEnX: (x: number) => string;
-};
-
-function GxXTick({ x = 0, y = 0, payload, eje, anchorMes, mesEnX }: TickProps) {
-  const v = payload?.value ?? 0;
-  if (eje === "cal") {
-    return (
-      <text x={x} y={y} dy={14} textAnchor="middle" fill="var(--ink-3)" fontSize={11}>
-        {etiquetaCalendario(v, anchorMes)}
-      </text>
-    );
-  }
-  // Días al vto: nº de ruedas arriba, mes de referencia abajo.
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={13} textAnchor="middle" fill="var(--ink-3)" fontSize={11}>
-        {-Math.round(v)}
-      </text>
-      <text x={0} y={0} dy={26} textAnchor="middle" fill="var(--ink-3)" fontSize={9.5} opacity={0.85}>
-        {mesEnX(v)}
-      </text>
-    </g>
-  );
-}
-
-/* ---------------- tooltip ---------------- */
-
-type TipProps = {
-  active?: boolean;
-  lines: CampLine[];
-  eje: Eje;
-  anchorMes: number;
-  fmtValor: (v: number) => string;
-  usaBanda: boolean;
-  mesEnX: (x: number) => string;
-  payload?: Array<{ payload: Row }>;
-};
-
-function GxTooltip({ active, payload, lines, eje, anchorMes, fmtValor, usaBanda, mesEnX }: TipProps) {
-  if (!active || !payload || payload.length === 0) return null;
-  const row = payload[0]!.payload; // payload.length===0 ya salió arriba
-  const x = Number(row.x);
-  const head =
-    eje === "vto"
-      ? `${-Math.round(x)} ruedas al vto · ${mesEnX(x)}`
-      : etiquetaCalendario(x, anchorMes);
-  const items = lines
-    .map((ln) => ({ ln, y: row[`y${ln.key}`], f: row[`f${ln.key}`] }))
-    .filter((it) => typeof it.y === "number")
-    .sort((a, b) => (b.y as number) - (a.y as number));
-  const brange = row.brange as [number, number] | undefined;
-  const bmed = row.bmed as number | undefined;
-  if (items.length === 0 && !brange) return null;
-  return (
-    <div className="gx-tip">
-      <div className="gx-tip-h">{head}</div>
-      {items.map((it) => (
-        <div className="gx-tip-row" key={it.ln.key}>
-          <span className="sw" style={{ background: it.ln.color }} />
-          <b>{it.ln.label}</b>
-          <span>{fmtValor(it.y as number)}</span>
-          {typeof it.f === "string" && <span style={{ color: "var(--ink-3)" }}>· {it.f}</span>}
-        </div>
-      ))}
-      {usaBanda && brange && (
-        <div className="gx-tip-row" style={{ color: "var(--ink-3)" }}>
-          <span className="sw" style={{ background: "var(--ink-3)" }} />
-          historia {fmtValor(brange[0])}–{fmtValor(brange[1])}
-          {typeof bmed === "number" ? ` · med ${fmtValor(bmed)}` : ""}
-        </div>
-      )}
-    </div>
   );
 }
