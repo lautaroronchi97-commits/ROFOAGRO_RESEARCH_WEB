@@ -31,64 +31,73 @@ function mesCorto(iso: string): string {
 type FilaCurva = { vto: string; precio: string; estimado: boolean };
 
 /**
- * Gráfico COMBINADO delta (barras verde/roja, eje izq. USD) + TNA implícita
- * (línea dorada, eje der. %) por plazo — mismo patrón de "1 acento + contexto"
- * que `DolarOficialSemanalChart` (bar=contexto pos/neg · line=la curva
- * principal, por eso el dorado acá SÍ es válido — no es 2 series categóricas
- * compitiendo por atención). Labels siempre visibles (no solo al hover): son
- * pocos puntos (4-6 posiciones, uso de calculadora) y el pedido original era
- * poder comparar todas de un vistazo.
+ * Gráfico de resultado por vencimiento — barras finas, un solo eje. Reemplaza
+ * el combo delta+TNA de doble eje (quedaba "raro": bloques anchos con solo
+ * 4-6 categorías, y el color pintaba por el SIGNO CRUDO del delta, que la
+ * tabla de abajo (`favorable`) ya sabía que se invierte según `lado` —
+ * "compro a fijar" con delta negativo es BUENO, y el chart lo pintaba rojo).
+ * Ahora colorea por `favorable` (mismo criterio que la tabla) y muestra la
+ * TNA implícita como texto chico debajo del valor principal, sin eje propio.
  */
-function DeltaTnaChart({ filas }: { filas: FilaFijar[] }) {
+function ResultadoChart({ filas }: { filas: FilaFijar[] }) {
   const { resolvedTheme } = useTheme();
   const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   if (filas.length === 0) return null;
 
   return (
     <RfChart
-      ariaLabel="Gráfico combinado: delta por plazo y curva de TNA implícita"
-      exportName="fijar-delta-tna"
+      ariaLabel="Resultado por vencimiento, con la TNA implícita de cada uno"
+      exportName="fijar-resultado"
       xTitle="Vencimiento"
-      yTitle={["Delta (USD)", "TNA implícita (%)"]}
+      yTitle="Resultado (USD)"
       watermarkSize="chico"
-      height={300}
-      valueFormatter={(v, name) => (name === "TNA implícita (%)" ? rfmt(v, 1) : sfmt(v, 1))}
+      height={260}
+      valueFormatter={(v) => sfmt(v, 1)}
       option={{
+        // Sin legend: la 2ª serie (TNA) es un mellizo invisible superpuesto exacto sobre las
+        // barras reales, solo para poder colgarle su propio label — no es una serie real que
+        // tenga sentido listar.
+        legend: { show: false },
         xAxis: { type: "category", data: filas.map((f) => mesCorto(f.vto)) },
-        yAxis: [{ type: "value" }, { type: "value", scale: true }],
+        yAxis: { type: "value" },
         series: [
           {
-            name: "Delta (USD)",
+            name: "Resultado",
             type: "bar",
-            yAxisIndex: 0,
+            barMaxWidth: 26,
+            barGap: "-100%",
             // itemStyle a nivel serie: SOLO decide el swatch de la leyenda (cada barra ya
             // trae su propio itemStyle pos/neg abajo, que siempre gana) — sin esto ECharts
             // le asigna el próximo color de la paleta categórica, que no dice nada de un
             // bar pos/neg.
-            itemStyle: { color: p.pos },
+            itemStyle: { color: p.pos, borderRadius: 3 },
             data: filas.map((f) => ({
-              value: f.delta,
-              itemStyle: { color: f.delta >= 0 ? p.pos : p.neg, opacity: 0.85 },
-              label: { show: true, position: f.delta >= 0 ? "top" : "bottom", formatter: () => sfmt(f.delta, 1) },
+              value: f.resultado,
+              itemStyle: { color: f.favorable ? p.pos : p.neg, opacity: 0.85, borderRadius: 3 },
+              label: { show: true, position: "top", formatter: () => sfmt(f.resultado, 1) },
             })),
           },
           {
-            name: "TNA implícita (%)",
-            type: "line",
-            yAxisIndex: 1,
-            symbolSize: 7,
-            connectNulls: true,
-            itemStyle: { color: p.goldText },
-            lineStyle: { color: p.goldText, width: 2.5 },
-            label: {
-              show: true,
-              position: "top",
-              fontWeight: 700,
-              color: p.goldText,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CallbackDataParams tipa `value` como unión amplia sin discriminar por eje
-              formatter: (pr: any) => rfmt(Number(pr.value), 1),
-            },
-            data: filas.map((f) => (Number.isFinite(f.tna) ? f.tna : null)),
+            // Mellizo invisible EXACTO (mismo valor → mismo alto de barra) — el label
+            // `position:"bottom"` de ECharts es relativo al propio rectángulo de la barra,
+            // así que necesita coincidir en tamaño para que la TNA caiga justo debajo del
+            // borde de la barra real, sea positiva o negativa.
+            name: "TNA implícita",
+            type: "bar",
+            barMaxWidth: 26,
+            silent: true,
+            tooltip: { show: false },
+            itemStyle: { color: "transparent" },
+            data: filas.map((f) => ({
+              value: f.resultado,
+              label: {
+                show: true,
+                position: "bottom",
+                color: p.ink3,
+                fontSize: 9,
+                formatter: () => (Number.isFinite(f.tna) ? `TNA ${nfmt(f.tna, 1)}%` : "TNA —"),
+              },
+            })),
           },
         ],
       }}
@@ -176,7 +185,7 @@ export function CalcFijar({
           </label>
         </div>
 
-        <DeltaTnaChart filas={validas} />
+        <ResultadoChart filas={validas} />
 
         <div className="table-scroll">
           <table className="tbl" style={{ minWidth: 700 }}>
