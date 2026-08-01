@@ -19,44 +19,47 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 01/08/2026 — 📊 migración de gráficos a ECharts, EN CURSO — parte de los charts migrados, `spread-chart.tsx` (el más grande) sigue pendiente)
+## Ahora (última actualización: 01/08/2026 — 📊 migración de gráficos a ECharts, CERRADA — los 6 charts que faltaban + limpieza + Fase 4 verificada)
 
-**📊 MIGRACIÓN DE GRÁFICOS A ECHARTS — EN CURSO (parcial, se corta acá a pedido de Lautaro) — rama
-`claude/echarts-migration-rofo-n7xvi9`, PR #115.** Pedido de Lautaro: reemplazar TODO el motor de
-gráficos del sitio (SVG a mano + Recharts) por Apache ECharts, un estándar visual único, sin tocar
-ninguna lógica de datos — migración incremental chart por chart, con pausa para validar cada uno.
-**Infra nueva**: `src/charts/RfChart.tsx` (componente único: tema claro/oscuro, marca de agua,
-tooltip/crosshair/toolbox estandarizados, tipografía mono en ejes) + `src/charts/rofoTheme.ts`
-(paleta categórica de 8 colores VALIDADA contra la skill `dataviz` — corrigió una falla real:
-verde+dorado como serie 1/2 no distingue bien ni con daltonismo) + `src/charts/rofoLocale.ts`
-(fix real: sin esto ECharts mostraba meses en inglés, "Jul/Oct" en vez de "JUL/OCT"). **2 bugs
-reales de infra encontrados y arreglados**: (1) un artefacto de la marca de agua en tema oscuro
-(letras con hueco, ej. "A", salían con relleno gris sólido) — NO era un bug de React/timing sino
-de Chromium (su decodificador SVG-a-canvas rasteriza mal paths compuestos + alpha, confirmado
-aislando con un `echarts.init()` sin React) — fix: PNG pre-rasterizado offline con `sharp`/librsvg
-en vez del `.svg` directo; (2) `deepMerge` de RfChart reemplazaba arrays enteros en vez de
-mergearlos elemento a elemento — un `yAxis` de doble eje perdía los defaults compartidos enteros,
-ahora se inyectan a mano antes del merge.
-**Migrados esta sesión** (suman a `EvolucionChart`/`DolarFuturoChart` de sesiones previas en la
-misma rama): `WilliamsChart` (camiones, 2 modos) · `NegociadoChart` · zonas-panel (% participación
-por zona) · condicion-panel (overlay + fenología) · `CamionesChart` (Agroentregas, encontrado
-durante la sesión, no estaba en el inventario original) · los 3 charts de `/dolar/oficial` ·
-`VolumenPanel` (subpanel de `/graficos`). De paso se corrigieron varias violaciones reales de la
-regla "oro solo como acento" (dorado usado como color de serie completa en 2 charts) y un bug de
-tooltip con "NaN" en VolumenPanel (tupla `[x,y]` sin desempaquetar).
-**Verificado**: lint/tsc/build/**426 tests** verde en cada commit · Playwright real claro/oscuro/
-mobile en cada chart · páginas solo-mesa con bypass temporal de `requireAdmin()` + datos
-sintéticos (revertido, `git diff` limpio) donde el sandbox no tenía credenciales reales.
-**Corte explícito de Lautaro, no un final natural**: pidió parar acá y mergear lo migrado hasta
-ahora. **Queda pendiente, sin tocar**: `spread-chart.tsx` (el motor principal de `/graficos`, el
-más grande — 2 modos, presets, bandas, percentil) · `bcra-mulc-chart.tsx` · `implicitas-chart.tsx`
-· el chart de `calc-fijar.tsx` · el payoff de `calc-estrategias.tsx` · `empresas-histograma.tsx`.
-Recién cuando esos estén migrados: borrar `chart-svg-base.tsx` (motor SVG viejo, ya sin
-consumidores del grupo original pero vivo por si alguno de los que faltan lo necesita), sacar la
-dependencia `recharts` del `package.json`, limpiar CSS huérfano, y arrancar la **Fase 4**
-(tipografía mono en `ChartTabla`, la última fase del prompt original). Detalle completo con la
-lista exacta de trampas encontradas:
-[`sesiones/2026-08-01-echarts-migration.md`](sesiones/2026-08-01-echarts-migration.md).
+**📊 MIGRACIÓN DE GRÁFICOS A ECHARTS — CERRADA COMPLETA — rama `claude/echarts-migration-parte2`,
+PR #_ (retoma el corte de Lautaro en PR #115, mergeado).** Pedido de Lautaro: "Continúa con los
+que faltan con todos" — terminar el checklist que había quedado anotado la sesión anterior.
+**Migrados los 6 charts restantes**: `empresas-histograma.tsx` (barra horizontal, antes CSS a
+mano con `--gold` como fill) · `implicitas-chart.tsx` (line value/value, 4 series, antes 2 con hex
+fijo incl. `--gold-text` como fill completo) · `bcra-mulc-chart.tsx` (barras `itemStyle` por punto
+pos/neg) · `DeltaTnaChart` de `calc-fijar.tsx` (combo doble eje, patrón "1 acento + contexto") ·
+`PayoffChart` de `calc-estrategias.tsx` (línea única + `markLine` precio base + `markPoint`
+breakeven dorado) · **`spread-chart.tsx`** (el motor de `/graficos`, el más grande — 2 modos,
+banda histórica con el truco ECharts de 2 series apiladas + relleno, tick de 2 líneas vía
+`axisLabel.formatter` con `\n`, `endLabel` nativo reemplazando `LabelList`, tooltip 100% custom
+con fecha por punto + resumen de banda, sin legend a propósito —nunca la tuvo, ni en la versión
+Recharts—, `labelLayout:{hideOverlap,moveOverlap:'shiftY'}` agregado al ver en pantalla que el
+modo Período con 14 líneas amontonaba los `endLabel`).
+**2 bugs reales encontrados en charts YA migrados** (sesión anterior, antes de tocar nada nuevo):
+`bcra-mulc-chart.tsx` pasaba el STRING literal `"var(--pos)"`/`"var(--neg)"` a `itemStyle.color`
+— ECharts pinta en `<canvas>`, no resuelve custom properties de CSS ahí (por eso existe
+`rofoTheme.ts` con hex copiados a mano) — bug silencioso, sin error visible, encontrado por
+inspección de código; mismo problema con `fontFamily:"var(--font-mono)"` en un label de
+`calc-estrategias.tsx`. Los dos arreglados.
+**Limpieza final**: borrados `chart-svg-base.tsx` (motor SVG compartido, 0 importadores) y
+`chart-marca.tsx` (watermark viejo, reemplazado por el `graphic` nativo de RfChart, 0
+importadores) · `npm uninstall recharts` (0 imports en todo `src/`) · CSS huérfano de
+`globals.css` limpiado clase por clase (`.cv-*`/`.ic-*`/`.evo-serie .evo-*`/`.dt-*`/
+`.emp-histo*`/`.cm-marca*`/`.gx-tip*`), verificado 1 por 1 con grep antes de tocar — `.chart-wrap`/
+`.chart-empty`/`.cv-legend` se dejaron (consumidores reales confirmados: RfChart mismo y la
+leyenda manual de `dolar-futuro-panel.tsx`). **Fase 4 (tipografía mono en `ChartTabla`) verificada
+SIN cambios de código**: la CSS de `.tbl`/`ChartTabla` (de la sesión del 20/07, previa a esta
+migración) ya aplicaba mono a las celdas y UI/sans a los headers — exactamente el mismo criterio
+que `RfChart` usa para `axisLabel` (mono) vs. `nameTextStyle` (UI) — confirmado con Playwright
+comparando un chart y su tabla lado a lado.
+**Verificado**: lint/tsc/build/**426 tests** verde en cada commit (3 commits) · Playwright real
+claro/oscuro/mobile — incluye **hover real sobre el tooltip de `spread-chart.tsx`** (modo banda,
+confirma header + fecha por punto + fila de banda) y el **antes/después de `labelLayout`** en modo
+Período · bypass temporal de `esAdmin` en `/comercio/camiones` (revertido, `git diff` limpio).
+**Con esto la migración de gráficos a ECharts pedida por Lautaro queda terminada de punta a
+punta** — nada pendiente. Detalle completo:
+[`sesiones/2026-08-01-echarts-migration-parte2.md`](sesiones/2026-08-01-echarts-migration-parte2.md)
+(parte 1, el corte original: [`sesiones/2026-08-01-echarts-migration.md`](sesiones/2026-08-01-echarts-migration.md)).
 
 ## Anterior (31/07/2026 — 🔒 C29: auditoría de pre-lanzamiento, parte SEGURIDAD — hecha; 3 migraciones versionadas esperando el OK)
 
