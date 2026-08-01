@@ -399,10 +399,16 @@ export function RfChart({
           : undefined,
         graphic: buildWatermark(containerWidth),
       };
+      // `deepMerge` reemplaza arrays enteros (no los mergea elemento a elemento) — un yAxis de
+      // doble eje (array de 2, charts combinados $+%) perdería enteros los defaults compartidos
+      // (fuente mono, hideOverlap, scale) si no se los inyecta ACÁ, antes del merge de más abajo.
+      const yAxisConDefaults = Array.isArray(option.yAxis)
+        ? option.yAxis.map((e) => deepMerge(defaults.yAxis as Record<string, unknown>, e))
+        : option.yAxis;
       const withAxes: echarts.EChartsOption = {
         ...option,
         xAxis: conNombre(option.xAxis, xTitle, 30),
-        yAxis: conNombre(option.yAxis, yTitle, Array.isArray(yTitle) ? 52 : 46),
+        yAxis: conNombre(yAxisConDefaults, yTitle, Array.isArray(yTitle) ? 52 : 46),
         series: aplicarColorSerieUnica(option.series, p.brandDeep) as echarts.EChartsOption["series"],
       };
       return deepMerge(defaults, withAxes);
