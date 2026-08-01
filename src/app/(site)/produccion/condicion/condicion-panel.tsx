@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useMemo, useState } from "react";
 import { nfmt } from "@/lib/format";
 import {
@@ -16,9 +15,11 @@ import {
   type GranoCondicion,
   type SerieCampania,
 } from "@/lib/pas-condicion-calc";
+import { useTheme } from "next-themes";
 import { Panel, PanelHead } from "@/components/panel";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "@/components/chart-tabla";
-import { useCrosshair, SvgLineChartBase } from "@/components/chart-svg-base";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 
 /**
  * Panel de condición de cultivos BCBA-PAS (C27, docs/PLAN_PAS_ZONAS.md §6): 3 charts semanales
@@ -26,16 +27,6 @@ import { useCrosshair, SvgLineChartBase } from "@/components/chart-svg-base";
  * fenología (multi-etapa) — con el eje SIEMPRE "semana de campaña" (el origen no publica fechas).
  * Recibe las filas YA traídas por la página server (`getPasCondicion`, RLS solo-admin).
  */
-
-const COLOR_ACTUAL = "#4E9C3A";
-const COLOR_PREVIA = "var(--ink-3)";
-const PALETA_ETAPAS = ["#4E9C3A", "#3E86A0", "#C08A2E", "#8A6D9E", "#B06A4A", "#7E8C74"];
-
-const W = 660;
-const H = 260;
-const pad = { l: 40, r: 16, t: 16, b: 26 };
-const iw = W - pad.l - pad.r;
-const ih = H - pad.t - pad.b;
 
 /** Universo de semanas (unión, ascendente) presentes en cualquiera de las series — el eje es
  * por ÍNDICE (no valor crudo), mismo criterio que la evolución de participación de zonas: tolera
@@ -63,25 +54,8 @@ function OverlayChart({
     for (const s of series) m.set(s.campania, new Map(s.puntos.map((p) => [p.semana, p.valor])));
     return m;
   }, [series]);
-
-  const X = (i: number) => (semanas.length <= 1 ? pad.l + iw / 2 : pad.l + (i / (semanas.length - 1)) * iw);
-  let yMax = 10;
-  for (const s of series) for (const p of s.puntos) if (p.valor != null && p.valor > yMax) yMax = p.valor;
-  yMax = Math.min(100, Math.ceil((yMax + 5) / 10) * 10);
-  const Y = (v: number) => pad.t + (1 - v / yMax) * ih;
-  const yTicks = Array.from({ length: 5 }, (_, k) => (yMax * k) / 4);
-
-  const { hi, onPointerMove, onPointerLeave } = useCrosshair(W, H, (px) => {
-    if (semanas.length === 0) return null;
-    const idx = Math.round(((px - pad.l) / iw) * (semanas.length - 1));
-    return Math.min(semanas.length - 1, Math.max(0, idx));
-  });
-
-  const MAX_TICKS = 9;
-  const tickIndices =
-    semanas.length <= MAX_TICKS
-      ? semanas.map((_, i) => i)
-      : [...new Set(Array.from({ length: MAX_TICKS }, (_, k) => Math.round((k * (semanas.length - 1)) / (MAX_TICKS - 1))))];
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
 
   const columnas: ChartTablaColumna[] = [
     { key: "semana", label: "Semana", align: "left" },
@@ -100,65 +74,36 @@ function OverlayChart({
     return <div className="chart-wrap chart-empty">Sin datos para este cultivo/ciclo.</div>;
   }
 
-  // Otras campañas primero (grises, atrás) y la seleccionada al final (color pleno, adelante).
-  const otras = series.filter((s) => s.campania !== campaniaSeleccionada);
-  const actual = series.find((s) => s.campania === campaniaSeleccionada);
-  const ordenDibujo = actual ? [...otras, actual] : otras;
-
   return (
     <>
       <h3 className="lu-h3">{titulo}</h3>
       <p className="lu-nota">{nota}</p>
-      <SvgLineChartBase
-        w={W}
-        h={H}
-        inner={{ x: pad.l, y: pad.t, width: iw, height: ih }}
+      <RfChart
         ariaLabel={titulo}
-        yTicks={yTicks.map((t) => ({ valor: t, y: Y(t), label: `${nfmt(t, 0)}%` }))}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-        after={
-          <>
-            {hi !== null && (
-              <div className="cv-tip" style={{ left: `${(X(hi) / W) * 100}%`, top: "8px" }}>
-                <span className="tt-x">Semana {semanas[hi]}</span>
-                <div>{campaniaSeleccionada}: {(() => { const v = valorPorCampania.get(campaniaSeleccionada)?.get(semanas[hi]!); return v == null ? "—" : `${nfmt(v, 1)}%`; })()}</div>
-              </div>
-            )}
-          </>
-        }
-      >
-        {tickIndices.map((i) => (
-          <text key={i} className="cv-axis" x={X(i)} y={H - 8} textAnchor="middle">
-            {semanas[i]}
-          </text>
-        ))}
-        {ordenDibujo.map((s) => {
-          const esActual = s.campania === campaniaSeleccionada;
-          const puntosPorSemana = new Map(s.puntos.map((p) => [p.semana, p.valor]));
-          const segmentos: string[] = [];
-          let trazoAbierto = false;
-          semanas.forEach((sem, i) => {
-            const v = puntosPorSemana.get(sem);
-            if (v == null) {
-              trazoAbierto = false;
-              return;
-            }
-            segmentos.push(`${trazoAbierto ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`);
-            trazoAbierto = true;
-          });
-          return (
-            <g
-              key={s.campania}
-              className="evo-serie"
-              style={{ "--org-c": esActual ? COLOR_ACTUAL : COLOR_PREVIA, opacity: esActual ? 1 : 0.45 } as React.CSSProperties}
-            >
-              <path d={segmentos.join(" ")} className="evo-line" strokeWidth={esActual ? 2.4 : 1.3} />
-            </g>
-          );
-        })}
-        {hi !== null && <line className="cv-cross" x1={X(hi)} y1={pad.t} x2={X(hi)} y2={pad.t + ih} />}
-      </SvgLineChartBase>
+        exportName={exportCsv}
+        xTitle="Semana de campaña"
+        yTitle="% del área"
+        valueFormatter={(v) => `${nfmt(v, 1)}%`}
+        option={{
+          xAxis: { type: "category", data: semanas.map((s) => String(s)) },
+          yAxis: { type: "value", min: 0, axisLabel: { formatter: (v: number) => `${nfmt(v, 0)}%` } },
+          // Patrón "emphasis" (skill dataviz): la campaña elegida en color pleno + más gruesa,
+          // el resto en gris de fondo — no categórico (son referencia histórica, no entidades a
+          // distinguir entre sí una de otra).
+          series: series.map((s) => {
+            const esActual = s.campania === campaniaSeleccionada;
+            return {
+              name: s.campania,
+              type: "line",
+              symbol: "none",
+              data: semanas.map((sem) => valorPorCampania.get(s.campania)?.get(sem) ?? null),
+              itemStyle: { color: esActual ? p.brandDeep : p.ink3 },
+              lineStyle: { color: esActual ? p.brandDeep : p.ink3, width: esActual ? 2.4 : 1.3, opacity: esActual ? 1 : 0.45 },
+              z: esActual ? 10 : 1,
+            };
+          }),
+        }}
+      />
       <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={exportCsv} nota="% por semana de campaña; una columna por campaña." />
     </>
   );
@@ -167,22 +112,6 @@ function OverlayChart({
 function FenologiaChart({ grano, ciclo, campania, filas }: { grano: string; ciclo: string; campania: string; filas: FilaCondicionDB[] }) {
   const series = useMemo(() => fenologiaCampania(filas, grano, ciclo, campania), [filas, grano, ciclo, campania]);
   const semanas = useMemo(() => semanasUniverso(series), [series]);
-
-  const X = (i: number) => (semanas.length <= 1 ? pad.l + iw / 2 : pad.l + (i / (semanas.length - 1)) * iw);
-  const Y = (v: number) => pad.t + (1 - v / 100) * ih;
-  const yTicks = [0, 25, 50, 75, 100];
-
-  const { hi, onPointerMove, onPointerLeave } = useCrosshair(W, H, (px) => {
-    if (semanas.length === 0) return null;
-    const idx = Math.round(((px - pad.l) / iw) * (semanas.length - 1));
-    return Math.min(semanas.length - 1, Math.max(0, idx));
-  });
-
-  const MAX_TICKS = 9;
-  const tickIndices =
-    semanas.length <= MAX_TICKS
-      ? semanas.map((_, i) => i)
-      : [...new Set(Array.from({ length: MAX_TICKS }, (_, k) => Math.round((k * (semanas.length - 1)) / (MAX_TICKS - 1))))];
 
   const columnas: ChartTablaColumna[] = [
     { key: "semana", label: "Semana", align: "left" },
@@ -200,60 +129,23 @@ function FenologiaChart({ grano, ciclo, campania, filas }: { grano: string; cicl
 
   return (
     <>
-      <SvgLineChartBase
-        w={W}
-        h={H}
-        inner={{ x: pad.l, y: pad.t, width: iw, height: ih }}
+      <RfChart
         ariaLabel="Fenología por etapa"
-        yTicks={yTicks.map((t) => ({ valor: t, y: Y(t), label: `${t}%` }))}
-        onPointerMove={onPointerMove}
-        onPointerLeave={onPointerLeave}
-        after={
-          <>
-            {hi !== null && (
-              <div className="cv-tip" style={{ left: `${(X(hi) / W) * 100}%`, top: "8px" }}>
-                <span className="tt-x">Semana {semanas[hi]}</span>
-                {series.map((s) => (
-                  <div key={s.etapa}>{s.etapa}: {s.puntos[hi]?.pct == null ? "—" : `${nfmt(s.puntos[hi]!.pct!, 1)}%`}</div>
-                ))}
-              </div>
-            )}
-            <div className="cv-legend">
-              {series.map((s, i) => (
-                <span className="lk" key={s.etapa} style={{ "--org-c": PALETA_ETAPAS[i % PALETA_ETAPAS.length] } as React.CSSProperties}>
-                  <span className="sw evo-sw" />
-                  {s.etapa}
-                </span>
-              ))}
-            </div>
-          </>
-        }
-      >
-        {tickIndices.map((i) => (
-          <text key={i} className="cv-axis" x={X(i)} y={H - 8} textAnchor="middle">
-            {semanas[i]}
-          </text>
-        ))}
-        {series.map((s, i) => {
-          const color = PALETA_ETAPAS[i % PALETA_ETAPAS.length]!;
-          const segmentos: string[] = [];
-          let abierto = false;
-          s.puntos.forEach((p, k) => {
-            if (p.pct == null) {
-              abierto = false;
-              return;
-            }
-            segmentos.push(`${abierto ? "L" : "M"}${X(k).toFixed(1)},${Y(p.pct).toFixed(1)}`);
-            abierto = true;
-          });
-          return (
-            <g key={s.etapa} className="evo-serie" style={{ "--org-c": color } as React.CSSProperties}>
-              <path d={segmentos.join(" ")} className="evo-line" />
-            </g>
-          );
-        })}
-        {hi !== null && <line className="cv-cross" x1={X(hi)} y1={pad.t} x2={X(hi)} y2={pad.t + ih} />}
-      </SvgLineChartBase>
+        exportName={`pas-condicion-fenologia-${grano}-${ciclo}-${campania.replace("/", "-")}`}
+        xTitle="Semana de campaña"
+        yTitle="% del área"
+        valueFormatter={(v) => `${nfmt(v, 1)}%`}
+        option={{
+          xAxis: { type: "category", data: semanas.map((s) => String(s)) },
+          yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: (v: number) => `${v}%` } },
+          series: series.map((s) => ({
+            name: s.etapa,
+            type: "line",
+            symbol: "none",
+            data: s.puntos.map((pt) => pt.pct),
+          })),
+        }}
+      />
       <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={`pas-condicion-fenologia-${grano}-${ciclo}-${campania.replace("/", "-")}`} nota="% del área en cada etapa fenológica, por semana de campaña." />
     </>
   );

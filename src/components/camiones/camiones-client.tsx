@@ -162,7 +162,6 @@ export function CamionesClient({
                 <h3 className="lu-h3">Por grano (Up River + Paraná Bs As)</h3>
                 <CamionesChart
                   series={chartsAgro}
-                  colorClassPrefix="cam-"
                   tituloAria="Camiones diarios por grano — Agroentregas"
                   tablaColapsable
                   tablaAbierta={tablaAbierta === "agro"}
