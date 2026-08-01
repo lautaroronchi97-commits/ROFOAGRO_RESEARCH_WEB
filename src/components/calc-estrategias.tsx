@@ -128,7 +128,11 @@ function PayoffChart({ serie, B, bes }: { serie: Escenario[]; B: number; bes: nu
                     show: true,
                     position: "top",
                     color: p.ink3,
-                    fontFamily: "var(--font-mono)",
+                    // ECharts renderiza en <canvas>: las custom properties de CSS (`var(--font-mono)`)
+                    // no se resuelven ahí (por eso `RfChart` resuelve la fuente real en runtime con
+                    // un probe de DOM) — acá alcanza con el stack genérico monoespaciado, ya que es
+                    // una sola etiqueta numérica chica, no la tipografía del chart entero.
+                    fontFamily: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- coord no está tipado en MarkPointDataItemOption público
                     formatter: (pr: any) => nfmt(Number(pr.data.coord[0]), 0),
                   },

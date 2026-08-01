@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { nfmt } from "@/lib/format";
 import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 import { RangoChips } from "./rango-chips";
 import type { PuntoBcraMulc } from "@/lib/bcra-mulc";
@@ -27,6 +29,8 @@ function fmtFecha(fechaISO: string): string {
  */
 export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[] }) {
   const [rango, setRango] = useState<Rango>("90");
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
 
   if (serieCompleta.length === 0) {
     return <div className="chart-wrap chart-empty">Sin datos todavía para el gráfico.</div>;
@@ -60,11 +64,11 @@ export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[]
           series: [
             {
               type: "bar",
-              data: serie.map((p) => ({
-                value: p.montoMusd,
+              data: serie.map((s) => ({
+                value: s.montoMusd,
                 itemStyle: {
-                  color: p.montoMusd >= 0 ? "var(--pos)" : "var(--neg)",
-                  opacity: p.fuente === "manual" ? 0.5 : 0.92,
+                  color: s.montoMusd >= 0 ? p.pos : p.neg,
+                  opacity: s.fuente === "manual" ? 0.5 : 0.92,
                 },
               })),
             },

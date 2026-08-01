@@ -61,6 +61,11 @@ function DeltaTnaChart({ filas }: { filas: FilaFijar[] }) {
             name: "Delta (USD)",
             type: "bar",
             yAxisIndex: 0,
+            // itemStyle a nivel serie: SOLO decide el swatch de la leyenda (cada barra ya
+            // trae su propio itemStyle pos/neg abajo, que siempre gana) — sin esto ECharts
+            // le asigna el próximo color de la paleta categórica, que no dice nada de un
+            // bar pos/neg.
+            itemStyle: { color: p.pos },
             data: filas.map((f) => ({
               value: f.delta,
               itemStyle: { color: f.delta >= 0 ? p.pos : p.neg, opacity: 0.85 },
