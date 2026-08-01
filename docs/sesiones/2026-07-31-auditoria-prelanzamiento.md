@@ -205,6 +205,39 @@ sigue del backlog repriorizado (dump de backups, branch protection 🖐, gaps de
 detector de anomalías extendido, legal, OG/CWV, staging) sigue en `PRELAUNCH_CHECKLIST.md`, sin
 tocar.
 
+## Parte 5 (01/08/2026) — dump versionado de backups
+
+Siguiente ítem del backlog repriorizado: la única red de backups real ahora que Lautaro descartó
+Supabase Pro. Primero se buscó si el repo ya tenía algún patrón de "generar y commitear de vuelta"
+en un workflow — no existía ninguno (los 17 workflows previos son 100% solo-lectura hacia el repo,
+E5 estableció ese mínimo privilegio a propósito) — así que este es el primer workflow con permiso
+de escritura, acotado explícitamente a sí mismo, no al default.
+
+- **`scripts/backup-tablas-manuales.mjs`**: mismo patrón de paginación que `chequeo-anomalias.mjs`
+  (offset + orden total por PK real, verificado migración por migración para las 6 tablas —
+  `compras` PK `id`, `camiones` PK `(fecha,zona,producto,fuente)`, `estimaciones_produccion` PK de
+  6 columnas, `lecap_pago_final` PK `ticker`, `pas_zonas`/`pas_condicion` con sus PKs compuestas).
+  Vuelca cada tabla a `data/backups/<tabla>.json`, ruta fija (el historial de versiones lo da git,
+  no nombres con fecha — evita crecimiento sin límite).
+- **Guard nuevo, no pedido explícitamente pero necesario**: si una tabla trae 0 filas o cae más de
+  50% vs. el backup ya commiteado, ESE archivo no se toca (protege contra que un fetch roto borre
+  un backup bueno) — el resto de las tablas se procesan igual, falla parcial en vez de atómica.
+  Mismo espíritu que el detector de anomalías (D7): un backup que se sobreescribe solo con datos
+  malos no es un backup.
+- **`.github/workflows/backup-tablas-manuales.yml`**: cron domingos 08:00 ART + dispatch manual,
+  `permissions: contents: write` (única excepción de todo el repo al mínimo privilegio).
+
+**Corrido en vivo contra la base real** (creds del entorno), dos veces seguidas para confirmar
+idempotencia: compras 9.569 · camiones 42.636 · estimaciones_produccion 5.929 · lecap_pago_final
+12 · pas_zonas 1.837 · pas_condicion 1.872 filas. Los últimos 3 coinciden EXACTOS con los números
+ya documentados en sesiones anteriores (pas_zonas/pas_condicion del 29/07, lecap_pago_final del
+24/07) — confirma que la paginación con orden total no repite ni saltea filas. ~16,6 MB el dump
+inicial, incluido en este mismo commit para que arranque con datos reales en vez de vacío (el
+próximo domingo el cron ya solo commitea el diff).
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ (los 6
+JSON no afectan lint/build, son datos, no código).
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace

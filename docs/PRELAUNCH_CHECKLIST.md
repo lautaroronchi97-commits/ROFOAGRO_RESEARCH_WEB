@@ -146,10 +146,19 @@
   poder prenderse). Mitigación que SÍ queda en pie (ver siguiente ítem): el dump versionado
   propio cubre al menos las tablas de carga manual, que son las irreproducibles de verdad (las
   automáticas se re-ingieren solas desde la fuente si hace falta).
-- [ ] Respaldo versionado propio de las tablas de carga manual (`compras`, `camiones`,
-  `estimaciones_produccion` manuales, `lecap_pago_final`, `pas_*`) — dump periódico a `data/`
-  vía workflow, como red extra independiente del plan de Supabase. **Pasa a ser la única red de
-  seguridad de backups** tras la decisión de arriba — subir su prioridad.
+- [x] **Respaldo versionado propio** — HECHO 01/08/2026: `scripts/backup-tablas-manuales.mjs` +
+  `.github/workflows/backup-tablas-manuales.yml` (cron domingos 08:00 ART + `workflow_dispatch`,
+  único workflow del repo con `contents: write` — el resto se mantiene en solo-lectura, E5
+  #12d). Vuelca `compras`/`camiones`/`estimaciones_produccion`/`lecap_pago_final`/`pas_zonas`/
+  `pas_condicion` completas a `data/backups/*.json` (ruta fija, git guarda el historial de
+  versiones — sin archivos por fecha) y commitea solo si hubo cambios. **Guard anti-sobre-
+  escritura mala** (mismo espíritu que D7): si una tabla trae 0 filas o cae >50% vs. el backup
+  anterior, esa tabla NO se sobreescribe (fetch roto ≠ borrar el backup bueno) y el workflow
+  sale en rojo — el resto de las tablas se procesan igual (falla parcial, no atómica). Corrido
+  en vivo contra la base real dos veces (idempotente): compras 9.569 · camiones 42.636 ·
+  estimaciones_produccion 5.929 · lecap_pago_final 12 · pas_zonas 1.837 · pas_condicion 1.872
+  filas — los 3 últimos coinciden exacto con lo documentado en sesiones anteriores. ~16,6 MB el
+  dump inicial, commiteado en este mismo PR (arranca con datos reales, no vacío).
 - [ ] Staging: 2º proyecto Supabase (gratis) para Previews — hoy los Previews de Vercel leen la
   base de PRODUCCIÓN con la anon key (confirmado 01/08 — no hay ninguna mención de un 2º
   proyecto en el repo, es 100% una recomendación pendiente). Con S1 aplicado, además, los
