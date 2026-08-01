@@ -323,6 +323,26 @@ Verificado en vivo: `curl /opengraph-image` devuelve un PNG 1200×630 real, los 
 **Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ + PNG
 real descargado y revisado.
 
+## Parte 9 (01/08/2026) — Core Web Vitals (@vercel/analytics + Speed Insights)
+
+Lautaro dijo "seguí" sin más precisión sobre los 2 ítems que quedaban (CWV necesita una
+dependencia nueva, staging es una decisión de infra). Se interpretó como luz verde para el de
+menor riesgo real (paquete oficial de Vercel, ya en Pro, sin PII) y se dejó aparte el de
+staging (crea infraestructura real — un proyecto nuevo de Supabase, con su propio costo/cupo
+aunque sea gratis) para preguntar antes de aprovisionar nada.
+
+- `npm install @vercel/analytics @vercel/speed-insights` — únicas 2 dependencias de producción
+  nuevas desde la auditoría E4 del 21/07.
+- `layout.tsx`: `<Analytics />` + `<SpeedInsights />` al final del `<body>`, mismo patrón que la
+  documentación oficial. Son Client Components (`"use client"`) — no aparecen en el HTML
+  servido por `curl` (SSR), inyectan su script recién tras la hidratación en el navegador.
+  Verificado con Playwright real que el script se monta.
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ +
+Playwright confirmando la inyección del script client-side. Los datos reales de Core Web Vitals
+van a aparecer en el dashboard de Vercel recién con tráfico real de producción — no hay nada más
+para verificar desde el código.
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace

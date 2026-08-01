@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Source_Serif_4, Source_Sans_3, Source_Code_Pro } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 
@@ -72,6 +74,11 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        {/* Core Web Vitals reales de producción (Fase 7, 01/08/2026) — paquetes oficiales de
+            Vercel, cero configuración extra (ya estamos en Vercel Pro). Sin cookies, sin PII;
+            degradan solos fuera de Vercel (dev local, otro hosting). */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

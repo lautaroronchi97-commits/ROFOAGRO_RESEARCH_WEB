@@ -255,14 +255,18 @@
   meta tags (`og:*`+`twitter:*`) presentes en el HTML servido. **Sin verificar**: el Sharing
   Debugger real de Meta/WhatsApp (requiere el dominio productivo público, no alcanzable desde
   este sandbox) — recomendado probarlo una vez en producción.
-- [ ] Performance: Core Web Vitals reales de producción (base E4 ya medida: bundle −235 KB, ISR
-  por página) — **confirmado 01/08: sin `@vercel/analytics`/Speed Insights instalado, sin medir
-  hoy**. Lo demás auditado y sólido: `next.config.ts` con headers completos, ISR consistente
-  (30s rueda en vivo / 60s dólar-calcs / 3600s baja frecuencia), 9 deps de producción sin
-  hinchazón (`@supabase/ssr`, `@supabase/supabase-js`, `next`, `next-themes`, `react`,
-  `react-dom`, `recharts`, `server-only`, `ws` — todas justificadas, 0 código muerto, E4). 13
-  páginas sin `revalidate` explícito son en su mayoría mesa-only (esperado, dinámicas por
-  `requireAdmin`) — sin evidencia de que sea un olvido real.
+- [x] **Performance / Core Web Vitals — HECHO 01/08/2026**: `@vercel/analytics` +
+  `@vercel/speed-insights` (paquetes oficiales de Vercel, únicas 2 dependencias nuevas de
+  producción del proyecto desde E4) cableados en `layout.tsx` (`<Analytics />` +
+  `<SpeedInsights />`, mismo patrón que la doc oficial). Son Client Components — inyectan su
+  script recién en el navegador tras la hidratación (no aparecen en el HTML servido por
+  `curl`), verificado con Playwright real que el `<script src="/_vercel/...">` se monta.
+  Datos reales de CWV van a aparecer en el dashboard de Vercel (Analytics/Speed Insights) recién
+  con tráfico real de producción — nada que verificar más desde acá. Lo demás ya estaba sólido:
+  `next.config.ts` con headers completos, ISR consistente (30s rueda en vivo / 60s dólar-calcs /
+  3600s baja frecuencia), deps de producción sin hinchazón, 0 código muerto (E4). 13 páginas sin
+  `revalidate` explícito son en su mayoría mesa-only (esperado, dinámicas por `requireAdmin`) —
+  sin evidencia de que sea un olvido real.
 - [ ] 🖐 Beta cerrada: 1-2 clientes de confianza, canal de feedback, criterios go/no-go definidos
   ANTES (ej.: 0 bugs críticos abiertos · 0 reportes de dato incorrecto sin resolver en la última
   semana · clientes llegan al momento de valor). La beta termina con una decisión.
