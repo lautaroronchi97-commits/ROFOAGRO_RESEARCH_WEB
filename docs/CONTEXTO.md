@@ -37,7 +37,10 @@
   más sobrios (ej. copy institucional de la landing).
 
 ## Stack
-Next.js 16 (App Router) + TypeScript · Tailwind v4 · next-themes · gráficos SVG a mano (Recharts previsto) ·
+Next.js 16 (App Router) + TypeScript · Tailwind v4 · next-themes · **Apache ECharts** (motor único de
+gráficos del sitio, `src/charts/RfChart.tsx` + `rofoTheme.ts` + `rofoLocale.ts` — migración cerrada
+01/08/2026, reemplaza el SVG a mano y Recharts que usaba antes; detalle en
+`sesiones/2026-08-01-echarts-migration{,-parte2}.md`) ·
 **Supabase CONECTADO** (proyecto `lineup-argentina`, lectura anon con RLS; tablas `futuros_cierres`,
 `vencimientos`, `djve` (registro DJVE **2011→hoy**: histórico backfilleado 19/07/2026 de los XLS oficiales
 SSMA, 334k filas, col. `cosecha` para la era ROE sin ventana de embarque), `lineup`, `compras` (serie semanal de comercialización SIO Granos 2019→hoy, 7 granos × 2 sectores ×

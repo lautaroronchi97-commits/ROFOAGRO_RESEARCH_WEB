@@ -74,6 +74,9 @@ export function DolarOficialSemanalChart({ semanas: semanasCompletas }: { semana
               name: "Variación semanal",
               type: "bar",
               yAxisIndex: 1,
+              // itemStyle a nivel serie: solo decide el swatch de la leyenda (cada barra ya
+              // trae su propio itemStyle pos/neg/neu abajo, que siempre gana).
+              itemStyle: { color: p.pos },
               data: semanas.map((s) => ({
                 value: s.deltaPct,
                 itemStyle: { color: s.deltaPct == null ? p.neu : s.deltaPct >= 0 ? p.pos : p.neg, opacity: 0.55 },

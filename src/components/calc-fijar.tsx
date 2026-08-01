@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useTheme } from "next-themes";
 import { Panel, PanelHead } from "./panel";
-import { ChartMarca } from "./chart-marca";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { sfmt, rfmt, nfmt, numDeInput as num } from "@/lib/format";
 import { evaluarFijar, type Lado, type FilaFijar } from "@/lib/fijar";
 import { hoyCordoba, parseYmd } from "@/lib/habiles";
@@ -29,83 +31,77 @@ function mesCorto(iso: string): string {
 type FilaCurva = { vto: string; precio: string; estimado: boolean };
 
 /**
- * Gráfico COMBINADO delta (barras, eje izq. USD) + TNA implícita (línea, eje
- * der. %) por plazo — un solo chart, dos escalas independientes sobre el mismo
- * eje X. Se intentó primero (pedido explícito del relevamiento: "estaría bueno
- * el gráfico combinado, si no queda legible por separado") y con 4-6 posiciones
- * queda legible: menos elementos repetidos en la página, menos superficie para
- * que la marca de agua choque con los datos.
+ * Gráfico de resultado por vencimiento — barras finas, un solo eje. Reemplaza
+ * el combo delta+TNA de doble eje (quedaba "raro": bloques anchos con solo
+ * 4-6 categorías, y el color pintaba por el SIGNO CRUDO del delta, que la
+ * tabla de abajo (`favorable`) ya sabía que se invierte según `lado` —
+ * "compro a fijar" con delta negativo es BUENO, y el chart lo pintaba rojo).
+ * Ahora colorea por `favorable` (mismo criterio que la tabla) y muestra la
+ * TNA implícita como texto chico debajo del valor principal, sin eje propio.
  */
-function DeltaTnaChart({ filas }: { filas: FilaFijar[] }) {
+function ResultadoChart({ filas }: { filas: FilaFijar[] }) {
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   if (filas.length === 0) return null;
-  const W = Math.max(640, filas.length * 160);
-  const H = 300;
-  const padT = 32;
-  const padB = 34;
-  const h = H - padT - padB;
-  const bw = W / filas.length;
-
-  const deltaVals = filas.map((f) => f.delta);
-  const dMax = Math.max(0, ...deltaVals);
-  const dMin = Math.min(0, ...deltaVals);
-  const dRange = dMax - dMin || 1;
-  const yDelta = (v: number) => padT + ((dMax - v) / dRange) * h;
-  const zeroY = yDelta(0);
-
-  // La línea de TNA se queda en la franja SUPERIOR del chart (top 42%), sin
-  // compartir el resto del alto con las barras — evita que su etiqueta choque
-  // con la etiqueta del delta cuando, para alguna posición, ambos valores caen
-  // cerca del mismo punto vertical (encontrado en la verificación real con datos
-  // de maíz: la TNA más baja coincidía con la barra más negativa).
-  const tnaVals = filas.filter((f) => Number.isFinite(f.tna)).map((f) => f.tna);
-  const tMax = tnaVals.length ? Math.max(...tnaVals, 0) : 1;
-  const tMin = tnaVals.length ? Math.min(...tnaVals, 0) : 0;
-  const tRange = tMax - tMin || 1;
-  const hTna = h * 0.42;
-  const yTna = (v: number) => padT + ((tMax - v) / tRange) * hTna;
-
-  const pts = filas
-    .map((f, i) => (Number.isFinite(f.tna) ? { cx: i * bw + bw / 2, cy: yTna(f.tna), f } : null))
-    .filter((p): p is { cx: number; cy: number; f: FilaFijar } => p !== null);
-  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.cx},${p.cy}`).join(" ");
 
   return (
-    <div className="chart-wrap">
-      <ChartMarca tamano="chico" />
-      <div className="dt-legend">
-        <span><i className="dt-sw dt-sw-bar" /> Delta (USD)</span>
-        <span><i className="dt-sw dt-sw-line" /> TNA implícita (%)</span>
-      </div>
-      <svg className="cv" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfico combinado: delta por plazo y curva de TNA implícita">
-        <line x1={0} y1={zeroY} x2={W} y2={zeroY} stroke="var(--line-2)" strokeWidth={1} />
-        {filas.map((f, i) => {
-          const cx = i * bw + bw / 2;
-          const barW = Math.min(38, bw * 0.36);
-          const yv = yDelta(f.delta);
-          const top = Math.min(zeroY, yv);
-          const height = Math.max(1, Math.abs(yv - zeroY));
-          const pos = f.delta >= 0;
-          return (
-            <g key={i}>
-              <rect x={cx - barW / 2} y={top} width={barW} height={height} rx={2}
-                fill={pos ? "var(--pos)" : "var(--neg)"} opacity={0.85} />
-              <text x={cx} y={pos ? top - 6 : top + height + 14} textAnchor="middle" fontSize={11}
-                fill="var(--ink-2)" fontFamily="var(--font-mono)">{sfmt(f.delta, 1)}</text>
-              <text x={cx} y={H - 7} textAnchor="middle" fontSize={10} fill="var(--ink-3)"
-                fontFamily="var(--font-mono)">{mesCorto(f.vto)}</text>
-            </g>
-          );
-        })}
-        {path && <path d={path} fill="none" stroke="var(--gold-text)" strokeWidth={2.5} />}
-        {pts.map((p, i) => (
-          <g key={`t${i}`}>
-            <circle cx={p.cx} cy={p.cy} r={4} fill="var(--gold-text)" stroke="var(--panel)" strokeWidth={1.5} />
-            <text x={p.cx} y={p.cy - 11} textAnchor="middle" fontSize={11} fontWeight={700}
-              fill="var(--gold-text)" fontFamily="var(--font-mono)">{rfmt(p.f.tna, 1)}</text>
-          </g>
-        ))}
-      </svg>
-    </div>
+    <RfChart
+      ariaLabel="Resultado por vencimiento, con la TNA implícita de cada uno"
+      exportName="fijar-resultado"
+      xTitle="Vencimiento"
+      yTitle="Resultado (USD)"
+      watermarkSize="chico"
+      height={260}
+      valueFormatter={(v) => sfmt(v, 1)}
+      option={{
+        // Sin legend: la 2ª serie (TNA) es un mellizo invisible superpuesto exacto sobre las
+        // barras reales, solo para poder colgarle su propio label — no es una serie real que
+        // tenga sentido listar.
+        legend: { show: false },
+        xAxis: { type: "category", data: filas.map((f) => mesCorto(f.vto)) },
+        yAxis: { type: "value" },
+        series: [
+          {
+            name: "Resultado",
+            type: "bar",
+            barMaxWidth: 26,
+            barGap: "-100%",
+            // itemStyle a nivel serie: SOLO decide el swatch de la leyenda (cada barra ya
+            // trae su propio itemStyle pos/neg abajo, que siempre gana) — sin esto ECharts
+            // le asigna el próximo color de la paleta categórica, que no dice nada de un
+            // bar pos/neg.
+            itemStyle: { color: p.pos, borderRadius: 3 },
+            data: filas.map((f) => ({
+              value: f.resultado,
+              itemStyle: { color: f.favorable ? p.pos : p.neg, opacity: 0.85, borderRadius: 3 },
+              label: { show: true, position: "top", formatter: () => sfmt(f.resultado, 1) },
+            })),
+          },
+          {
+            // Mellizo invisible EXACTO (mismo valor → mismo alto de barra) — el label
+            // `position:"bottom"` de ECharts es relativo al propio rectángulo de la barra,
+            // así que necesita coincidir en tamaño para que la TNA caiga justo debajo del
+            // borde de la barra real, sea positiva o negativa.
+            name: "TNA implícita",
+            type: "bar",
+            barMaxWidth: 26,
+            silent: true,
+            tooltip: { show: false },
+            itemStyle: { color: "transparent" },
+            data: filas.map((f) => ({
+              value: f.resultado,
+              label: {
+                show: true,
+                position: "bottom",
+                color: p.ink3,
+                fontSize: 9,
+                formatter: () => (Number.isFinite(f.tna) ? `TNA ${nfmt(f.tna, 1)}%` : "TNA —"),
+              },
+            })),
+          },
+        ],
+      }}
+    />
   );
 }
 
@@ -189,7 +185,7 @@ export function CalcFijar({
           </label>
         </div>
 
-        <DeltaTnaChart filas={validas} />
+        <ResultadoChart filas={validas} />
 
         <div className="table-scroll">
           <table className="tbl" style={{ minWidth: 700 }}>

@@ -1,21 +1,18 @@
 "use client";
 
 import * as React from "react";
-import {
-  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot,
-  ResponsiveContainer, LabelList,
-} from "recharts";
+import { useTheme } from "next-themes";
 import { nfmt } from "@/lib/format";
 import {
   etiquetaCalendario, mesDeFecha, mesEnRuedasAlVto,
   type BandaPunto, type Eje, type Metric, type PuntoXY,
 } from "@/lib/derivadas";
-import { exportarSvgComoPng } from "@/lib/chart-export";
-import { ChartMarca } from "./chart-marca";
+import { RfChart } from "@/charts/RfChart";
+import { paletteFor } from "@/charts/rofoTheme";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart-tabla";
 
 /**
- * Chart multi-campaña del panel de spreads. Dos vistas:
+ * Chart multi-campaña del panel de spreads (el motor principal de `/graficos`). Dos vistas:
  *  - "lineas": una línea por campaña, superpuestas.
  *  - "banda": las campañas históricas colapsan en una sombra min–máx + mediana,
  *    y la campaña vigente va gruesa encima (P13). Mata el spaghetti.
@@ -26,6 +23,15 @@ import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "./chart
  * caller — se dibujan siempre (no participan de la banda histórica ni del KPI).
  * `pct` (P6, "ratio/base en %"): formatea los valores como porcentaje.
  * `exportName` (P6, export PNG/CSV): si viene, agrega los botones de descarga.
+ *
+ * Colores: cada línea trae SU PROPIO color (`CampLine.color`), resuelto por el
+ * caller desde `--camp-{año}` (paleta semántica de 8 campañas, `graficos-client.tsx`)
+ * o una paleta de 12 colores por posición (`periodo-panel.tsx`) — ya viene como
+ * literal (`getComputedStyle(...).getPropertyValue(...)`), nunca un color de
+ * RfChart. Sin legend (regla no-negociable de la skill dataviz salvo excepción
+ * documentada): con hasta 8+ líneas superpuestas una leyenda aparte sería un 2º
+ * lugar al que mirar — el `endLabel` de ECharts pone el nombre de la campaña en
+ * la punta de cada línea, que es como ya funcionaba con `LabelList` de Recharts.
  */
 
 export type CampLine = {
@@ -63,6 +69,10 @@ function mergeRows(lines: CampLine[], banda: BandaPunto[]): Row[] {
   return [...byX.values()].sort((a, b) => a.x - b.x);
 }
 
+/** Params de un ítem del tooltip axis-trigger — la forma pública de ECharts (`CallbackDataParams`)
+ *  no expone `axisValue`/`data.f` de forma utilizable en su firma, mismo criterio que RfChart.tsx. */
+type TipItem = { seriesName: string; color: string; value: unknown; data: unknown; axisValue: number | string };
+
 export function SpreadChart({
   lines, eje, metric, anchorMes, decimals = 2, modo = "lineas", banda = [], refVto,
   ma, pct = false, exportName, kpis,
@@ -79,12 +89,13 @@ export function SpreadChart({
   ma?: CampLine[];
   /** Formatea los valores como porcentaje (P6, "ratio/base en %"). */
   pct?: boolean;
-  /** Si viene, muestra los botones de export PNG/CSV con este nombre de archivo. */
+  /** Si viene, muestra el botón de export CSV de la tabla con este nombre de archivo. */
   exportName?: string;
   /** KPIs del caller (R7 punto 48): se renderizan ENTRE el chart y la tabla. */
   kpis?: React.ReactNode;
 }) {
-  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
   // En modo banda solo se dibuja la vigente como línea (la historia es la sombra);
   // la media móvil se agrega siempre encima (overlay), no participa de la banda.
   const drawnBase = modo === "banda" ? lines.filter((l) => l.vigente) : lines;
@@ -94,20 +105,6 @@ export function SpreadChart({
   const fmtValor = React.useCallback(
     (v: number) => (pct ? `${nfmt(v, decimals)}%` : nfmt(v, decimals)),
     [pct, decimals],
-  );
-  // Marcadores "parcial" (guard, P6): último punto de las líneas cuyo dato final
-  // es de HOY — puede seguir cambiando (rueda sin cerrar / pizarra sin la última
-  // actualización del día). Círculo hueco en el punto + nota al pie.
-  const puntosParciales = React.useMemo(
-    () =>
-      drawnBase
-        .filter((ln) => ln.parcial && ln.data.length > 0)
-        .map((ln) => {
-          // filter() de arriba ya exige ln.data.length>0 → ln.data[0] existe.
-          const ult = ln.data.reduce((m, p) => (p.x > m.x ? p : m), ln.data[0]!);
-          return { key: ln.key, color: ln.color, x: ult.x, y: ult.y };
-        }),
-    [drawnBase],
   );
   // Tabla siempre descendente (R6 punto 32 / R7 punto 48, patrón general del sitio) — y en el
   // eje días-al-vto, la fila de "hoy" (el último dato REAL de la campaña vigente, que en
@@ -137,7 +134,7 @@ export function SpreadChart({
   // campaña vigente (x=0 = vto). Si no hay refVto, cae al mes del último dato.
   const ref = lines.find((l) => l.vigente) ?? lines[0];
   // ref.data.length chequeado en la misma condición → ref.data[0] existe.
-  const ultFecha = ref && ref.data.length ? ref.data.reduce((m, p) => (p.x > m.x ? p : m), ref.data[0]!).f : null;
+  const ultFecha = ref && ref.data.length ? ref.data.reduce((m, p2) => (p2.x > m.x ? p2 : m), ref.data[0]!).f : null;
   const mesEnX = (x: number): string => {
     if (refVto) return mesEnRuedasAlVto(refVto, Math.max(0, Math.round(-x)));
     return ultFecha ? mesDeFecha(ultFecha) : "";
@@ -183,6 +180,7 @@ export function SpreadChart({
     }
     return fila;
   });
+  const puntosParciales = drawnBase.filter((ln) => ln.parcial && ln.data.length > 0);
   const hayParcial = puntosParciales.length > 0;
   const notaTabla =
     (eje === "vto"
@@ -192,119 +190,148 @@ export function SpreadChart({
 
   const axisDecimals = pct ? 1 : metric === "ratio" ? 3 : 0;
 
-  /** Label de campaña en el extremo (último punto real) de cada línea — R7 punto 48. */
-  function labelExtremo(dataKey: string, color: string, texto: string) {
-    let lastIdx = -1;
-    rows.forEach((r, i) => { if (typeof r[dataKey] === "number") lastIdx = i; });
-    function EtiquetaExtremo(props: { x?: string | number; y?: string | number; index?: number }) {
-      const { x, y, index } = props;
-      if (index !== lastIdx || x == null || y == null) return null;
-      return (
-        <text x={Number(x) + 6} y={Number(y)} dy={3} fontSize={10} fontFamily="var(--font-mono)" fontWeight={700} fill={color}>
-          {texto}
-        </text>
-      );
-    }
-    return EtiquetaExtremo;
-  }
+  // ---- series ECharts ----
+  // Cada línea es una serie independiente de puntos [x,y] — a diferencia de Recharts, ECharts
+  // no exige que todas compartan un único array de filas por x; `rows`/`mergeRows` de arriba
+  // sigue existiendo solo para la tabla, no para el chart.
+  const seriesLineas = drawn.map((ln, i) => {
+    const ordenados = [...ln.data].sort((a, b) => a.x - b.x);
+    const ultimo = ln.parcial && ordenados.length ? ordenados.reduce((m, pt) => (pt.x > m.x ? pt : m), ordenados[0]!) : null;
+    return {
+      name: ln.label,
+      type: "line" as const,
+      symbol: "none" as const,
+      data: ordenados.map((pt) => ({ value: [pt.x, pt.y] as [number, number], f: pt.f })),
+      lineStyle: { color: ln.color, width: ln.vigente ? 2.8 : 1.4, type: ln.dash ? ("dashed" as const) : ("solid" as const) },
+      itemStyle: { color: ln.color },
+      endLabel: { show: true, formatter: () => ln.label, color: ln.color, fontWeight: 700, fontSize: 10 },
+      // Modo Período puede superponer hasta 14 líneas — sin esto sus endLabel quedan
+      // amontonados e ilegibles donde las curvas convergen (visto en la verificación real).
+      labelLayout: { hideOverlap: true, moveOverlap: "shiftY" as const },
+      // Círculo hueco en el último punto si ese dato es de HOY (guard "parcial": puede cambiar).
+      markPoint: ultimo
+        ? {
+            symbol: "emptyCircle",
+            symbolSize: 10,
+            itemStyle: { color: "transparent", borderColor: ln.color, borderWidth: 1.6, borderType: "dashed" as const },
+            label: { show: false },
+            data: [{ name: "parcial", coord: [ultimo.x, ultimo.y] }],
+          }
+        : undefined,
+      // Línea de referencia y=0 (no aplica a "ratio", cuyo valor neutro es 1) — colgada de la
+      // primera serie dibujada, `rows.length>0` de arriba garantiza que `drawn` no está vacío.
+      markLine:
+        i === 0 && metric !== "ratio"
+          ? { silent: true, symbol: "none" as const, lineStyle: { color: p.grid, width: 1 }, label: { show: false }, data: [{ yAxis: 0 }] }
+          : undefined,
+    };
+  });
+  const seriesBanda = usaBanda
+    ? [
+        // Los dos de acá abajo son el truco estándar de ECharts para una banda min–máx: una
+        // serie ancla invisible en `min` + una serie apilada (`max−min`) con relleno visible —
+        // el área queda exactamente entre las dos curvas reales. `tooltip:{show:false}` en las
+        // 3 (más el filtro por nombre en `tooltipFormatter`) las saca del tooltip: ese lo arma
+        // a mano el formatter de abajo con una sola fila "historia mín–máx · mediana".
+        {
+          name: "__band_min",
+          type: "line" as const,
+          stack: "band",
+          symbol: "none" as const,
+          lineStyle: { opacity: 0 },
+          data: banda.map((b) => [b.x, b.min]),
+          tooltip: { show: false },
+        },
+        {
+          name: "__band_fill",
+          type: "line" as const,
+          stack: "band",
+          symbol: "none" as const,
+          lineStyle: { opacity: 0 },
+          areaStyle: { color: p.ink3, opacity: 0.16 },
+          data: banda.map((b) => [b.x, b.max - b.min]),
+          tooltip: { show: false },
+        },
+        {
+          name: "Mediana histórica",
+          type: "line" as const,
+          symbol: "none" as const,
+          lineStyle: { color: p.ink2, width: 1.3, type: "dashed" as const },
+          data: banda.map((b) => [b.x, b.med]),
+          tooltip: { show: false },
+        },
+      ]
+    : [];
+
+  const tooltipFormatter = (paramsRaw: unknown): string => {
+    const arr = (Array.isArray(paramsRaw) ? paramsRaw : [paramsRaw]) as TipItem[];
+    if (arr.length === 0) return "";
+    const axisValue = Number(arr[0]?.axisValue ?? NaN);
+    const head =
+      eje === "vto"
+        ? `${-Math.round(axisValue)} ruedas al vto · ${mesEnX(axisValue)}`
+        : etiquetaCalendario(axisValue, anchorMes);
+    const filasTip = arr
+      .filter((it) => it.seriesName && !it.seriesName.startsWith("__band") && it.seriesName !== "Mediana histórica")
+      .map((it) => {
+        const val = Array.isArray(it.value) ? it.value[1] : it.value;
+        const f =
+          it.data && typeof it.data === "object" && "f" in (it.data as object)
+            ? (it.data as { f?: string }).f
+            : undefined;
+        return { ...it, num: Number(val), f };
+      })
+      .filter((it) => Number.isFinite(it.num))
+      .sort((a, b) => b.num - a.num)
+      .map(
+        (it) =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:1.5px 0;">
+            <span style="display:inline-flex;align-items:center;gap:6px">
+              <span style="display:inline-block;width:12px;height:2.5px;border-radius:2px;background:${it.color}"></span>
+              ${it.seriesName}${it.f ? ` · <span style="opacity:.7">${it.f}</span>` : ""}
+            </span>
+            <b style="margin-left:10px">${fmtValor(it.num)}</b>
+          </div>`,
+      )
+      .join("");
+    const b = usaBanda ? banda.find((bb) => bb.x === axisValue) : undefined;
+    const bandaRow = b
+      ? `<div style="padding-top:3px;margin-top:3px;border-top:1px solid ${p.grid};color:${p.ink3}">
+          historia ${fmtValor(b.min)}–${fmtValor(b.max)} · med ${fmtValor(b.med)}
+        </div>`
+      : "";
+    return `<div style="color:${p.gold};font-weight:700;margin-bottom:3px">${head}</div>${filasTip}${bandaRow}`;
+  };
 
   return (
     <>
-      {exportName && (
-        <div className="gx-chart-toolbar">
-          <button
-            type="button"
-            className="gx-preset"
-            onClick={() => exportarSvgComoPng(wrapRef.current, `${exportName}.png`)}
-          >
-            ↓ PNG
-          </button>
-        </div>
-      )}
-      {/* El wrapper relativo ancla la marca de agua al área del chart. */}
-      <div style={{ position: "relative" }} ref={wrapRef}>
-        <ChartMarca />
-        <ResponsiveContainer width="100%" height={param(400)}>
-          {/* right:40 (no 16) — deja lugar a la etiqueta de campaña en el extremo de cada
-              línea (R7 punto 48); con 16 quedaba cortada contra el borde del SVG. */}
-          <ComposedChart data={rows} margin={{ top: 8, right: 40, bottom: 30, left: 4 }}>
-            <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" />
-            <XAxis
-              dataKey="x"
-              type="number"
-              domain={["dataMin", "dataMax"]}
-              height={eje === "vto" ? 40 : 28}
-              tick={<GxXTick eje={eje} anchorMes={anchorMes} mesEnX={mesEnX} />}
-              stroke="var(--line-2)"
-            />
-            <YAxis
-              tickFormatter={(v: number) => `${nfmt(v, axisDecimals)}${pct ? "%" : ""}`}
-              tick={{ fill: "var(--ink-3)", fontSize: 11 }}
-              stroke="var(--line-2)"
-              width={52}
-            />
-            {metric !== "ratio" && <ReferenceLine y={0} stroke="var(--line-2)" />}
-            <Tooltip
-              content={<GxTooltip lines={drawn} eje={eje} anchorMes={anchorMes} fmtValor={fmtValor} usaBanda={usaBanda} mesEnX={mesEnX} />}
-              isAnimationActive={false}
-            />
-            {usaBanda && (
-              <Area
-                dataKey="brange"
-                stroke="none"
-                fill="var(--ink-3)"
-                fillOpacity={0.16}
-                connectNulls
-                isAnimationActive={false}
-                activeDot={false}
-                legendType="none"
-              />
-            )}
-            {usaBanda && (
-              <Line
-                dataKey="bmed"
-                name="Mediana histórica"
-                stroke="var(--ink-2)"
-                strokeWidth={1.3}
-                strokeDasharray="5 4"
-                dot={false}
-                connectNulls
-                isAnimationActive={false}
-              />
-            )}
-            {drawn.map((ln) => (
-              <Line
-                key={ln.key}
-                type="monotone"
-                dataKey={`y${ln.key}`}
-                name={ln.label}
-                stroke={ln.color}
-                strokeWidth={ln.vigente ? 2.8 : 1.4}
-                strokeDasharray={ln.dash ? "4 3" : undefined}
-                dot={false}
-                activeDot={{ r: 3 }}
-                connectNulls
-                isAnimationActive={false}
-              >
-                <LabelList dataKey={`y${ln.key}`} content={labelExtremo(`y${ln.key}`, ln.color, ln.label)} />
-              </Line>
-            ))}
-            {puntosParciales.map((p) => (
-              <ReferenceDot
-                key={`parcial-${p.key}`}
-                x={p.x}
-                y={p.y}
-                r={5}
-                fill="none"
-                stroke={p.color}
-                strokeWidth={1.6}
-                strokeDasharray="2 2"
-                ifOverflow="visible"
-              />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <RfChart
+        ariaLabel={`Spread por campaña — ${eje === "vto" ? "días al vencimiento" : "eje calendario"}`}
+        exportName={exportName ?? "spread"}
+        xTitle={eje === "vto" ? "Ruedas al vencimiento" : "Fecha"}
+        yTitle={pct ? "Valor (%)" : "Valor (USD)"}
+        height={400}
+        valueFormatter={(v) => fmtValor(v)}
+        option={{
+          // Sin legend a propósito (ver docstring del componente): el endLabel de cada línea
+          // ya identifica la campaña en la punta, una leyenda aparte sería redundante con
+          // hasta 8+ campañas superpuestas.
+          legend: { show: false },
+          grid: { top: 16 },
+          xAxis: {
+            type: "value",
+            axisLabel: {
+              formatter: (v: number) => (eje === "vto" ? `${-Math.round(v)}\n${mesEnX(v)}` : etiquetaCalendario(v, anchorMes)),
+            },
+          },
+          yAxis: {
+            type: "value",
+            axisLabel: { formatter: (v: number) => `${nfmt(v, axisDecimals)}${pct ? "%" : ""}` },
+          },
+          tooltip: { trigger: "axis", formatter: tooltipFormatter },
+          series: [...seriesLineas, ...seriesBanda],
+        }}
+      />
       {kpis}
       <ChartTabla
         columnas={columnas}
@@ -314,92 +341,5 @@ export function SpreadChart({
         destacada={hoyX != null ? (_, i) => i === 0 : undefined}
       />
     </>
-  );
-}
-
-function param(n: number): number {
-  return n;
-}
-
-/* ---------------- tick del eje X (nº de ruedas + mes) ---------------- */
-
-type TickProps = {
-  x?: number;
-  y?: number;
-  payload?: { value: number };
-  eje: Eje;
-  anchorMes: number;
-  mesEnX: (x: number) => string;
-};
-
-function GxXTick({ x = 0, y = 0, payload, eje, anchorMes, mesEnX }: TickProps) {
-  const v = payload?.value ?? 0;
-  if (eje === "cal") {
-    return (
-      <text x={x} y={y} dy={14} textAnchor="middle" fill="var(--ink-3)" fontSize={11}>
-        {etiquetaCalendario(v, anchorMes)}
-      </text>
-    );
-  }
-  // Días al vto: nº de ruedas arriba, mes de referencia abajo.
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={13} textAnchor="middle" fill="var(--ink-3)" fontSize={11}>
-        {-Math.round(v)}
-      </text>
-      <text x={0} y={0} dy={26} textAnchor="middle" fill="var(--ink-3)" fontSize={9.5} opacity={0.85}>
-        {mesEnX(v)}
-      </text>
-    </g>
-  );
-}
-
-/* ---------------- tooltip ---------------- */
-
-type TipProps = {
-  active?: boolean;
-  lines: CampLine[];
-  eje: Eje;
-  anchorMes: number;
-  fmtValor: (v: number) => string;
-  usaBanda: boolean;
-  mesEnX: (x: number) => string;
-  payload?: Array<{ payload: Row }>;
-};
-
-function GxTooltip({ active, payload, lines, eje, anchorMes, fmtValor, usaBanda, mesEnX }: TipProps) {
-  if (!active || !payload || payload.length === 0) return null;
-  const row = payload[0]!.payload; // payload.length===0 ya salió arriba
-  const x = Number(row.x);
-  const head =
-    eje === "vto"
-      ? `${-Math.round(x)} ruedas al vto · ${mesEnX(x)}`
-      : etiquetaCalendario(x, anchorMes);
-  const items = lines
-    .map((ln) => ({ ln, y: row[`y${ln.key}`], f: row[`f${ln.key}`] }))
-    .filter((it) => typeof it.y === "number")
-    .sort((a, b) => (b.y as number) - (a.y as number));
-  const brange = row.brange as [number, number] | undefined;
-  const bmed = row.bmed as number | undefined;
-  if (items.length === 0 && !brange) return null;
-  return (
-    <div className="gx-tip">
-      <div className="gx-tip-h">{head}</div>
-      {items.map((it) => (
-        <div className="gx-tip-row" key={it.ln.key}>
-          <span className="sw" style={{ background: it.ln.color }} />
-          <b>{it.ln.label}</b>
-          <span>{fmtValor(it.y as number)}</span>
-          {typeof it.f === "string" && <span style={{ color: "var(--ink-3)" }}>· {it.f}</span>}
-        </div>
-      ))}
-      {usaBanda && brange && (
-        <div className="gx-tip-row" style={{ color: "var(--ink-3)" }}>
-          <span className="sw" style={{ background: "var(--ink-3)" }} />
-          historia {fmtValor(brange[0])}–{fmtValor(brange[1])}
-          {typeof bmed === "number" ? ` · med ${fmtValor(bmed)}` : ""}
-        </div>
-      )}
-    </div>
   );
 }
