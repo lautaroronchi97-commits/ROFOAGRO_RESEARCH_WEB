@@ -123,6 +123,18 @@
   son las que más preocupan: son 100% carga manual (más expuestas a error humano) y hoy solo se
   valida "¿llegó el dato?", no "¿el valor tiene sentido?". No es una regresión — nunca se
   construyó — pero vale la pena que Lautaro lo sepa antes de decidir si extender el catálogo.
+  **Investigado 01/08/2026, NO extendido — encontró un problema real de diseño, no una tarea
+  mecánica**: el barrido diario (`chequeo-anomalias.mjs:127`) separa "histórico" de "nuevo"
+  comparando la columna de fecha contra un corte `fecha >= DESDE` (ISO, últimos N días) — asume
+  una columna de fecha REAL. `pas_zonas`/`pas_condicion` no tienen ninguna: su eje temporal es
+  `campania` (texto "2000/01", ordena bien lexicográficamente pero no es una fecha) y `semana`
+  (0-53 sin fecha real). Meterlas tal cual al catálogo haría que el corte nunca dispare → CADA
+  corrida reprocesaría la tabla ENTERA como "nuevo", con riesgo real de re-alertar todos los
+  días el mismo desvío ya conocido y aceptado (ej. el +13-14% de cebada cervecera que D7 ya
+  había encontrado y decidido no clampear) — exactamente el "detector que grita se ignora" que
+  la calibración de D7 evitó a propósito para las otras 9 series. Un fix correcto necesita una
+  calibración retroactiva propia (mismo nivel de trabajo que la sesión original de D7), no un
+  agregado de 5 minutos al catálogo — queda para una sesión dedicada, no forzado acá.
 - [ ] No existe semáforo visual de antigüedad por tiempo transcurrido (verde/rojo según reloj del
   cliente) — hoy el ⚠ de `SourceStamp` es estático (lo setea el server al momento del fetch, vía
   `meta.problemas`), no recalcula edad en el navegador. Baja prioridad: el timestamp exacto ya es
@@ -233,8 +245,16 @@
   mismo, con estilos inline porque no puede asumir que `globals.css`/`ThemeProvider` sigan
   montados). Verificado forzando un error real (página temporal que tira `throw`, 500
   confirmado por HTTP + screenshot del boundary branded, borrada después — cero residuo).
-- [ ] **OG tags para WhatsApp**: `og:title/description/image` (1200×630, logo centrado, URL
-  absoluta) — los clientes agro comparten TODO por WhatsApp; verificar con el Sharing Debugger.
+- [x] **OG tags para WhatsApp — HECHO 01/08/2026**: `src/app/opengraph-image.tsx` (convención de
+  archivo de Next.js, `next/og`/satori, sin dependencia nueva) genera un PNG 1200×630 con el
+  wordmark ROFO AGRO (mismos colores de marca que el sitio) + tagline, servido en
+  `/opengraph-image`. `layout.tsx` suma `metadataBase` (`NEXT_PUBLIC_SITE_URL` con fallback a
+  `https://rofoagro.com.ar`, no el dominio viejo de Vercel) + `openGraph`/`twitter` con
+  título/descripción — Next.js arma el resto de los meta tags solo. Verificado en vivo:
+  `curl /opengraph-image` → PNG 1200×630 real, `og:image` con URL absoluta correcta, los 13
+  meta tags (`og:*`+`twitter:*`) presentes en el HTML servido. **Sin verificar**: el Sharing
+  Debugger real de Meta/WhatsApp (requiere el dominio productivo público, no alcanzable desde
+  este sandbox) — recomendado probarlo una vez en producción.
 - [ ] Performance: Core Web Vitals reales de producción (base E4 ya medida: bundle −235 KB, ISR
   por página) — **confirmado 01/08: sin `@vercel/analytics`/Speed Insights instalado, sin medir
   hoy**. Lo demás auditado y sólido: `next.config.ts` con headers completos, ISR consistente

@@ -295,6 +295,34 @@ exacto ya provisto por el informe complementario de Lautaro (§5).
 Playwright real (captura de página completa de `/privacidad`, las 9 secciones numeradas
 correctamente, el footer con el texto nuevo sin overflow en 3 líneas).
 
+## Parte 8 (01/08/2026) — detector de anomalías (investigado, no extendido) + OG tags
+
+Siguiente ítem: extender el detector de anomalías (D7) a `pas_zonas`/`pas_condicion`, las 2
+tablas más urgentes (100% carga manual, sin chequeo de VALOR hoy). Antes de escribir el catálogo
+nuevo, se leyó a fondo `chequeo-anomalias.mjs` y `anomalias.ts` — **encontró un problema real de
+diseño, no una tarea de 5 minutos**: el barrido separa histórico/nuevo comparando la fecha contra
+un corte ISO (`fecha >= DESDE`), y esas 2 tablas no tienen columna de fecha real (`campania` es
+texto tipo "2000/01", `semana` es 0-53 sin fecha). Forzarlas tal cual haría que el corte nunca
+dispare → cada corrida diaria reprocesaría la tabla ENTERA como "nuevo", con riesgo de re-alertar
+todos los días desvíos ya conocidos y aceptados (ej. la brecha de cebada cervecera que D7 ya había
+encontrado y decidido no tocar) — el mismo "detector que grita se ignora" que la calibración
+original de D7 trabajó para evitar. Se decidió NO forzar un fix a medias: esto necesita una
+calibración retroactiva propia, del mismo tamaño que la sesión original de D7, no un parche.
+Documentado en el checklist con el razonamiento completo para que quede como tarea real, no
+perdida.
+
+**OG tags para WhatsApp** (siguiente ítem, sin la misma complicación): `src/app/opengraph-image.tsx`
+usa la convención de archivo de Next.js (`next/og`, sin dependencia nueva) — genera un PNG
+1200×630 con el wordmark en los colores reales de marca (verde ROFO/AGRO + línea dorada +
+tagline), sirviéndose en `/opengraph-image`. `layout.tsx` sumó `metadataBase` (con el dominio
+productivo real `rofoagro.com.ar`, no el fallback viejo `*.vercel.app` que sigue en otro archivo
+sin tocar — fuera de alcance de este fix) + `openGraph`/`twitter` con título y descripción.
+Verificado en vivo: `curl /opengraph-image` devuelve un PNG 1200×630 real, los 13 meta tags
+`og:*`/`twitter:*` aparecen en el HTML, la imagen se ve limpia (captura revisada a mano).
+
+**Verificado**: lint ✅ · `npx tsc --noEmit` ✅ · **426/426 tests** ✅ · `npm run build` ✅ + PNG
+real descargado y revisado.
+
 ## Trampas descubiertas (para la próxima sesión)
 
 - **El EXECUTE default de Postgres a PUBLIC** sigue mordiendo: toda función nueva nace
