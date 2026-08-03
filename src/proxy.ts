@@ -22,10 +22,13 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // pelado (sin sesión): validan el mismo INFORME_TOKEN por searchParam dentro de la
   // página, así que también tienen que saltear el gate. Sin esto la Routine diaria
   // se lleva el HTML de /ingresar en vez de la placa (27/07/2026).
+  // `/api/health` (01/08/2026) es del mismo tipo: pensado para que un monitor externo
+  // (UptimeRobot/similar) lo pegue sin sesión — mismo bug si queda atrás del gate.
   if (
     path.startsWith("/api/views/") ||
     path.startsWith("/api/informes/") ||
-    path.startsWith("/informes/plantilla/")
+    path.startsWith("/informes/plantilla/") ||
+    path === "/api/health"
   ) {
     return NextResponse.next();
   }

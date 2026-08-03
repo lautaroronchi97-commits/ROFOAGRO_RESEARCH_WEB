@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import {
   alternarBloqueo,
   alternarRol,
+  aprobarUsuario,
   cambiarEmpresa,
   cerrarSesionesUsuario,
   guardarOverride,
@@ -55,6 +56,7 @@ export function UsuarioRow({
   esYo: boolean;
 }) {
   const [stBloq, accBloq, pBloq] = useActionState<AdminState, FormData>(alternarBloqueo, undefined);
+  const [stApr, accApr, pApr] = useActionState<AdminState, FormData>(aprobarUsuario, undefined);
   const [stRol, accRol, pRol] = useActionState<AdminState, FormData>(alternarRol, undefined);
   const [stEmp, accEmp, pEmp] = useActionState<AdminState, FormData>(cambiarEmpresa, undefined);
   const [stSes, accSes, pSes] = useActionState<AdminState, FormData>(cerrarSesionesUsuario, undefined);
@@ -140,6 +142,36 @@ export function UsuarioRow({
           </button>
         </form>
       </div>
+
+      {/* Reactivar: un rechazado no tiene otra forma de volver a 'aprobado' (el toggle
+          de arriba solo mueve bloqueado<->aprobado) — mismo flujo que aprobar un
+          pendiente, porque nunca llegó a tener empresa asignada. */}
+      {u.estado === "rechazado" && (
+        <form action={accApr} className="admin-aprobar">
+          <input type="hidden" name="userId" value={u.id} />
+          <label className="admin-field">
+            <span>Reactivar: asignar a empresa existente</span>
+            <select name="empresa_id" className="admin-input" defaultValue="">
+              <option value="">— Elegir empresa —</option>
+              {empresas.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="admin-field">
+            <span>…o crear una nueva</span>
+            <input className="admin-input" type="text" name="empresa_nueva" placeholder="Nombre de la empresa" autoComplete="off" />
+          </label>
+          <div className="admin-card-acciones">
+            <button type="submit" className="admin-btn admin-btn-ok" disabled={pApr}>
+              {pApr ? "Reactivando…" : "Reactivar (aprobar)"}
+            </button>
+          </div>
+          <Mensaje st={stApr} />
+        </form>
+      )}
 
       {/* Override de secciones */}
       <details className="admin-override">

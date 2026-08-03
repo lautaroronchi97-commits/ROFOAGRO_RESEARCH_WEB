@@ -57,14 +57,29 @@
   no de usuario).
 - [x] `.github/dependabot.yml` **ya está committeado** (npm + github-actions, updates mensuales
   agrupados, `open-pull-requests-limit: 10`) — es el mecanismo de **version-updates** (PRs
-  automáticos). Falta el otro mecanismo, distinto: 🖐 **alertas de seguridad** (GitHub → Settings
-  → Code security → Dependabot alerts), que se prende con un clic y no está en este archivo.
-- [ ] 🖐 Re-scan del historial con **gitleaks** (E5 revisó a mano hasta el commit 139) — o correrlo
-  en una sesión de código si el sandbox lo permite.
-- [ ] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — las legacy
-  deprecan a fines de 2026; rotación en segundos sin desloguear. Coordinar: Vercel + GitHub
-  secrets + entorno de Claude (Routines) + Edge Functions, en ese orden y con verificación.
-- [ ] 🖐 **S4**: leaked password protection (se destraba al contratar Supabase Pro — ver Fase 4).
+  automáticos). **Dependabot alerts — HECHO 03/08/2026**: Dependency graph + Dependabot alerts
+  prendidos por Lautaro en GitHub Settings → Code security and analysis.
+- [x] **Re-scan del historial con gitleaks — HECHO 03/08/2026, cero hallazgos.** Corrido en el
+  sandbox (`gitleaks git --log-opts="--all"`, instalado vía `go install`, no necesitó ningún dato
+  de Lautaro). **Trampa real**: el clone de la sesión venía shallow (`git fetch --unshallow`
+  necesario primero) — un primer intento sin unshallow solo cubrió 159 commits desde el 23/07 y
+  hubiera dado un falso "limpio" sin cubrir el historial real. Con el historial completo: **371
+  commits escaneados en todas las ramas** (`--all`, no solo `main`), 27,6 MB, **0 secretos
+  encontrados** — reemplaza la revisión manual de E5 (hasta el commit 139) con un escaneo
+  automatizado de punta a punta.
+- [~] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — **EN CURSO
+  03/08/2026, guiado paso a paso.** Vercel actualizado (`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_KEY`/
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `*_URL` sin tocar) y **verificado con login real + datos
+  cargando en producción**. GitHub Actions (`SUPABASE_SERVICE_KEY`) actualizado y **verificado
+  disparando `healthcheck.yml` a mano**: leyó las 24 tablas reales con la key nueva sin error de
+  auth (el único rojo fue CONAB atrasado, hallazgo real sin relación — ver Fase 2). Entorno de
+  Claude Code (Routines) actualizado por Lautaro, **pendiente de verificación real** — no se puede
+  confirmar desde una sesión ya arrancada con la key vieja; queda para la corrida del informe
+  diario de hoy (18:30 ART) o la próxima Routine. **Las keys legacy siguen activas a propósito**
+  (no se desactivan hasta confirmar las 3 patas — Vercel y Actions ya, Routines pendiente).
+- [ ] ~~🖐 **S4**: leaked password protection~~ → **DECIDIDO 03/08/2026: Lautaro NO por ahora**
+  (bloqueado de todos modos por no contratar Supabase Pro — mismo riesgo aceptado que ese ítem,
+  ver Fase 4). Se retoma si algún día se decide upgradear a Pro.
 
 ## Fase 1 — Cálculos financieros (Informe complementario §1)
 
@@ -116,25 +131,36 @@
   igual que en el resto del sitio en los 3 lugares). Las páginas mesa-only
   (`/comercio/negociado`, `/produccion/{condicion,zonas}`, `/granos/view`) siguen sin contar
   como gap — confirmado `requireAdmin()` en las 4.
-- [ ] **Nuevo (no estaba en los informes)**: el detector de anomalías (D7) cubre 9 series
-  (`src/lib/anomalias-series.ts:51-169`) pero el healthcheck de frescura cubre 17 tablas — **8
-  tablas sin chequeo de VALOR** (solo de frescura): `djve`, `lineup`, `camiones_plantas`,
-  `noticias`, `views_mercado`, `pas_zonas`, `pas_condicion`, `lecap_pago_final`. Las 2 BCBA-PAS
-  son las que más preocupan: son 100% carga manual (más expuestas a error humano) y hoy solo se
-  valida "¿llegó el dato?", no "¿el valor tiene sentido?". No es una regresión — nunca se
-  construyó — pero vale la pena que Lautaro lo sepa antes de decidir si extender el catálogo.
-  **Investigado 01/08/2026, NO extendido — encontró un problema real de diseño, no una tarea
-  mecánica**: el barrido diario (`chequeo-anomalias.mjs:127`) separa "histórico" de "nuevo"
-  comparando la columna de fecha contra un corte `fecha >= DESDE` (ISO, últimos N días) — asume
-  una columna de fecha REAL. `pas_zonas`/`pas_condicion` no tienen ninguna: su eje temporal es
-  `campania` (texto "2000/01", ordena bien lexicográficamente pero no es una fecha) y `semana`
-  (0-53 sin fecha real). Meterlas tal cual al catálogo haría que el corte nunca dispare → CADA
-  corrida reprocesaría la tabla ENTERA como "nuevo", con riesgo real de re-alertar todos los
-  días el mismo desvío ya conocido y aceptado (ej. el +13-14% de cebada cervecera que D7 ya
-  había encontrado y decidido no clampear) — exactamente el "detector que grita se ignora" que
-  la calibración de D7 evitó a propósito para las otras 9 series. Un fix correcto necesita una
-  calibración retroactiva propia (mismo nivel de trabajo que la sesión original de D7), no un
-  agregado de 5 minutos al catálogo — queda para una sesión dedicada, no forzado acá.
+- [x] **Investigado 01/08 + cerrado por partes 03/08/2026.** El detector (D7) cubría 9 series
+  pero el healthcheck de frescura cubre 17 tablas — 8 sin chequeo de VALOR: `djve`, `lineup`,
+  `camiones_plantas`, `noticias`, `views_mercado`, `pas_zonas`, `pas_condicion`,
+  `lecap_pago_final`. Repasadas una por una (03/08):
+  - **`camiones_plantas` — HECHO.** Encaja 1:1 en el patrón existente (`conteo_estacional`,
+    mismo perfil que `camiones`/Williams). Calibrado contra la base real: 96 series activas,
+    1.255 puntos desde 30/07/2024, máximo real 842 camiones/planta/día → rango 0-3.000.
+    Calibración retroactiva sobre todo el histórico: **0 falsos positivos**.
+  - **`lecap_pago_final` — HECHO, pero con un mecanismo DISTINTO al motor de MAD.** No es una
+    serie que evoluciona en el tiempo (cada letra se carga una vez, confirmado por Lautaro) →
+    un chequeo de MAD no aplica. Se sumó un **guard de rango simple** (100-400, VN 100; máximo
+    real cargado hoy 161,10) directo en el parser del uploader (`lecap-actions.ts`) — mismo
+    espíritu que el guard ÷1000 de compras/camiones, pero sin necesitar el motor genérico.
+  - **`djve`/`lineup` — siguen sin tocar, a propósito.** Cada fila es un evento individual (una
+    declaración, un buque), no una serie continua — no encajan en `clave+colFecha+colValor` con
+    observaciones repetidas como las demás. Necesitan diseño y calibración propios (mismo nivel
+    de trabajo que dejó afuera a `pas_zonas`/`pas_condicion`), no un agregado rápido.
+  - **`noticias`/`views_mercado` — descartadas, no `pas_zonas`/`pas_condicion` — sin cambios.**
+    Las primeras 2 no tienen un valor numérico que chequear (texto/metadata). Las BCBA-PAS
+    mantienen el problema de diseño encontrado el 01/08: su eje temporal (`campania`/`semana`)
+    no es una fecha real, necesitan calibración propia dedicada — documentado abajo, sin tocar.
+  Verificado con `node scripts/chequeo-anomalias.mjs --serie camiones_plantas_conteo`: corre
+  limpio contra la base real, lint/tsc/**426 tests**/build ✅.
+  **Detalle técnico del problema de diseño de BCBA-PAS (sin resolver, referencia)**: el barrido
+  diario (`chequeo-anomalias.mjs:127`) separa "histórico" de "nuevo" comparando la columna de
+  fecha contra un corte `fecha >= DESDE` — asume una columna de fecha REAL, que `pas_zonas`/
+  `pas_condicion` no tienen. Meterlas tal cual haría que el corte nunca dispare → cada corrida
+  reprocesaría la tabla ENTERA como "nuevo", con riesgo real de re-alertar todos los días un
+  desvío ya conocido y aceptado (ej. el +13-14% de cebada cervecera que D7 ya había encontrado
+  y decidido no clampear).
 - [ ] No existe semáforo visual de antigüedad por tiempo transcurrido (verde/rojo según reloj del
   cliente) — hoy el ⚠ de `SourceStamp` es estático (lo setea el server al momento del fetch, vía
   `meta.problemas`), no recalcula edad en el navegador. Baja prioridad: el timestamp exacto ya es
@@ -150,8 +176,19 @@
   duración 7 días; marca de agua por email.
 - [x] No-aprobado NO entra al producto: pantalla `pendiente` + enforcement en el proxy (no solo
   front) + RLS como segunda capa.
-- [ ] Auditar el ciclo de vida de un registro rechazado/abandonado (fila en `auth.users` +
-  `profiles` en `pendiente` para siempre — ¿limpieza periódica? ¿aviso?).
+- [x] **Auditado 03/08/2026 — 1 gap real encontrado y arreglado, 2 quedan documentados sin
+  tocar (alcance elegido por Lautaro).** Rechazar un usuario solo seteaba `estado='rechazado'`
+  en `profiles`, sin ningún otro efecto — y **no había forma de deshacerlo desde la web**: la
+  fila desaparece de la pestaña Pendientes (filtra `estado='pendiente'`) y en Usuarios el único
+  control disponible era "Bloquear", que mueve a `bloqueado`, nunca de vuelta a `aprobado` — solo
+  quedaba editar la base a mano por SQL. **Arreglado**: `usuario-row.tsx` suma el mismo
+  formulario de aprobación (empresa existente o nueva) que ya usa Pendientes, visible solo con
+  `estado='rechazado'`, reusando `aprobarUsuario` sin action nueva. Verificado con Playwright
+  (bypass temporal + fila sintética, revertido antes del commit) en claro/oscuro. **Quedan sin
+  tocar, por decisión explícita**: `/pendiente` sigue mostrando el mismo mensaje genérico a
+  pendiente/rechazado/bloqueado (nunca le dice a un rechazado que lo rechazaron) · no hay
+  limpieza periódica de filas viejas en `pendiente`/`rechazado` (aceptado — volumen bajo, no es
+  operacionalmente urgente).
 
 ## Fase 4 — Backups y entornos (checklist "backups" + Informe complementario §6)
 
@@ -174,15 +211,12 @@
   estimaciones_produccion 5.929 · lecap_pago_final 12 · pas_zonas 1.837 · pas_condicion 1.872
   filas — los 3 últimos coinciden exacto con lo documentado en sesiones anteriores. ~16,6 MB el
   dump inicial, commiteado en este mismo PR (arranca con datos reales, no vacío).
-- [ ] Staging: 2º proyecto Supabase (gratis) para Previews — hoy los Previews de Vercel leen la
-  base de PRODUCCIÓN con la anon key (confirmado 01/08 — no hay ninguna mención de un 2º
-  proyecto en el repo, es 100% una recomendación pendiente). Con S1 aplicado, además, los
-  Previews pierden lo de mesa (sin service key de preview) — decidir si se configura staging o
-  se acepta la degradación.
-- [ ] 🖐 **Branch protection en `main`**: require PR + checks del CI requeridos + bloquear
-  force-push (GitHub → Settings → Branches). Confirmado 01/08: hoy CI corre en cada push/PR pero
-  NO bloquea el merge (no hay ningún archivo de config de branch protection, ni debería haberlo
-  — vive en GitHub Settings) — cualquiera puede mergear a `main` con el CI en rojo.
+- [ ] ~~Staging: 2º proyecto Supabase (gratis) para Previews~~ → **DECIDIDO 03/08/2026: Lautaro
+  NO va a hacerlo.** Los Previews de Vercel siguen leyendo la base de PRODUCCIÓN con la anon key
+  (degradación aceptada: con S1 aplicado, los Previews pierden lo de mesa por no tener service
+  key de preview — ya era así, sigue así).
+- [x] 🖐 **Branch protection en `main`** — HECHO 03/08/2026, prendido por Lautaro (GitHub →
+  Settings → Branches: require PR + checks del CI requeridos + bloquear force-push).
 - [x] Vercel Pro confirmado contratado (múltiples menciones cruzadas en `ESTADO.md`/E5/E7).
 - [x] Instant Rollback documentado — ver `docs/RUNBOOK.md` escenario A (paso 3).
 
@@ -206,9 +240,15 @@
   `{status, checks, latencyMs, timestamp}` — 200 si Supabase responde, 503 si no (para que
   UptimeRobot/similar lo detecte como caído). Probado en vivo contra la base real:
   `{"status":"ok","checks":{"app":true,"supabase":true},...}`.
-- [ ] 🖐 Acceso de emergencia para **Mauro** con cuenta propia (ya es admin de la web): Vercel
-  (miembro del team), Supabase (Organization → Team), GitHub (colaborador). Sin compartir
-  contraseñas; 2FA cada uno.
+  **Regresión encontrada y arreglada 03/08/2026 (sin relación con la migración de keys, hallada
+  mientras se verificaba)**: `/api/health` había quedado atrás del gate de `AUTH_ENFORCED` —
+  `src/proxy.ts` solo exceptuaba `/api/views/` y `/api/informes/`, no `/api/health` → devolvía
+  `307` a `/ingresar` en vez de `200` (un monitor externo tipo UptimeRobot lo hubiera visto
+  "caído" siempre). Mismo patrón de bug que tuvo `/informes/plantilla/*` (C18/V0, 27/07). Fix de
+  una línea en `src/proxy.ts`, verificado con lint/tsc/**426 tests** en verde.
+- [ ] ~~🖐 Acceso de emergencia para **Mauro** con cuenta propia~~ → **DECIDIDO 03/08/2026:
+  Lautaro NO lo va a agregar** a Vercel/Supabase/GitHub por ahora. Sigue siendo admin de la web
+  (`profiles`), solo sin acceso a la infraestructura.
 - [ ] Smoke test k6 (5 VUs × 1 min, p95 < 500 ms, errores < 1%) — opcional según Informe 3; el
   load testing formal está descartado para esta escala.
 
@@ -231,9 +271,10 @@
   queda sin poder completarse**: requiere el nombre legal + domicilio real de la entidad, y la
   cuestión de razón social/SRL de ROFO AGRO sigue sin resolverse desde la sesión de rebranding
   del 23/07 — no es algo que se pueda inventar, necesita que Lautaro lo confirme.
-- [ ] 🖐 Consulta puntual con abogado: inscripción de la base ante la AAIP (TAD) + redacción
-  final del disclaimer de los informes + el dato de responsable/domicilio de arriba. Fuera de
-  código.
+- [ ] ~~🖐 Consulta puntual con abogado~~ → **DECIDIDO 03/08/2026: Lautaro NO por ahora.**
+  Inscripción de la base ante la AAIP (TAD) + redacción final del disclaimer de los informes +
+  el dato de responsable/domicilio de arriba (`/privacidad`) quedan sin resolver hasta que lo
+  retome — riesgo legal aceptado explícitamente, fuera de código.
 
 ## Fase 7 — Pulido y lanzamiento (Informe complementario §7-8)
 
@@ -267,9 +308,9 @@
   3600s baja frecuencia), deps de producción sin hinchazón, 0 código muerto (E4). 13 páginas sin
   `revalidate` explícito son en su mayoría mesa-only (esperado, dinámicas por `requireAdmin`) —
   sin evidencia de que sea un olvido real.
-- [ ] 🖐 Beta cerrada: 1-2 clientes de confianza, canal de feedback, criterios go/no-go definidos
-  ANTES (ej.: 0 bugs críticos abiertos · 0 reportes de dato incorrecto sin resolver en la última
-  semana · clientes llegan al momento de valor). La beta termina con una decisión.
+- [ ] ~~🖐 Beta cerrada~~ → **DECIDIDO 03/08/2026: Lautaro NO la va a hacer.** Sin período de
+  1-2 clientes de confianza previo al lanzamiento — queda como decisión de Lautaro, no bloquea
+  nada de este checklist.
 
 ---
 

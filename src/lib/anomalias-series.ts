@@ -114,6 +114,22 @@ export const SERIES = {
     unidad: "camiones",
     descripcion: "entrada diaria de camiones a puerto (Williams Entregas)",
   },
+  camiones_plantas_conteo: {
+    tabla: "camiones_plantas",
+    colFecha: "fecha",
+    colValor: "cantidad",
+    clave: ["planta_id", "producto"],
+    perfil: "conteo_estacional",
+    estacional: true,
+    // Universo mucho más chico que `camiones` (Williams, nacional): acá es UNA planta de
+    // Up River + Paraná bonaerense por vez. Máximo histórico real medido 03/08/2026: 842
+    // camiones (TOTAL de la planta más grande, ~1 semana de datos desde que arrancó el
+    // cron el 28/07). 3.000 da aire de sobra sin acercarse a la escala nacional.
+    rango: { min: 0, max: 3000 },
+    minDelta: 10,
+    unidad: "camiones",
+    descripcion: "entrada diaria de camiones por planta/producto (Agroentregas)",
+  },
   bcra_mulc: {
     tabla: "compras_bcra",
     colFecha: "fecha",
