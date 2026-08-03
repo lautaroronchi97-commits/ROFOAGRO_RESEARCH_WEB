@@ -203,9 +203,9 @@
   `{status, checks, latencyMs, timestamp}` — 200 si Supabase responde, 503 si no (para que
   UptimeRobot/similar lo detecte como caído). Probado en vivo contra la base real:
   `{"status":"ok","checks":{"app":true,"supabase":true},...}`.
-- [ ] 🖐 Acceso de emergencia para **Mauro** con cuenta propia (ya es admin de la web): Vercel
-  (miembro del team), Supabase (Organization → Team), GitHub (colaborador). Sin compartir
-  contraseñas; 2FA cada uno.
+- [ ] ~~🖐 Acceso de emergencia para **Mauro** con cuenta propia~~ → **DECIDIDO 03/08/2026:
+  Lautaro NO lo va a agregar** a Vercel/Supabase/GitHub por ahora. Sigue siendo admin de la web
+  (`profiles`), solo sin acceso a la infraestructura.
 - [ ] Smoke test k6 (5 VUs × 1 min, p95 < 500 ms, errores < 1%) — opcional según Informe 3; el
   load testing formal está descartado para esta escala.
 
