@@ -97,6 +97,58 @@ tocó código ni el umbral** — bajar el umbral para silenciar esto ocultaría 
   semanas, ver `docs/negocio/`) y no corrió desde antes de la migración de keys, así que no hay run
   real para confirmar; igual quedó arreglado preventivamente con el mismo fix.
 
+## Follow-up en el mismo PR (mismo día): /admin/checklist — "qué tengo que hacer hoy"
+
+Tras el diagnóstico, Lautaro pidió que la parte de la web de admin quede "bien separada y visual"
+sobre qué se rompió/atrasó/falta cargar, y propuso explícitamente un **checklist diario** separado
+(ejemplo suyo: *"vengo mañana martes y tengo un checklist: hoy tengo que cargar tal y tal cosa"*).
+Antes de construir, `AskUserQuestion` con 2 decisiones: **página propia `/admin/checklist`** (no un
+tab dentro de Conexiones ni de Datos) y **alcance = todo lo que necesita su atención** (cargas
+manuales pendientes/atrasadas + crons rotos + Routines sin producir, no solo lo que él sube).
+
+**Sincronizado primero con `main`**: mientras diagnosticaba, otra sesión en paralelo mergeó el PR
+#130 (`/admin/datos` partido en una página por carga manual + `DatosNav`, exactamente el patrón de
+"segmentar con botones" que Lautaro citó como referencia) — `git merge origin/main` con 1 conflicto
+chico en `ESTADO.md` (dos entradas "Ahora" en paralelo, resuelto ordenando la mía arriba y la de
+datos como "Anterior").
+
+**Build**: reusa 100% el motor ya existente en `src/lib/monitoreo/` (`getCargasManuales`/
+`getFrescura`/`getGithubRuns`/`getRoutines`, el mismo que alimenta `/admin/conexiones`) — la
+página nueva es una REAGRUPACIÓN por urgencia, no un cálculo nuevo: 🔴 **Se rompió** (workflow con
+último run failure) · 🟣 **No se generó** (Routine atrasada — informe/view que no salió en su
+ventana) · 🟠 **Tenés que cargar algo** (cargas manuales pendiente/atrasado, CON botón directo "Ir a
+cargar →" a su página en `/admin/datos`) · 🟡 **Atrasado por la fuente** (cron sano, dato atrasado
+por el organismo — el caso CONAB de este mismo diagnóstico, informativo, sin botón de acción) ·
+si las 4 listas están vacías, un banner verde "Todo en orden". Tab "Checklist" nuevo en `AdminTabs`
+**sin badge de conteo** (decisión deliberada: calcularlo pegaría contra Supabase/GitHub en CADA
+página del panel si viviera en el layout — se calcula una sola vez, en la propia página).
+`/admin/conexiones` sigue siendo el inventario COMPLETO (incluye lo que ya está bien) para cuando
+haga falta el detalle; se linkean cruzado entre las dos.
+
+**Refactor de paso** (sin cambiar comportamiento): `estadoWorkflow()`, `chip()`/`Color` y
+`fmtFecha`/`fmtFechaHora` vivían como funciones locales de `/admin/conexiones/page.tsx` — extraídas
+a `src/lib/monitoreo/workflow-estado.ts` (+ 11 tests nuevos, no estaba testeado) y
+`src/lib/monitoreo/fmt.ts` + `src/components/admin-chip.tsx`, para que el checklist las reuse sin
+duplicar. `conexiones/page.tsx` quedó importando de ahí, mismo output.
+
+**Bug real encontrado por la propia verificación visual (no en el diagnóstico original)**: al mirar
+el checklist con datos reales, "Estimaciones BCBA-PAS por zona" y "Condición de cultivos BCBA-PAS"
+aparecían SIEMPRE atrasadas ("Sin regla de estado definida") aunque el healthcheck de esta misma
+sesión las había confirmado frescas (5 días). Causa: el mapa `RESOLVERS` de `src/lib/monitoreo/
+manual.ts` nunca tuvo entradas para esas 2 cargas (`pas-zonas`/`pas-condicion`, agregadas en las
+sesiones C23/C27 del 29/07) — caían al fallback `sinDatos()`, que siempre marca "atrasado". El
+mismo bug ya existía en `/admin/conexiones` (su tabla larga lo mostraba igual), simplemente nadie
+lo había notado ahí. Arreglado con 2 resolvers nuevos (`estadoPasZonas`/`estadoPasCondicion`, leen
+`pas_zonas`/`pas_condicion` col `actualizado_en`, mismos umbrales que `CHECKS` en `catalogo.ts`).
+
+**Verificado con datos reales** (Playwright, claro/oscuro real —clickeando el toggle, `next-themes`
+acá no sigue `prefers-color-scheme`—, bypass temporal de `requireAdmin()`/el gate del proxy en
+`/admin`, revertido con `git diff` limpio antes de commitear): capturas ANTES del fix de
+`manual.ts` mostrando las 2 falsas "atrasado", y DESPUÉS mostrando "AL DÍA" (bajó de 7 a 5 ítems en
+"Tenés que cargar") · el balde "Se rompió" mostrando exactamente 1 ítem (CONAB), coincidiendo con
+el healthcheck real de esta misma sesión · `/admin/conexiones` con el refactor sin cambios visuales.
+lint/tsc/**445 tests**/build ✅.
+
 ## Trampas descubiertas (para la próxima sesión)
 - **GitHub Actions congestiona fuerte cualquier cron en el minuto ":00"**, con retrasos medidos de
   hasta 3,5 horas en este repo — no es un caso aislado de `ingest-noticias.yml` (que ya lo sabía),

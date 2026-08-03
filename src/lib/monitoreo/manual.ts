@@ -99,6 +99,30 @@ async function estadoEstimacion(hoy: string, organismo: string, doradoDias: numb
   return { ultimaFecha: fecha, diasDesde: dias, estado, detalle: `Última carga: ${fecha.slice(0, 10)}.` };
 }
 
+// pas-zonas/pas-condicion (C23/C27): mismas tablas que CHECKS en catalogo.ts (`pas_zonas`/
+// `pas_condicion`, col `actualizado_en`, RLS admin-only). Faltaban en RESOLVERS desde que se
+// agregaron esas 2 cargas manuales — el fallback `sinDatos()` las mostraba siempre "atrasado"
+// aunque estuvieran al día (encontrado al construir /admin/checklist, 03/08/2026). Umbrales
+// alineados a los de catalogo.ts (21d/14d = el umbral duro del healthcheck), con un umbral
+// "pendiente" más chico de aviso temprano.
+async function estadoPasZonas(hoy: string): Promise<Parcial> {
+  const { fecha, error } = await ultimaFecha("pas_zonas", "actualizado_en");
+  if (error) return sinDatos(`Error al leer pas_zonas: ${error}.`);
+  if (!fecha) return sinDatos("Sin cargas de BCBA-PAS por zona todavía.");
+  const dias = diasEntre(fecha.slice(0, 10), hoy);
+  const estado: EstadoManual = dias >= 21 ? "atrasado" : dias >= 10 ? "pendiente" : "al-dia";
+  return { ultimaFecha: fecha, diasDesde: dias, estado, detalle: `Última carga: ${fecha.slice(0, 10)}.` };
+}
+
+async function estadoPasCondicion(hoy: string): Promise<Parcial> {
+  const { fecha, error } = await ultimaFecha("pas_condicion", "actualizado_en");
+  if (error) return sinDatos(`Error al leer pas_condicion: ${error}.`);
+  if (!fecha) return sinDatos("Sin cargas de condición de cultivos todavía.");
+  const dias = diasEntre(fecha.slice(0, 10), hoy);
+  const estado: EstadoManual = dias >= 14 ? "atrasado" : dias >= 7 ? "pendiente" : "al-dia";
+  return { ultimaFecha: fecha, diasDesde: dias, estado, detalle: `Última carga: ${fecha.slice(0, 10)}.` };
+}
+
 async function estadoLecap(hoy: string): Promise<Parcial> {
   const { fecha, error } = await ultimaFecha("lecap_pago_final", "actualizado_en");
   if (error) return sinDatos(`Error al leer lecap_pago_final: ${error}.`);
@@ -142,6 +166,8 @@ const RESOLVERS: Record<string, (hoy: string) => Promise<Parcial>> = {
   "bcra-manual": estadoBcraManual,
   dea: (hoy) => estadoEstimacion(hoy, "DEA", 7, 9),
   pas: (hoy) => estadoEstimacion(hoy, "BCBA", 30, null),
+  "pas-zonas": estadoPasZonas,
+  "pas-condicion": estadoPasCondicion,
   lecap: estadoLecap,
   interpretaciones: () => estadoInterpretaciones(),
   "view-feedback": estadoViewFeedback,

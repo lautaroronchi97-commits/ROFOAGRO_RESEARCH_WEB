@@ -19,7 +19,7 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 03/08/2026 — 🚨 diagnóstico de ingestas/checks: 403 real en 2 Edge Functions arreglado y desplegado + falso-rojo diario de camiones arreglado (cron) + CONAB confirmado atraso genuino de la fuente)
+## Ahora (última actualización: 03/08/2026 — 🚨 diagnóstico de ingestas/checks + 🗒️ /admin/checklist nuevo: "qué tengo que hacer hoy")
 
 **🚨 DIAGNÓSTICO DE INGESTAS Y CHECKS — HECHO — rama `claude/ingestas-checks-diagnostico-zzk9es`,
 PR #_.** Lautaro pidió revisar de punta a punta qué ingestas/checks están corriendo bien, cuáles no,
@@ -49,7 +49,28 @@ según si era un bug real o una señal correcta:
 fix de los Edge Functions confirmado en producción real (rerun del run fallido → success) · contenido
 desplegado releído con `get_edge_function` y comparado byte a byte contra el repo (el primer intento
 de deploy mandó placeholder por error propio, corregido 1 min después) · CONAB verificado bajando la
-fuente real en la sesión. Detalle:
+fuente real en la sesión.
+
+**🗒️ Follow-up mismo PR: `/admin/checklist` nuevo — "qué tengo que hacer hoy".** Lautaro pidió que
+el admin muestre bien separado y visual qué se rompió/atrasó/falta cargar, con un checklist diario
+propio (ejemplo suyo: *"vengo mañana martes y tengo un checklist: hoy tengo que cargar tal y
+tal"*). Página nueva `/admin/checklist` (tab nuevo en `AdminTabs`, sin badge — calcularlo pegaría
+contra Supabase/GitHub en cada página del panel), reusa 100% el motor de `/admin/conexiones`
+(`getCargasManuales`/`getFrescura`/`getGithubRuns`/`getRoutines`) reagrupado por urgencia: 🔴 Se
+rompió · 🟣 No se generó (Routine) · 🟠 Tenés que cargar algo (con botón directo) · 🟡 Atrasado por
+la fuente (informativo, el caso CONAB) · banner verde si no hay nada. `/admin/conexiones` sigue
+siendo el inventario completo, ahora cruza-linkeado con el checklist. Refactor de paso:
+`estadoWorkflow()`/`chip()`/`fmtFecha` salieron de `conexiones/page.tsx` a
+`src/lib/monitoreo/workflow-estado.ts` (+11 tests nuevos) + `fmt.ts` + `components/admin-chip.tsx`,
+para que las dos páginas los reusen. **Bug real encontrado por la propia verificación visual**: el
+mapa `RESOLVERS` de `manual.ts` nunca tuvo entradas para `pas-zonas`/`pas-condicion` (agregadas en
+C23/C27, 29/07) → mostraban siempre "atrasado" pese a estar frescas — mismo bug ya escondido en la
+tabla larga de `/admin/conexiones`, invisible hasta que el checklist lo puso arriba de todo.
+Arreglado con 2 resolvers nuevos. **Verificado con Playwright real** (datos de Supabase del
+entorno, claro/oscuro con el toggle real, bypass temporal de `requireAdmin()`/el proxy revertido,
+`git diff` limpio): capturas antes/después del fix de `manual.ts` (bajó de 7 a 5 ítems pendientes),
+el balde "Se rompió" con exactamente 1 ítem (CONAB, coincide con el healthcheck real de la sesión).
+lint/tsc/**445 tests**/build ✅. Detalle completo (los 2 hallazgos, en un solo archivo):
 [`sesiones/2026-08-03-diagnostico-ingestas-checks.md`](sesiones/2026-08-03-diagnostico-ingestas-checks.md).
 
 ## Anterior (03/08/2026 — 🗂️ /admin/datos: una página por carga manual)
