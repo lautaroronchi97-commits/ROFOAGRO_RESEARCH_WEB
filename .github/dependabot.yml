@@ -8,6 +8,14 @@ updates:
       npm-dependencies:
         patterns:
           - "*"
+    ignore:
+      # typescript-eslint todavía no soporta TypeScript 7 (rompe `npm run lint`,
+      # ver https://github.com/typescript-eslint/typescript-eslint/issues/10940).
+      # Sacar este ignore cuando salga esa compatibilidad.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 10
 
   - package-ecosystem: "github-actions"
