@@ -98,10 +98,15 @@ tocó código ni el umbral** — bajar el umbral para silenciar esto ocultaría 
 **Dependen de que Lautaro entre logueado (no se puede probar desde acá):**
 - [ ] Mirar `/admin/checklist` en la PC y decir si el agrupamiento/lo que muestra le sirve tal
       cual, o si quiere mover algo de balde (ver Parte 2 de esta bitácora).
-- [ ] `dea-fetch` (el otro Edge Function con el mismo bug del 403) no tiene ningún caller real
-      desde antes de la migración de keys — queda arreglado preventivamente, pero sin un run real
-      que lo confirme. Se confirma solo la próxima vez que alguien corra `dea_probe` a mano
-      (la fuente DEA sigue bloqueada por IP, así que no hay apuro).
+
+**Confirmado post-cierre (mismo día, sin pedirle nada a Lautaro):**
+- [x] `dea-fetch` — disparado por MCP (`workflow_dispatch` de `ingest-estimaciones-ar.yml` con
+      `dea_probe=true`, run [30845605815](https://github.com/lautaroronchi97-commits/ROFOAGRO_RESEARCH_WEB/actions/runs/30845605815)),
+      no por Lautaro a mano. Resultado mejor de lo esperado: no solo pasó el auth (sin 403) —
+      **la fuente `datosestimaciones.magyp.gob.ar` volvió a responder** (bloqueada por IP desde el
+      22/07) y subió **24 filas reales** (soja/maíz/cebada/girasol, campañas 2024/25 y 2025/26),
+      verificadas por SQL contra `estimaciones_produccion`. No se sabe si el desbloqueo es
+      permanente; el healthcheck de DEA debería salir en verde en la próxima corrida solo por esto.
 
 **Ideas para más adelante, NO pedidas todavía — anotadas, no arrancadas:**
 - Un `ingest_log` real (tabla propia con cada corrida: workflow, resultado, filas, timestamp) en

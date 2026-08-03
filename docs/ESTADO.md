@@ -73,6 +73,17 @@ el balde "Se rompió" con exactamente 1 ítem (CONAB, coincide con el healthchec
 lint/tsc/**445 tests**/build ✅. Detalle completo (los 2 hallazgos, en un solo archivo):
 [`sesiones/2026-08-03-diagnostico-ingestas-checks.md`](sesiones/2026-08-03-diagnostico-ingestas-checks.md).
 
+**🎉 Follow-up post-cierre: `dea-fetch` confirmado con un run real — y la fuente DEA volvió a
+responder.** El fix del punto 1 quedó sin un caller real que lo probara (su único disparo es
+`dea_probe`, manual). Disparado por MCP (`workflow_dispatch`, sin pedirle nada a Lautaro — no
+corre procesos a mano) para no dejarlo sin confirmar: **corrió en éxito, de punta a punta** — no
+solo pasó el auth (sin 403), sino que **la fuente `datosestimaciones.magyp.gob.ar` respondió de
+verdad** (bloqueada por IP desde el 22/07, ver lote L5 más abajo) y se subieron **24 filas reales**
+(soja/maíz/cebada/girasol, campañas 2024/25 y 2025/26) a `estimaciones_produccion`, verificadas
+por SQL. No se sabe si el bloqueo se levantó de forma permanente o fue una ventana — pero el
+healthcheck de DEA debería salir en verde en la próxima corrida por esto solo, sin que Lautaro
+tenga que cargar nada.
+
 ## Anterior (03/08/2026 — 🗂️ /admin/datos: una página por carga manual)
 
 **🗂️ /ADMIN/DATOS — UNA PÁGINA POR CARGA MANUAL — HECHO — rama
