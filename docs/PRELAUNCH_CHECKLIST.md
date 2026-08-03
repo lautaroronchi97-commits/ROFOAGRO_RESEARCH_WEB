@@ -178,10 +178,8 @@
   NO va a hacerlo.** Los Previews de Vercel siguen leyendo la base de PRODUCCIÓN con la anon key
   (degradación aceptada: con S1 aplicado, los Previews pierden lo de mesa por no tener service
   key de preview — ya era así, sigue así).
-- [ ] 🖐 **Branch protection en `main`**: require PR + checks del CI requeridos + bloquear
-  force-push (GitHub → Settings → Branches). Confirmado 01/08: hoy CI corre en cada push/PR pero
-  NO bloquea el merge (no hay ningún archivo de config de branch protection, ni debería haberlo
-  — vive en GitHub Settings) — cualquiera puede mergear a `main` con el CI en rojo.
+- [x] 🖐 **Branch protection en `main`** — HECHO 03/08/2026, prendido por Lautaro (GitHub →
+  Settings → Branches: require PR + checks del CI requeridos + bloquear force-push).
 - [x] Vercel Pro confirmado contratado (múltiples menciones cruzadas en `ESTADO.md`/E5/E7).
 - [x] Instant Rollback documentado — ver `docs/RUNBOOK.md` escenario A (paso 3).
 
