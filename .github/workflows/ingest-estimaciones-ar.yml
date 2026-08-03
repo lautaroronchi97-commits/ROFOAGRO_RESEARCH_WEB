@@ -2,10 +2,13 @@ name: Ingesta estimaciones Argentina (GEA · SAGyP · PAS → Supabase)
 
 # Popula estimaciones_produccion con las estimaciones nacionales de Argentina:
 #   - BCR-GEA  (scripts/ingest-gea.mjs): soja/maíz/trigo, informe mensual + backfill Wayback.
-#   - DEA-SAGyP(scripts/ingest-dea.mjs): PENDIENTE — `datosestimaciones.magyp.gob.ar` bloquea las
-#     IPs de datacenter (E5 #8, confirmado en el lote L5 desde 3 proveedores cloud distintos).
-#     Corre SOLO por dispatch (dea_probe) para reintentar si el bloqueo se levanta algún día; la
-#     vía real de actualización es la carga semi-manual por /admin/datos (Lautaro sube el CSV).
+#   - DEA-SAGyP(scripts/ingest-dea.mjs): `datosestimaciones.magyp.gob.ar` bloqueó las IPs de
+#     datacenter del 22/07 al 03/08 (E5 #8, lote L5, confirmado desde 3 proveedores cloud
+#     distintos) → salió del schedule esos días. El 03/08 un `dea_probe` de verificación (tras
+#     arreglar el 403 de auth de `dea-fetch`) volvió a traer datos reales → **cron reactivado**
+#     (decisión de Lautaro, mismo día). Si el bloqueo vuelve, el guard anti-0-filas + el mail de
+#     alerta lo muestran; la carga semi-manual por /admin/datos sigue como respaldo siempre
+#     disponible (Lautaro sube el CSV, nunca bloqueado del lado suyo).
 #   - BCBA-PAS (scripts/ingest-pas.mjs): descartado automatizar (Cloudflare 403 confirmado 2/2,
 #     auditoría E6) — corre SOLO por dispatch (pas_probe) para re-chequear si algún día cambia.
 # Un solo workflow para no multiplicar YAML (plan §3). Los upserts son idempotentes.
@@ -17,10 +20,11 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 1 * * 4" # mié 22:00 AR — tras la estimación mensual de GEA (2° miércoles)
-    # DEA salió del schedule (lote L5, 22/07): la fuente está bloqueada por IP desde Actions,
-    # así que un cron semanal solo generaría rojo/alertas sin datos. La actualización real es
-    # la carga semi-manual por /admin/datos. `dea_probe` abajo reintenta a mano si hace falta.
+    - cron: "16 1 * * 4" # mié 22:16 AR — tras la estimación mensual de GEA (2° miércoles); fuera
+    # del minuto ":00" (03/08/2026: es el más congestionado de GitHub Actions, mismo hallazgo que
+    # `ingest-noticias.yml`/`ingest-lineup.yml`/`ingest-camiones-agroentregas.yml`).
+    # DEA vuelve a correr en este mismo schedule desde el 03/08 (ver comentario de arriba) — antes
+    # estuvo fuera (lote L5, 22/07→03/08) por el bloqueo de IP en la fuente.
   workflow_dispatch:
     inputs:
       backfill_gea:
@@ -28,7 +32,7 @@ on:
         type: boolean
         default: false
       dea_probe:
-        description: "DEA: reintentar la fuente automática (por si el bloqueo de IP se levantó)."
+        description: "DEA: forzar una corrida fuera del schedule semanal (ya corre sola los miércoles)."
         type: boolean
         default: false
       dea_full:
@@ -65,8 +69,8 @@ jobs:
             node scripts/ingest-gea.mjs
           fi
 
-      - name: DEA (SAGyP) — solo probe por dispatch (fuente bloqueada por IP, lote L5)
-        if: ${{ !cancelled() && github.event.inputs.dea_probe == 'true' }}
+      - name: DEA (SAGyP)
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event.inputs.dea_probe == 'true') }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

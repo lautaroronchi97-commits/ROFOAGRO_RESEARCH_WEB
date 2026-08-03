@@ -14,8 +14,9 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 13 * * 4" # jue 10:00 AR — el informe suele actualizar a mitad de semana
-    - cron: "0 13 * * 1" # lun 10:00 AR — segunda pasada por si actualizó el finde
+    - cron: "22 13 * * 4" # jue 10:22 AR — el informe suele actualizar a mitad de semana
+    - cron: "22 13 * * 1" # lun 10:22 AR — segunda pasada por si actualizó el finde
+    # fuera del minuto ":00" (03/08/2026, congestión de GH Actions, ver ingest-noticias.yml)
   workflow_dispatch:
     inputs:
       backfill:

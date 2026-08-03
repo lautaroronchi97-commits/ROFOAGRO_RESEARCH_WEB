@@ -60,16 +60,24 @@ const CONFLICT =
 // service_role JWT que manda el caller aunque ambos sean válidos. El gateway
 // (verify_jwt=true) ya validó la firma → es seguro decodificar el payload y
 // exigir el claim role=service_role, sin depender de esa comparación exacta.
-function jwtRole(token: string): string | null {
+//
+// Fix 03/08/2026: la migración a las keys nuevas de Supabase (`sb_publishable_`/
+// `sb_secret_`, ver docs/PRELAUNCH_CHECKLIST.md) rompió esto en producción — esas
+// keys NO son un JWT de 3 partes (no tienen claim `role`), así que `jwtRole` daba
+// `null` y esta función devolvía 403 aunque el caller mandara la key secreta real.
+// El secret key nuevo ES el equivalente de service_role (bypassea RLS igual que
+// el JWT legacy) → se acepta directo por prefijo, sin necesitar decodificar nada.
+function esServiceRole(token: string): boolean {
+  if (token.startsWith("sb_secret_")) return true;
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) return false;
   try {
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
     const payload = JSON.parse(atob(b64 + pad));
-    return typeof payload.role === "string" ? payload.role : null;
+    return payload.role === "service_role";
   } catch {
-    return null;
+    return false;
   }
 }
 
@@ -221,7 +229,7 @@ Deno.serve(async (req: Request) => {
   // (antes se comparaba contra SUPABASE_SERVICE_ROLE_KEY string-a-string, frágil con las
   // dos generaciones de keys del proyecto conviviendo — E5 #12e / fix 22/07).
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (jwtRole(bearer) !== "service_role") {
+  if (!esServiceRole(bearer)) {
     return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 

@@ -16,8 +16,8 @@ on:
   schedule:
     - cron: "30 13 * * 1-5" # 10:30 ART
     - cron: "45 13 * * 1-5" # 10:45 ART (reintento si aún no había datos)
-    - cron: "0 14 * * 1-5" #  11:00 ART (reintento final; a esta hora ya debería estar)
-    - cron: "0 21 * * 1-5" # 18:00 ART — captura la fecha del DÍA: la consulta de CAC la carga tarde y los 3 crons de la mañana venían quedando T-1 (E5 #10)
+    - cron: "5 14 * * 1-5" #  11:05 ART (reintento final; a esta hora ya debería estar) — fuera del minuto ":00" (03/08/2026, congestión de GH Actions, ver ingest-noticias.yml)
+    - cron: "6 21 * * 1-5" # 18:06 ART — captura la fecha del DÍA: la consulta de CAC la carga tarde y los 3 crons de la mañana venían quedando T-1 (E5 #10); fuera del minuto ":00" (03/08/2026)
   workflow_dispatch:
     inputs:
       from:

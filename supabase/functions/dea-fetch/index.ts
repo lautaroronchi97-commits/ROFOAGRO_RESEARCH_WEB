@@ -12,28 +12,35 @@
 // el proyecto tiene en paralelo las keys legacy (JWT) y las nuevas (sb_secret_…)
 // y ese valor reservado puede no ser idéntico al JWT que manda el caller aunque
 // ambos sean válidos — fix 22/07, mismo criterio que lineup-ingest.
+//
+// Fix 03/08/2026: la migración a las keys nuevas (`sb_publishable_`/`sb_secret_`,
+// ver docs/PRELAUNCH_CHECKLIST.md) rompió el decode — esas keys no son un JWT de
+// 3 partes, así que el check de `role` fallaba y esto devolvía 403 con la key
+// secreta real (mismo bug encontrado en `lineup-ingest`, mismo fix: aceptar el
+// secret key nuevo por prefijo, es el equivalente de service_role).
 // -----------------------------------------------------------------------------
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const URL_DEA = "https://datosestimaciones.magyp.gob.ar/reportes.php?reporte=Estimaciones";
 
-function jwtRole(token: string): string | null {
+function esServiceRole(token: string): boolean {
+  if (token.startsWith("sb_secret_")) return true;
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) return false;
   try {
     const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
     const payload = JSON.parse(atob(b64 + pad));
-    return typeof payload.role === "string" ? payload.role : null;
+    return payload.role === "service_role";
   } catch {
-    return null;
+    return false;
   }
 }
 
 Deno.serve(async (req: Request) => {
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (jwtRole(bearer) !== "service_role") {
+  if (!esServiceRole(bearer)) {
     return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
   try {

@@ -19,7 +19,79 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 03/08/2026 — 🗂️ /admin/datos: una página por carga manual)
+## Ahora (última actualización: 03/08/2026 — 🚨 diagnóstico de ingestas/checks + 🗒️ /admin/checklist nuevo: "qué tengo que hacer hoy")
+
+**🚨 DIAGNÓSTICO DE INGESTAS Y CHECKS — HECHO — rama `claude/ingestas-checks-diagnostico-zzk9es`,
+PR #_.** Lautaro pidió revisar de punta a punta qué ingestas/checks están corriendo bien, cuáles no,
+cuáles atrasadas — disparado por 2 mails reales de alerta en vivo durante la sesión ("Ingesta
+line-up buques en ROJO" y "Healthcheck de frescura en ROJO"). 3 hallazgos, cada uno tratado distinto
+según si era un bug real o una señal correcta:
+
+1. **Bug real de producción, arreglado y desplegado en caliente**: la migración de esta misma mañana
+   a las keys nuevas de Supabase (`sb_publishable_`/`sb_secret_`, `PRELAUNCH_CHECKLIST.md`) se había
+   verificado contra PostgREST directo pero no contra los 2 Edge Functions con auth casero
+   (`lineup-ingest`/`dea-fetch`, decodifican el bearer como JWT y exigen `role=service_role`) — la key
+   nueva no es un JWT → 403 `forbidden` con la key real. Fix: aceptar el secret key nuevo por prefijo
+   ANTES del decode JWT (que sigue sirviendo para la key legacy). **Desplegado por MCP** (`lineup-ingest`
+   v8, `dea-fetch` v4) y **verificado en producción**: reintento del run que había fallado → `success`.
+2. **Bug real recurrente, arreglado (cron)**: `ingest-camiones-agroentregas` fallaba TODAS las noches
+   — su 2º cron, agendado en punto (":00", el minuto más congestionado de GitHub Actions, medido con
+   hasta 3,5h de atraso real), cruzaba la medianoche ART y pegaba contra la colección "de hoy" de
+   Agroentregas todavía vacía. Sin pérdida de datos (la corrida de las 18:00 ya guardaba un valor
+   razonable, por diseño) pero con mail de alerta falso cada noche. Fix: 2º cron adelantado a 20:18
+   ART + **los 16 workflows del repo sacados del minuto ":00"** (mismo criterio que ya usaba
+   `ingest-noticias.yml`, generalizado).
+3. **CONAB atrasado en el healthcheck — confirmado NO ES un bug**: bajado el TXT real de CONAB en
+   vivo, la campaña 2025/26 sigue clavada en el 9º levantamento (verificado a mano) — atraso genuino
+   de la fuente, el healthcheck está midiendo bien. Sin cambios de código ni de umbral.
+
+**Verificado**: lint/tsc/**434 tests**/build ✅ (16 YAML de workflows + 2 Edge Functions tocados) ·
+fix de los Edge Functions confirmado en producción real (rerun del run fallido → success) · contenido
+desplegado releído con `get_edge_function` y comparado byte a byte contra el repo (el primer intento
+de deploy mandó placeholder por error propio, corregido 1 min después) · CONAB verificado bajando la
+fuente real en la sesión.
+
+**🗒️ Follow-up mismo PR: `/admin/checklist` nuevo — "qué tengo que hacer hoy".** Lautaro pidió que
+el admin muestre bien separado y visual qué se rompió/atrasó/falta cargar, con un checklist diario
+propio (ejemplo suyo: *"vengo mañana martes y tengo un checklist: hoy tengo que cargar tal y
+tal"*). Página nueva `/admin/checklist` (tab nuevo en `AdminTabs`, sin badge — calcularlo pegaría
+contra Supabase/GitHub en cada página del panel), reusa 100% el motor de `/admin/conexiones`
+(`getCargasManuales`/`getFrescura`/`getGithubRuns`/`getRoutines`) reagrupado por urgencia: 🔴 Se
+rompió · 🟣 No se generó (Routine) · 🟠 Tenés que cargar algo (con botón directo) · 🟡 Atrasado por
+la fuente (informativo, el caso CONAB) · banner verde si no hay nada. `/admin/conexiones` sigue
+siendo el inventario completo, ahora cruza-linkeado con el checklist. Refactor de paso:
+`estadoWorkflow()`/`chip()`/`fmtFecha` salieron de `conexiones/page.tsx` a
+`src/lib/monitoreo/workflow-estado.ts` (+11 tests nuevos) + `fmt.ts` + `components/admin-chip.tsx`,
+para que las dos páginas los reusen. **Bug real encontrado por la propia verificación visual**: el
+mapa `RESOLVERS` de `manual.ts` nunca tuvo entradas para `pas-zonas`/`pas-condicion` (agregadas en
+C23/C27, 29/07) → mostraban siempre "atrasado" pese a estar frescas — mismo bug ya escondido en la
+tabla larga de `/admin/conexiones`, invisible hasta que el checklist lo puso arriba de todo.
+Arreglado con 2 resolvers nuevos. **Verificado con Playwright real** (datos de Supabase del
+entorno, claro/oscuro con el toggle real, bypass temporal de `requireAdmin()`/el proxy revertido,
+`git diff` limpio): capturas antes/después del fix de `manual.ts` (bajó de 7 a 5 ítems pendientes),
+el balde "Se rompió" con exactamente 1 ítem (CONAB, coincide con el healthcheck real de la sesión).
+lint/tsc/**445 tests**/build ✅. Detalle completo (los 2 hallazgos, en un solo archivo):
+[`sesiones/2026-08-03-diagnostico-ingestas-checks.md`](sesiones/2026-08-03-diagnostico-ingestas-checks.md).
+
+**🎉 Follow-up post-cierre: `dea-fetch` confirmado con un run real — y la fuente DEA volvió a
+responder.** El fix del punto 1 quedó sin un caller real que lo probara (su único disparo es
+`dea_probe`, manual). Disparado por MCP (`workflow_dispatch`, sin pedirle nada a Lautaro — no
+corre procesos a mano) para no dejarlo sin confirmar: **corrió en éxito, de punta a punta** — no
+solo pasó el auth (sin 403), sino que **la fuente `datosestimaciones.magyp.gob.ar` respondió de
+verdad** (bloqueada por IP desde el 22/07, ver lote L5 más abajo) y se subieron **24 filas reales**
+(soja/maíz/cebada/girasol, campañas 2024/25 y 2025/26) a `estimaciones_produccion`, verificadas
+por SQL. No se sabe si el bloqueo se levantó de forma permanente o fue una ventana — pero el
+healthcheck de DEA debería salir en verde en la próxima corrida por esto solo, sin que Lautaro
+tenga que cargar nada.
+
+**Cron de DEA reactivado (mismo día, con OK explícito de Lautaro).** Preguntado si convenía
+esperar más corridas de prueba o reactivar ya el cron semanal — eligió reactivar. DEA vuelve a
+correr junto con GEA los miércoles (antes solo dispatch-only desde el 22/07); si el bloqueo
+vuelve, el guard anti-0-filas + el mail de alerta avisan, y la carga manual en `/admin/datos/dea`
+sigue como respaldo (marcada como tal en el catálogo de monitoreo, ya no como vía primaria).
+lint/tsc/**445 tests**/build ✅.
+
+## Anterior (03/08/2026 — 🗂️ /admin/datos: una página por carga manual)
 
 **🗂️ /ADMIN/DATOS — UNA PÁGINA POR CARGA MANUAL — HECHO — rama
 `claude/admin-datos-vistas-separadas-ydr35o`, PR #_.** Lautaro pidió separar `/admin/datos` (un solo

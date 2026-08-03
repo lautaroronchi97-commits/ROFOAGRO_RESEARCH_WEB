@@ -135,10 +135,12 @@ export const WORKFLOWS: Workflow[] = [
   { archivo: "ingest-cierres", nombre: "Ingesta cierres granos (CEM)", horarioArt: "20:00 (L-V)", checkNombres: ["futuros_cierres (A3/Matba)"], tieneSchedule: true },
   { archivo: "ingest-compras", nombre: "Ingesta compras de granos (MAGyP)", horarioArt: "lunes y jueves 10:00", checkNombres: ["compras (SIO Granos)", "djve (MAGyP)"], tieneSchedule: true },
   { archivo: "ingest-conab", nombre: "Ingesta estimaciones CONAB", horarioArt: "08:30 (L-V)", checkNombres: ["estimaciones CONAB"], tieneSchedule: true },
-  // Este workflow solo corre GEA (BCR) por schedule — DEA y PAS son 100% carga manual (fuentes
-  // bloqueadas por IP/Cloudflare, ver CARGAS_MANUALES abajo); dea_probe/pas_probe existen en el
-  // mismo YAML pero solo por workflow_dispatch, para reintentar si algún día se destraban.
-  { archivo: "ingest-estimaciones-ar", nombre: "Ingesta estimaciones Argentina (BCR-GEA)", horarioArt: "miércoles 22:00", checkNombres: ["estimaciones BCR-GEA"], tieneSchedule: true },
+  // GEA (BCR) y DEA (SAGyP) corren juntos por schedule desde el 03/08/2026 (DEA había estado
+  // bloqueada por IP del 22/07 al 03/08, ver el YAML). PAS sigue 100% carga manual (Cloudflare
+  // 403, ver CARGAS_MANUALES abajo); pas_probe existe en el mismo YAML pero solo por
+  // workflow_dispatch, para reintentar si algún día se destraba. La carga manual de DEA
+  // (`/admin/datos/dea`) sigue como respaldo si el cron vuelve a fallar.
+  { archivo: "ingest-estimaciones-ar", nombre: "Ingesta estimaciones Argentina (BCR-GEA · SAGyP-DEA)", horarioArt: "miércoles 22:16", checkNombres: ["estimaciones BCR-GEA", "estimaciones DEA-SAGyP"], tieneSchedule: true },
   { archivo: "ingest-usda", nombre: "Ingesta estimaciones USDA", horarioArt: "17:00, días 9 al 13 de cada mes", checkNombres: ["estimaciones USDA"], tieneSchedule: true },
   { archivo: "healthcheck", nombre: "Healthcheck de frescura", horarioArt: "20:45, todos los días", checkNombres: [], tieneSchedule: true },
   { archivo: "chequeo-anomalias", nombre: "Chequeo de anomalías", horarioArt: "20:50, todos los días", checkNombres: [], tieneSchedule: true },
@@ -166,7 +168,7 @@ export const CARGAS_MANUALES: CargaManual[] = [
   { id: "camiones", nombre: "Camiones en puerto (Williams)", href: "/admin/datos/camiones", cadenciaTexto: "irregular, sin cadencia fija" },
   { id: "mesa-color", nombre: "Datos del día (color de la rueda)", href: "/admin/datos/mesa-color", cadenciaTexto: "diaria, días hábiles" },
   { id: "bcra-manual", nombre: "Compras BCRA (MULC) — manual", href: "/admin/datos/bcra-manual", cadenciaTexto: "diaria hábil, tapa el rezago de la API" },
-  { id: "dea", nombre: "Estimaciones DEA-SAGyP", href: "/admin/datos/dea", cadenciaTexto: "semanal" },
+  { id: "dea", nombre: "Estimaciones DEA-SAGyP", href: "/admin/datos/dea", cadenciaTexto: "respaldo — el cron semanal (miércoles) ya la actualiza solo; cargar acá solo si vuelve a atrasarse" },
   { id: "pas", nombre: "Estimaciones BCBA-PAS", href: "/admin/datos/pas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
   { id: "pas-zonas", nombre: "Estimaciones BCBA-PAS por zona", href: "/admin/datos/pas-zonas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
   { id: "pas-condicion", nombre: "Condición de cultivos BCBA-PAS", href: "/admin/datos/pas-condicion", cadenciaTexto: "semanal (4 archivos, uno por cultivo)" },

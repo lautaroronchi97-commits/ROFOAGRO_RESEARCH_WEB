@@ -4,11 +4,14 @@ import { hoyCordobaISO } from "@/lib/dates";
 import { ahoraCordoba, algunaRuedaAbierta } from "@/lib/rueda";
 import { a3Ping } from "@/lib/a3-live";
 import { supabaseConfigured } from "@/lib/supabase";
-import { getFrescura, type ChequeoFrescura, type EstadoChequeo } from "@/lib/monitoreo/frescura";
+import { getFrescura, type EstadoChequeo } from "@/lib/monitoreo/frescura";
 import { getCargasManuales, contarCargasPendientes, type CargaManualEstado, type EstadoManual } from "@/lib/monitoreo/manual";
-import { getGithubRuns, type RunWorkflow, type EstadoRun } from "@/lib/monitoreo/github-runs";
+import { getGithubRuns, type EstadoRun } from "@/lib/monitoreo/github-runs";
 import { getRoutines, type RoutineEstado, type EstadoRoutine } from "@/lib/monitoreo/routines";
-import { WORKFLOWS, type Workflow } from "@/lib/monitoreo/catalogo";
+import { WORKFLOWS } from "@/lib/monitoreo/catalogo";
+import { estadoWorkflow, type Color } from "@/lib/monitoreo/workflow-estado";
+import { fmtFecha, fmtFechaHora } from "@/lib/monitoreo/fmt";
+import { AdminChip } from "@/components/admin-chip";
 
 export const metadata = { title: "Conexiones · Administración · ROFO AGRO" };
 
@@ -17,14 +20,12 @@ export const metadata = { title: "Conexiones · Administración · ROFO AGRO" };
  * si las 3 Routines produjeron lo suyo, y si A3 está trayendo datos en vivo. Solo LECTURA +
  * links (decisión de la sesión, ver docs/sesiones/2026-07-29-panel-conexiones.md): "correr
  * ahora" queda para el link directo a GitHub o a la sección de /admin/datos.
+ *
+ * Es el inventario COMPLETO (incluye lo que está OK) — para "qué necesita mi atención hoy" en
+ * un solo vistazo, sin lo que ya está bien, ver /admin/checklist (03/08/2026).
  */
 
-type Color = "verde" | "dorado" | "rojo" | "neutro";
-
-function chip(color: Color, texto: string) {
-  const cls = color === "verde" ? "estado-aprobado" : color === "dorado" ? "estado-pendiente" : color === "rojo" ? "estado-bloqueado" : "";
-  return <span className={`admin-chip ${cls}`}>{texto}</span>;
-}
+const chip = (color: Color, texto: string) => <AdminChip color={color} texto={texto} />;
 
 const COLOR_MANUAL: Record<EstadoManual, Color> = { "al-dia": "verde", pendiente: "dorado", atrasado: "rojo" };
 const TEXTO_MANUAL: Record<EstadoManual, string> = { "al-dia": "Al día", pendiente: "Pendiente", atrasado: "Atrasado" };
@@ -32,47 +33,6 @@ const TEXTO_ROUTINE: Record<EstadoRoutine, string> = { ok: "OK", pendiente: "Pen
 const COLOR_CHECK: Record<EstadoChequeo, Color> = { ok: "verde", atrasado: "rojo", error: "rojo", "sin-datos": "neutro" };
 const COLOR_RUN: Record<EstadoRun, Color> = { success: "verde", failure: "rojo", "en-curso": "dorado", desconocido: "neutro" };
 const TEXTO_RUN: Record<EstadoRun, string> = { success: "OK", failure: "Falló", "en-curso": "Corriendo", desconocido: "Sin runs" };
-
-/** "YYYY-MM-DD…" → "DD/MM/AA" (por string, sin Intl — mismo criterio que ddmm() de semaforo-panel.tsx). */
-function fmtFecha(iso: string | null): string {
-  if (!iso) return "—";
-  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`;
-}
-
-function fmtFechaHora(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("es-AR", {
-    timeZone: "America/Argentina/Cordoba",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-}
-
-function estadoWorkflow(
-  w: Workflow,
-  run: RunWorkflow | undefined,
-  checks: ChequeoFrescura[],
-): { color: Color; texto: string } {
-  const propios = checks.filter((c) => w.checkNombres.includes(c.nombre));
-  const datoAtrasado = propios.some((c) => c.estado === "atrasado" || c.estado === "error");
-
-  if (run) {
-    if (run.estado === "failure") return { color: "rojo", texto: "Último run falló" };
-    if (run.estado === "en-curso") return { color: "dorado", texto: "Corriendo" };
-    if (run.estado === "success") {
-      return datoAtrasado ? { color: "dorado", texto: "Run OK, dato atrasado" } : { color: "verde", texto: "OK" };
-    }
-    return { color: "neutro", texto: "Sin runs todavía" };
-  }
-  if (propios.length > 0) {
-    return datoAtrasado ? { color: "rojo", texto: "Dato atrasado" } : { color: "verde", texto: "Dato al día" };
-  }
-  return { color: "neutro", texto: w.tieneSchedule ? "Sin señal (falta el token)" : "Manual" };
-}
 
 export default async function ConexionesPage() {
   await requireAdmin();
@@ -119,7 +79,8 @@ export default async function ConexionesPage() {
           Estado de todas las conexiones externas: cargas manuales, crons de GitHub Actions, las 3
           Routines de research y el feed en vivo de A3. Solo lectura — para actuar, cada fila linkea a
           donde corresponde (el uploader en <Link href="/admin/datos">Datos</Link>, o el workflow en
-          GitHub).
+          GitHub). Es el inventario completo, incluido lo que ya está bien — para solo lo que
+          necesita tu atención hoy, ver el <Link href="/admin/checklist">Checklist diario</Link>.
         </p>
       </div>
 

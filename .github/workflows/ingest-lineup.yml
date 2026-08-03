@@ -11,6 +11,11 @@ name: Ingesta line-up buques (ISA → Supabase)
 # antes de que ISA publique, siempre alcance al viernes anterior — con 3 caía
 # Lun+Dom+Sáb, un falso positivo de "0 filas" sin ser un bloqueo real (27/07).
 # Los `schedule` de GitHub Actions corren desde la rama default.
+#
+# Fix 03/08/2026: los 2 crons estaban en punto (":00"), el minuto más congestionado de GitHub
+# Actions (mismo hallazgo que `ingest-noticias.yml`) — medido en runs reales, el de "0 1 * * *"
+# llegaba a disparar hasta 3,5h tarde. Acá no rompía la corrida (la ventana de 4 días absorbe el
+# atraso), pero sí atrasaba la frescura real sin necesidad — sacados del minuto ":00".
 
 # El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
 permissions:
@@ -18,8 +23,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 13 * * *" # 10:00 ART
-    - cron: "0 1 * * *" #  22:00 ART
+    - cron: "9 13 * * *" # 10:09 ART
+    - cron: "14 1 * * *" # 22:14 ART
   workflow_dispatch:
     inputs:
       from:

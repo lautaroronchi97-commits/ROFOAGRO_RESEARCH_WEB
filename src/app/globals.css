@@ -1764,6 +1764,21 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .lu-kpi-l { font-size:var(--fs-xs); color:var(--ink-2); text-transform:uppercase; letter-spacing:.06em; }
 @media (max-width:560px){ .lu-kpis { grid-template-columns:1fr; } }
 
+/* ===== /admin/checklist ===== */
+.chk-ok { display:flex; align-items:center; gap:14px; margin:18px 0 4px; padding:16px 18px;
+  background:color-mix(in srgb, var(--pos) 8%, var(--panel)); border:1px solid color-mix(in srgb, var(--pos) 35%, var(--line));
+  border-radius:var(--r-panel); }
+.chk-ok-ico { font-size:22px; font-weight:800; color:var(--pos); line-height:1; }
+.chk-ok-t { font-size:var(--fs-md); font-weight:800; color:var(--ink); margin:0; }
+.chk-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+.chk-item { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--line);
+  border-radius:var(--r-panel); padding:12px 14px; }
+.chk-item-rojo { border-left-color:var(--neg); }
+.chk-item-dorado { border-left-color:var(--gold-text); }
+.chk-item-hd { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.chk-item-t { font-size:var(--fs-sm); font-weight:700; color:var(--ink); }
+.chk-item-btn { margin-top:10px; width:100%; }
+
 .lu-h3 { font-family:var(--font-ui); font-size:var(--fs-xs); font-weight:800; letter-spacing:.07em;
   text-transform:uppercase; color:var(--ink-2); margin:22px 0 8px; }
 
