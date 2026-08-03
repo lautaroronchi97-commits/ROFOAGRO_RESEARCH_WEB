@@ -479,19 +479,27 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   sobreviviendo el filtro, todas con declarado ≥ 5.406 t. `/produccion/zonas` confirmado por
   Lautaro el mismo día (ver C23). **423→426 tests, lint/tsc/build ✅.** Detalle:
   [`sesiones/2026-07-30-c28-cierre-sinteticos-empresas.md`](../sesiones/2026-07-30-c28-cierre-sinteticos-empresas.md).
-- [~] **C29. Checklist maestro de pre-lanzamiento (3 informes de research de Lautaro, 31/07) —
-  EN CURSO.** Lautaro trajo 3 informes de research de pre-lanzamiento (metodología Claude Code ·
-  "cómo ejecutar sin romper nada" · 8 puntos técnicos/legales) y pidió auditar el proyecto contra
-  ese checklist por partes, en Plan Mode, con hallazgos → severidad → fix archivo por archivo →
-  riesgo de cada fix. Consolidado en **[`PRELAUNCH_CHECKLIST.md`](../PRELAUNCH_CHECKLIST.md)**
-  (fases 0–7 con el estado real: lo ya cubierto por E1→E7 tildado con evidencia, pendientes de
-  código y pasos manuales 🖐 separados). **Parte 1 (seguridad) auditada el 31/07** contra la base
-  real: RLS 24/24 OK, service key server-only OK, y 3 fixes de grants/policies versionados como
-  migraciones (S1 cierre `lineup`+vistas+2 matviews a anon — el remanente del cierre diferido de
-  E1 · S2 revoke `refresh_compras_avance` a anon · S3 limpieza EXECUTE de definer functions),
-  pendientes de aplicar con OK explícito. Crítico abierto detectado de paso: **backups** (plan
-  Free = sin backup automático → decisión Supabase Pro, fase 4 del checklist). Siguen: resto de
-  las partes (performance, cálculos, datos, backups, deployment) contra el mismo doc.
+- [x] **C29. Checklist maestro de pre-lanzamiento (3 informes de research de Lautaro, 31/07) —
+  ✅ CERRADO 03/08/2026.** Lautaro trajo 3 informes de research de pre-lanzamiento (metodología
+  Claude Code · "cómo ejecutar sin romper nada" · 8 puntos técnicos/legales) y pidió auditar el
+  proyecto contra ese checklist por partes, en Plan Mode, con hallazgos → severidad → fix archivo
+  por archivo → riesgo de cada fix. Consolidado en
+  **[`PRELAUNCH_CHECKLIST.md`](../PRELAUNCH_CHECKLIST.md)** (fases 0–7). **Parte 1 (seguridad,
+  31/07)**: RLS 24/24 OK, service key server-only OK, 3 fixes de grants/policies aplicados (S1
+  cierre `lineup`+vistas+2 matviews a anon · S2 revoke `refresh_compras_avance` a anon · S3
+  limpieza EXECUTE de definer functions). **Parte 2 (01/08, cálculos/frescura/performance/
+  deployment)**: 0 bugs de cálculo, kill-switch + `/api/health` + `error.tsx`/`global-error.tsx` +
+  `docs/RUNBOOK.md`, OG tags/`opengraph-image`, `@vercel/analytics`+`@vercel/speed-insights`.
+  Backups: Lautaro decidió **no** contratar Supabase Pro (riesgo aceptado explícitamente); dump
+  versionado propio queda como única red. **Cierre final (03/08)**: los 5 últimos ítems opcionales
+  del checklist — hook de lint no bloqueante (`.claude/settings.json`), `/security-review` corrido
+  contra un diff real sin hallazgos, property-based tests (`fast-check`, TEA≥TNA + antisimetría de
+  pases), semáforo de frescura (`FrescuraDot` + prop `revalidateSeg` en `SourceStamp`) y smoke test
+  k6 (`scripts/k6-smoke.js`, opcional, fuera de CI). El resto de los `[ ]` que quedan en
+  `PRELAUNCH_CHECKLIST.md` son decisiones explícitas de Lautaro de **no** hacer algo (staging
+  separado, acceso de emergencia para Mauro, consulta con abogado, beta cerrada), no deuda
+  pendiente. **Con esto `PRELAUNCH_CHECKLIST.md` no tiene ningún ítem real abierto.** Detalle:
+  [`sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md`](../sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md).
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN
