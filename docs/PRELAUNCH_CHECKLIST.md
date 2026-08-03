@@ -57,8 +57,8 @@
   no de usuario).
 - [x] `.github/dependabot.yml` **ya está committeado** (npm + github-actions, updates mensuales
   agrupados, `open-pull-requests-limit: 10`) — es el mecanismo de **version-updates** (PRs
-  automáticos). Falta el otro mecanismo, distinto: 🖐 **alertas de seguridad** (GitHub → Settings
-  → Code security → Dependabot alerts), que se prende con un clic y no está en este archivo.
+  automáticos). **Dependabot alerts — HECHO 03/08/2026**: Dependency graph + Dependabot alerts
+  prendidos por Lautaro en GitHub Settings → Code security and analysis.
 - [ ] 🖐 Re-scan del historial con **gitleaks** (E5 revisó a mano hasta el commit 139) — o correrlo
   en una sesión de código si el sandbox lo permite.
 - [ ] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — las legacy
