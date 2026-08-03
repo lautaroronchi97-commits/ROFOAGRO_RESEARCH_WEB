@@ -67,9 +67,16 @@
   commits escaneados en todas las ramas** (`--all`, no solo `main`), 27,6 MB, **0 secretos
   encontrados** — reemplaza la revisión manual de E5 (hasta el commit 139) con un escaneo
   automatizado de punta a punta.
-- [ ] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — las legacy
-  deprecan a fines de 2026; rotación en segundos sin desloguear. Coordinar: Vercel + GitHub
-  secrets + entorno de Claude (Routines) + Edge Functions, en ese orden y con verificación.
+- [~] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — **EN CURSO
+  03/08/2026, guiado paso a paso.** Vercel actualizado (`SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_KEY`/
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `*_URL` sin tocar) y **verificado con login real + datos
+  cargando en producción**. GitHub Actions (`SUPABASE_SERVICE_KEY`) actualizado y **verificado
+  disparando `healthcheck.yml` a mano**: leyó las 24 tablas reales con la key nueva sin error de
+  auth (el único rojo fue CONAB atrasado, hallazgo real sin relación — ver Fase 2). Entorno de
+  Claude Code (Routines) actualizado por Lautaro, **pendiente de verificación real** — no se puede
+  confirmar desde una sesión ya arrancada con la key vieja; queda para la corrida del informe
+  diario de hoy (18:30 ART) o la próxima Routine. **Las keys legacy siguen activas a propósito**
+  (no se desactivan hasta confirmar las 3 patas — Vercel y Actions ya, Routines pendiente).
 - [ ] 🖐 **S4**: leaked password protection (se destraba al contratar Supabase Pro — ver Fase 4).
 
 ## Fase 1 — Cálculos financieros (Informe complementario §1)
@@ -209,6 +216,12 @@
   `{status, checks, latencyMs, timestamp}` — 200 si Supabase responde, 503 si no (para que
   UptimeRobot/similar lo detecte como caído). Probado en vivo contra la base real:
   `{"status":"ok","checks":{"app":true,"supabase":true},...}`.
+  **Regresión encontrada 03/08/2026 (sin relación con esta migración, verificada en producción
+  real)**: `/api/health` quedó atrás del gate de `AUTH_ENFORCED` — `src/proxy.ts` solo exceptúa
+  `/api/views/` y `/api/informes/`, no `/api/health` → devuelve `307` a `/ingresar` en vez de
+  `200`, mismo patrón de bug que tuvo `/informes/plantilla/*` (C18/V0, arreglado 27/07). Un
+  monitor externo (UptimeRobot) hoy vería "caído" siempre, nunca el JSON real. **Pendiente: sumar
+  `/api/health` a la lista de exenciones del proxy** (sesión de código aparte).
 - [ ] ~~🖐 Acceso de emergencia para **Mauro** con cuenta propia~~ → **DECIDIDO 03/08/2026:
   Lautaro NO lo va a agregar** a Vercel/Supabase/GitHub por ahora. Sigue siendo admin de la web
   (`profiles`), solo sin acceso a la infraestructura.
