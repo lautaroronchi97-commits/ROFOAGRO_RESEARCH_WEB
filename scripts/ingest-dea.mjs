@@ -3,13 +3,15 @@
  * Ingesta de estimaciones de producción de la DEA — SAGyP (Argentina, oficial) a Supabase
  * (tabla estimaciones_produccion). Módulo "Calendario + estimaciones" — docs/PLAN_CALENDARIO_PRODUCCION.md (sesión C).
  *
- * ⚠️ FUENTE BLOQUEADA por IP (lote L5, 22/07/2026): `datosestimaciones.magyp.gob.ar` resetea la
- * conexión a nivel TLS desde GitHub Actions, la Edge Function `dea-fetch` (São Paulo) y un sandbox
- * de Claude Code — 3 proveedores cloud distintos, mismo bloqueo. La vía real de actualización pasó
- * a ser la CARGA SEMI-MANUAL (Lautaro baja el CSV de su navegador, no bloqueado, y lo sube por
- * `/admin/datos` → RPC `admin_upsert_estimaciones`, reusando el parser de `src/lib/parse-dea.ts`).
- * Este script queda para: (a) reprocesar un CSV ya descargado (`--csv archivo.csv`), y (b) reintentar
- * la fuente automática si el bloqueo se levanta algún día (dispatch manual, ya no en el schedule).
+ * ⚠️ Historial de bloqueo por IP (lote L5): `datosestimaciones.magyp.gob.ar` reseteaba la conexión
+ * a nivel TLS desde GitHub Actions, la Edge Function `dea-fetch` (São Paulo) y un sandbox de Claude
+ * Code — 3 proveedores cloud distintos, mismo bloqueo, del 22/07 al 03/08/2026. El 03/08 volvió a
+ * responder (probado vía `dea-fetch` tras arreglar un bug de auth no relacionado) → **de vuelta en
+ * el schedule semanal** (`.github/workflows/ingest-estimaciones-ar.yml`, junto con GEA). Si se
+ * bloquea de nuevo, la CARGA SEMI-MANUAL sigue como respaldo (Lautaro baja el CSV de su navegador,
+ * no bloqueado, y lo sube por `/admin/datos/dea` → RPC `admin_upsert_estimaciones`, reusando el
+ * parser de `src/lib/parse-dea.ts`). Este script también sirve para reprocesar un CSV ya descargado
+ * (`--csv archivo.csv`) o forzar una corrida fuera del schedule (`dea_probe` del dispatch).
  *
  * Fuente: exportación CSV completa por POST, sin auth (Datos de Estimaciones Agrícolas):
  *   POST https://datosestimaciones.magyp.gob.ar/reportes.php?reporte=Estimaciones   body: Dataset=Dataset
