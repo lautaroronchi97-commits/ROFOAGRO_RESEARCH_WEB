@@ -33,7 +33,7 @@ export async function guardarComprasBcraManual(_prev: BcraManualState, formData:
   });
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/datos");
+  revalidatePath("/admin/datos/bcra-manual");
   revalidatePath("/dolar");
   return { ok: `Compras BCRA del ${fecha.slice(8, 10)}/${fecha.slice(5, 7)} guardadas.` };
 }

@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { WORKFLOWS, CHECKS, CARGAS_MANUALES } from "./catalogo";
 
-// Anclas reales sembradas en src/app/admin/datos/page.tsx (id="..." de cada bloque). Si se
-// renombra una acá, hay que renombrarla también ahí — este test avisa si se desincronizan.
-const ANCLAS_ADMIN_DATOS = new Set(["agrochat", "camiones", "mesa-color", "bcra-manual", "dea", "pas", "pas-zonas", "pas-condicion", "lecap"]);
+// Slugs reales de las páginas src/app/admin/datos/<slug>/page.tsx (ver secciones.ts). Si se
+// renombra uno acá, hay que renombrarlo también ahí — este test avisa si se desincronizan.
+const SLUGS_ADMIN_DATOS = new Set(["agrochat", "camiones", "mesa-color", "bcra-manual", "dea", "pas", "pas-zonas", "pas-condicion", "lecap"]);
 
 describe("catalogo.ts — consistencia interna", () => {
   it("todo WORKFLOWS[].checkNombres referencia un CHECKS[].nombre real", () => {
@@ -15,11 +15,11 @@ describe("catalogo.ts — consistencia interna", () => {
     }
   });
 
-  it("todo CargaManual con href a /admin/datos apunta a una ancla real", () => {
+  it("todo CargaManual con href a /admin/datos/ apunta a una página real", () => {
     for (const c of CARGAS_MANUALES) {
-      if (c.href.startsWith("/admin/datos#")) {
-        const ancla = c.href.split("#")[1]!;
-        expect(ANCLAS_ADMIN_DATOS.has(ancla), `${c.id} apunta a un ancla inexistente: "${ancla}"`).toBe(true);
+      if (c.href.startsWith("/admin/datos/")) {
+        const slug = c.href.slice("/admin/datos/".length);
+        expect(SLUGS_ADMIN_DATOS.has(slug), `${c.id} apunta a una página inexistente: "${slug}"`).toBe(true);
       }
     }
   });

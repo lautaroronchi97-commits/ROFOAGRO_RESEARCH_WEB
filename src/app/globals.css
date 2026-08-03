@@ -1602,6 +1602,17 @@ a.estim-inf:hover { color:var(--gold-text); }
   height:18px; padding:0 5px; font-size:11px; font-weight:800; color:#fff; background:var(--neg);
   border-radius:9px; }
 
+/* Sub-pestañas dentro de una sección de /admin (hoy solo /admin/datos): un nivel de nav más
+   chico y en forma de píldora, para distinguirlo de las pestañas principales de arriba. */
+.admin-subtabs { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; padding-bottom:14px;
+  border-bottom:1px solid var(--line); }
+.admin-subtabs a { display:inline-flex; align-items:center; font-size:var(--fs-xs); font-weight:700;
+  color:var(--ink-2); padding:6px 13px; border-radius:999px; border:1px solid var(--line-2);
+  transition:color var(--t-fast), background var(--t-fast), border-color var(--t-fast); }
+.admin-subtabs a:hover { color:var(--ink); border-color:var(--gold-hair); }
+.admin-subtabs a[aria-current="page"] { color:var(--brand-agro);
+  background:color-mix(in srgb, var(--brand-agro) 12%, transparent); border-color:var(--brand-agro); }
+
 .admin-main { max-width:1200px; width:100%; margin:0 auto; padding:22px clamp(12px,3vw,26px) 64px; }
 .admin-hd { margin:0 0 18px; }
 .admin-h1 { font-family:var(--font-ui); font-size:var(--fs-xl); font-weight:800; color:var(--ink); margin:0; }
@@ -1620,6 +1631,8 @@ a.estim-inf:hover { color:var(--gold-text); }
   color:var(--ink-3); margin:12px 0; }
 .admin-card-facts b { color:var(--ink-2); font-weight:700; }
 .admin-yo { color:var(--gold-text); font-size:var(--fs-2xs); font-weight:700; }
+a.admin-card { transition:border-color var(--t-fast), box-shadow var(--t-fast); }
+a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 0 0 1px var(--gold-hair); }
 
 .admin-chips { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
 .admin-chip { font-size:var(--fs-2xs); font-weight:800; text-transform:uppercase; letter-spacing:.05em;
