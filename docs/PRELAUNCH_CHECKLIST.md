@@ -129,25 +129,36 @@
   igual que en el resto del sitio en los 3 lugares). Las páginas mesa-only
   (`/comercio/negociado`, `/produccion/{condicion,zonas}`, `/granos/view`) siguen sin contar
   como gap — confirmado `requireAdmin()` en las 4.
-- [ ] **Nuevo (no estaba en los informes)**: el detector de anomalías (D7) cubre 9 series
-  (`src/lib/anomalias-series.ts:51-169`) pero el healthcheck de frescura cubre 17 tablas — **8
-  tablas sin chequeo de VALOR** (solo de frescura): `djve`, `lineup`, `camiones_plantas`,
-  `noticias`, `views_mercado`, `pas_zonas`, `pas_condicion`, `lecap_pago_final`. Las 2 BCBA-PAS
-  son las que más preocupan: son 100% carga manual (más expuestas a error humano) y hoy solo se
-  valida "¿llegó el dato?", no "¿el valor tiene sentido?". No es una regresión — nunca se
-  construyó — pero vale la pena que Lautaro lo sepa antes de decidir si extender el catálogo.
-  **Investigado 01/08/2026, NO extendido — encontró un problema real de diseño, no una tarea
-  mecánica**: el barrido diario (`chequeo-anomalias.mjs:127`) separa "histórico" de "nuevo"
-  comparando la columna de fecha contra un corte `fecha >= DESDE` (ISO, últimos N días) — asume
-  una columna de fecha REAL. `pas_zonas`/`pas_condicion` no tienen ninguna: su eje temporal es
-  `campania` (texto "2000/01", ordena bien lexicográficamente pero no es una fecha) y `semana`
-  (0-53 sin fecha real). Meterlas tal cual al catálogo haría que el corte nunca dispare → CADA
-  corrida reprocesaría la tabla ENTERA como "nuevo", con riesgo real de re-alertar todos los
-  días el mismo desvío ya conocido y aceptado (ej. el +13-14% de cebada cervecera que D7 ya
-  había encontrado y decidido no clampear) — exactamente el "detector que grita se ignora" que
-  la calibración de D7 evitó a propósito para las otras 9 series. Un fix correcto necesita una
-  calibración retroactiva propia (mismo nivel de trabajo que la sesión original de D7), no un
-  agregado de 5 minutos al catálogo — queda para una sesión dedicada, no forzado acá.
+- [x] **Investigado 01/08 + cerrado por partes 03/08/2026.** El detector (D7) cubría 9 series
+  pero el healthcheck de frescura cubre 17 tablas — 8 sin chequeo de VALOR: `djve`, `lineup`,
+  `camiones_plantas`, `noticias`, `views_mercado`, `pas_zonas`, `pas_condicion`,
+  `lecap_pago_final`. Repasadas una por una (03/08):
+  - **`camiones_plantas` — HECHO.** Encaja 1:1 en el patrón existente (`conteo_estacional`,
+    mismo perfil que `camiones`/Williams). Calibrado contra la base real: 96 series activas,
+    1.255 puntos desde 30/07/2024, máximo real 842 camiones/planta/día → rango 0-3.000.
+    Calibración retroactiva sobre todo el histórico: **0 falsos positivos**.
+  - **`lecap_pago_final` — HECHO, pero con un mecanismo DISTINTO al motor de MAD.** No es una
+    serie que evoluciona en el tiempo (cada letra se carga una vez, confirmado por Lautaro) →
+    un chequeo de MAD no aplica. Se sumó un **guard de rango simple** (100-400, VN 100; máximo
+    real cargado hoy 161,10) directo en el parser del uploader (`lecap-actions.ts`) — mismo
+    espíritu que el guard ÷1000 de compras/camiones, pero sin necesitar el motor genérico.
+  - **`djve`/`lineup` — siguen sin tocar, a propósito.** Cada fila es un evento individual (una
+    declaración, un buque), no una serie continua — no encajan en `clave+colFecha+colValor` con
+    observaciones repetidas como las demás. Necesitan diseño y calibración propios (mismo nivel
+    de trabajo que dejó afuera a `pas_zonas`/`pas_condicion`), no un agregado rápido.
+  - **`noticias`/`views_mercado` — descartadas, no `pas_zonas`/`pas_condicion` — sin cambios.**
+    Las primeras 2 no tienen un valor numérico que chequear (texto/metadata). Las BCBA-PAS
+    mantienen el problema de diseño encontrado el 01/08: su eje temporal (`campania`/`semana`)
+    no es una fecha real, necesitan calibración propia dedicada — documentado abajo, sin tocar.
+  Verificado con `node scripts/chequeo-anomalias.mjs --serie camiones_plantas_conteo`: corre
+  limpio contra la base real, lint/tsc/**426 tests**/build ✅.
+  **Detalle técnico del problema de diseño de BCBA-PAS (sin resolver, referencia)**: el barrido
+  diario (`chequeo-anomalias.mjs:127`) separa "histórico" de "nuevo" comparando la columna de
+  fecha contra un corte `fecha >= DESDE` — asume una columna de fecha REAL, que `pas_zonas`/
+  `pas_condicion` no tienen. Meterlas tal cual haría que el corte nunca dispare → cada corrida
+  reprocesaría la tabla ENTERA como "nuevo", con riesgo real de re-alertar todos los días un
+  desvío ya conocido y aceptado (ej. el +13-14% de cebada cervecera que D7 ya había encontrado
+  y decidido no clampear).
 - [ ] No existe semáforo visual de antigüedad por tiempo transcurrido (verde/rojo según reloj del
   cliente) — hoy el ⚠ de `SourceStamp` es estático (lo setea el server al momento del fetch, vía
   `meta.problemas`), no recalcula edad en el navegador. Baja prioridad: el timestamp exacto ya es
