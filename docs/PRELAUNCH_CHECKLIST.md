@@ -77,7 +77,9 @@
   confirmar desde una sesión ya arrancada con la key vieja; queda para la corrida del informe
   diario de hoy (18:30 ART) o la próxima Routine. **Las keys legacy siguen activas a propósito**
   (no se desactivan hasta confirmar las 3 patas — Vercel y Actions ya, Routines pendiente).
-- [ ] 🖐 **S4**: leaked password protection (se destraba al contratar Supabase Pro — ver Fase 4).
+- [ ] ~~🖐 **S4**: leaked password protection~~ → **DECIDIDO 03/08/2026: Lautaro NO por ahora**
+  (bloqueado de todos modos por no contratar Supabase Pro — mismo riesgo aceptado que ese ítem,
+  ver Fase 4). Se retoma si algún día se decide upgradear a Pro.
 
 ## Fase 1 — Cálculos financieros (Informe complementario §1)
 
@@ -269,9 +271,10 @@
   queda sin poder completarse**: requiere el nombre legal + domicilio real de la entidad, y la
   cuestión de razón social/SRL de ROFO AGRO sigue sin resolverse desde la sesión de rebranding
   del 23/07 — no es algo que se pueda inventar, necesita que Lautaro lo confirme.
-- [ ] 🖐 Consulta puntual con abogado: inscripción de la base ante la AAIP (TAD) + redacción
-  final del disclaimer de los informes + el dato de responsable/domicilio de arriba. Fuera de
-  código.
+- [ ] ~~🖐 Consulta puntual con abogado~~ → **DECIDIDO 03/08/2026: Lautaro NO por ahora.**
+  Inscripción de la base ante la AAIP (TAD) + redacción final del disclaimer de los informes +
+  el dato de responsable/domicilio de arriba (`/privacidad`) quedan sin resolver hasta que lo
+  retome — riesgo legal aceptado explícitamente, fuera de código.
 
 ## Fase 7 — Pulido y lanzamiento (Informe complementario §7-8)
 
@@ -305,9 +308,9 @@
   3600s baja frecuencia), deps de producción sin hinchazón, 0 código muerto (E4). 13 páginas sin
   `revalidate` explícito son en su mayoría mesa-only (esperado, dinámicas por `requireAdmin`) —
   sin evidencia de que sea un olvido real.
-- [ ] 🖐 Beta cerrada: 1-2 clientes de confianza, canal de feedback, criterios go/no-go definidos
-  ANTES (ej.: 0 bugs críticos abiertos · 0 reportes de dato incorrecto sin resolver en la última
-  semana · clientes llegan al momento de valor). La beta termina con una decisión.
+- [ ] ~~🖐 Beta cerrada~~ → **DECIDIDO 03/08/2026: Lautaro NO la va a hacer.** Sin período de
+  1-2 clientes de confianza previo al lanzamiento — queda como decisión de Lautaro, no bloquea
+  nada de este checklist.
 
 ---
 
