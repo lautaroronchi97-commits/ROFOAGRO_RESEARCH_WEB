@@ -174,11 +174,10 @@
   estimaciones_produccion 5.929 · lecap_pago_final 12 · pas_zonas 1.837 · pas_condicion 1.872
   filas — los 3 últimos coinciden exacto con lo documentado en sesiones anteriores. ~16,6 MB el
   dump inicial, commiteado en este mismo PR (arranca con datos reales, no vacío).
-- [ ] Staging: 2º proyecto Supabase (gratis) para Previews — hoy los Previews de Vercel leen la
-  base de PRODUCCIÓN con la anon key (confirmado 01/08 — no hay ninguna mención de un 2º
-  proyecto en el repo, es 100% una recomendación pendiente). Con S1 aplicado, además, los
-  Previews pierden lo de mesa (sin service key de preview) — decidir si se configura staging o
-  se acepta la degradación.
+- [ ] ~~Staging: 2º proyecto Supabase (gratis) para Previews~~ → **DECIDIDO 03/08/2026: Lautaro
+  NO va a hacerlo.** Los Previews de Vercel siguen leyendo la base de PRODUCCIÓN con la anon key
+  (degradación aceptada: con S1 aplicado, los Previews pierden lo de mesa por no tener service
+  key de preview — ya era así, sigue así).
 - [ ] 🖐 **Branch protection en `main`**: require PR + checks del CI requeridos + bloquear
   force-push (GitHub → Settings → Branches). Confirmado 01/08: hoy CI corre en cada push/PR pero
   NO bloquea el merge (no hay ningún archivo de config de branch protection, ni debería haberlo
