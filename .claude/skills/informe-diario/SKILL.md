@@ -1,13 +1,13 @@
 ---
 name: informe-diario
 description: >-
-  Procedimiento del informe diario de ROFO AGRO (MP1 de docs/PLAN_INFORMES.md):
-  generar la placa PNG vertical de research diario (datos automáticos + color
-  de la rueda de Lautaro + prosa con su voz), guardarla, mandarla por mail y
-  dejarla en /informes. Usar cuando se pida "generá el informe diario" o la
-  Routine diaria (post-cierre, días hábiles) lo dispare. Sigue sin
-  multi-agente a propósito (V4 de docs/PLAN_INFORMES_V2.md §6.4): su valor es
-  salir siempre, rápido.
+  Procedimiento del informe diario de ROFO AGRO (MP1 de docs/PLAN_INFORMES.md,
+  formato "Research" desde el 30/07/2026): generar la placa PNG one-pager de
+  research diario (datos automáticos + color de la rueda de Lautaro + prosa
+  con su voz), guardarla, mandarla por mail y dejarla en /informes. Usar
+  cuando se pida "generá el informe diario" o la Routine diaria (post-cierre,
+  días hábiles) lo dispare. Sigue sin multi-agente a propósito (V4 de
+  docs/PLAN_INFORMES_V2.md §6.4): su valor es salir siempre, rápido.
 # El informe sale con la firma de Lautaro: la prosa la tiene que escribir el
 # modelo grande, con tiempo para pensar el título y el color del día. Esto pisa
 # el modelo de la sesión (y el del selector de la Routine) solo para este turno.
@@ -18,9 +18,10 @@ effort: medium
 # Informe diario — procedimiento
 
 Sos quien redacta y arma el informe diario de la mesa de ROFO AGRO. Todos los días
-hábiles, post-cierre, generás UNA placa PNG (~1080×1600) con los datos del día +
-prosa con la voz de Lautaro, la mandás por mail y queda en `/informes`. Es
-DIARIO: no debe abrumar — una placa que se lee en 30-60 segundos.
+hábiles, post-cierre, generás UNA placa PNG one-pager (~816×1056, formato
+"Research" — desfasaje A3/Chicago + TNA implícita + agenda, ver Paso 2) con los
+datos del día + prosa con la voz de Lautaro, la mandás por mail y queda en
+`/informes`. Es DIARIO: no debe abrumar — se lee en 30-60 segundos.
 
 ## Requisitos (env vars del entorno)
 
@@ -36,11 +37,13 @@ Si falta alguna, avisá el faltante en el resumen final y hacé lo que se pueda
 
 ## Paso 0 — Voz (siempre antes de redactar)
 
-Leé la skill `voz-lautaro` (`SKILL.md` + `references/ejemplos.md`). El molde es
-el reporte **"Mesa de operaciones"** (recap diario): título de la jornada con
-personalidad, comentario general en bullets, bloques por producto con precio +
-variación + color, cierre con datos extras. Registro "placa": emojis
-funcionales sí, hashtags no (esto no va a X, va por mail/WhatsApp).
+Leé la skill `voz-lautaro` (`SKILL.md` + `references/ejemplos.md`). Para este
+formato ("Research", one-pager) el registro es más cercano al **"Informe
+largo"** que a la "placa" — rigor de datos + framing analítico, sin el
+recap en bullets de antes ni emojis (el diseño no los usa; el molde
+"Mesa de operaciones" de `ejemplos.md` sigue siendo la referencia de TONO —
+voseo, humildad, datos exactos — pero la prosa ahora va en título + 2
+párrafos, no en una lista de bullets).
 
 ## Paso 1 — Insumos (todos de la web; cero número inventado)
 
@@ -54,8 +57,9 @@ posición con `settlement` + `changePercent` vs la rueda anterior), `arbitrajes`
 (spread/TNA disponible vs futuro), `pizarra` (CAC $ y USD por grano),
 `volumenPorGrano` (total operado en A3 del día, sumando TODAS las posiciones
 vivas de cada grano — `null` si no hubo dato, `0` si hubo dato y no se operó
-nada), `dolarFuturo` (mayorista + curva DDF con TNA), `chicago` (los 5 de
-Chicago en USD/tn + Δ), `noticias.destacados` (top 4 del día), `agenda`
+nada), `dolarFuturo` (mayorista + curva DDF con TNA), `chicago` (`.agro`:
+los 5 de Chicago en USD/tn + Δ; `.macro`: WTI/oro/plata/DXY/Merval/S&P/etc.
+con su Δ), `noticias.destacados` (top 4 del día), `agenda`
 (informes de hoy/mañana), `color` (el texto que Lautaro cargó en
 `/admin/datos`, o `null` si no cargó nada ese día — el informe sale igual),
 `informesHoy` (informes de organismos —USDA/CONAB/GEA/DEA— publicados JUSTO
@@ -69,12 +73,14 @@ solo hay dato si Lautaro lo cargó) y `viewsMercado` (V4: el view direccional
 vigente por grano — V1, viernes — con su `evidencia_externa` YA verificada en
 esa corrida; ver Paso 2).
 
-La plantilla (paso 4) YA renderiza el volumen por grano, el `bcra` del día y
-una sección "Informe del día" con `informesHoy`/`interpretaciones` solas — no
-hace falta que los repitas en la prosa, pero si `informesHoy` trae algo
+La plantilla (paso 4) YA renderiza el volumen por grano, la pizarra, el
+desfasaje A3/Chicago, la TNA implícita, el `bcra` del día y una sección
+"Informe del día" con `informesHoy`/`interpretaciones` + "En la noticia" con
+`noticias.destacados` — no hace falta que repitas esos números en la prosa
+(Paso 2 te dice exactamente qué SÍ escribir), pero si `informesHoy` trae algo
 relevante (una revisión grande) o `bcra` fue un día fuerte, está bien
-mencionarlo en el `comentario` general (ej. "BCRA siguió acumulando firme",
-tal como en los ejemplos de `voz-lautaro`).
+mencionarlo en `tesisParrafo` (ej. "BCRA siguió acumulando firme", tal como
+en los ejemplos de `voz-lautaro`).
 
 Si la URL de producción no responde (la ruta recién deployada), levantá la web
 local: `NODE_USE_ENV_PROXY=1 npm run build && npm run start` y usá
@@ -88,21 +94,44 @@ cierre además de usar la web local para destrabar el informe del día.
 
 ## Paso 2 — Redactar la prosa
 
-Con el JSON del paso 1, armá:
+La plantilla (Paso 4) calcula EN VIVO los 2 gráficos y la franja de referencia
+directo de los libs de mercado (`src/lib/informe-research.ts` — cero prosa
+necesaria ahí). Lo único que escribís vos son 3 campos de texto, y para que
+tu prosa cite EXACTAMENTE los mismos números que el lector va a ver en los
+gráficos, usá estas reglas — son las mismas que usa `informe-research.ts`:
 
-- **titulo**: el título de la jornada, con personalidad según cómo estuvo el
-  día ("DIA HISTORICO", "Que semanita…", "¡Volatilidad, al palo!" — ver
-  `ejemplos.md`). Si `color` tiene texto, es tu insumo más rico para definirlo.
-- **comentario**: 2-4 bullets (color de mercado del día). Integrá el `color`
-  de Lautaro si existe; si no, describí el día con lo que dice `cierres` /
-  `arbitrajes` / `noticias` (nunca inventes un negocio o sensación que no está
-  en los datos ni en el color cargado).
-- **lineas_por_grano**: un objeto `{ soj: "...", mai: "...", tri: "..." }` con
-  UNA línea por grano (comentario breve del producto, en el tono del molde:
-  "Al inicio de la rueda… los precios mejoraron…"). Basate en `changePercent`
-  de `cierres` y el nivel de `pizarra`/`arbitrajes` de ese grano. Si un grano
-  no tuvo cierres, decilo cualitativamente ("sin cierres hoy") en vez de
-  inventar un movimiento.
+- **El desfasaje** (grano por grano, soja/maíz/trigo): A3 = `changePercent`
+  de la PRIMERA posición viva de `cierres.granos[u].posiciones` (vienen
+  ordenadas por vencimiento ascendente) · Chicago = `deltaPct` de la fila de
+  `chicago.agro` con `nombre` "Soja"/"Maíz"/"Trigo".
+- **Dónde rinde el tiempo (TNA implícita)**: por grano, la fila de
+  `arbitrajes.granos[u].rows` con `tna` no nulo y MAYOR `openInterest` —
+  **no** la de mayor TNA (un contrato cercano y poco operado anualiza el
+  mismo spread en pocos días y da una tasa inflada, no representativa; hubo
+  un caso real el 30/07 con trigo). En dólares: las 2 primeras posiciones de
+  `dolarFuturo.posiciones` con `dias > 5` (se salta la casi-spot, que da
+  ~0% y no aporta nada a "dónde rinde el tiempo").
+- **Las tres cifras**: la MAYOR variación absoluta entre soja/maíz/trigo de
+  `chicago.agro` · `chicago.macro` "Petróleo WTI" · la MAYOR `tnaPct` entre
+  `dolarFuturo.posiciones` ("mejor carry").
+
+Con esos números ya identificados, armá:
+
+- **tesisTitulo**: el titular del día — 1 oración con personalidad, la idea
+  central que cruza el desfasaje y/o el carry (ej. "El carry sigue perdiendo
+  contra el dólar, pero el desfasaje de hoy no tiene un solo sentido"). Va
+  también en el campo `titulo` de nivel superior (es lo que se lista en
+  `/informes`).
+- **tesisParrafo**: 2-4 oraciones desarrollando ese titular, citando los
+  números reales del desfasaje/TNA/carry (los de arriba). Si `color` tiene
+  texto, es tu insumo más rico para el tono del día.
+- **lectura**: 2-4 párrafos `{titulo, texto}` (el `titulo` es una palabra o
+  frase corta en versalitas, ej. "Soja y maíz.", "Trigo.", "Riesgo.", seguida
+  del desarrollo) — normalmente uno por grano que tenga algo distintivo para
+  decir + un párrafo de riesgo/contexto (WTI, biocombustibles, lo que venga
+  de `viewsMercado`/`noticias` si aporta). No hace falta una por cada grano
+  todos los días — si dos granos cuentan la misma historia, van juntos en un
+  solo párrafo (como "Soja y maíz" en el ejemplo del 30/07).
 
 **Sobre el `color`**: leé `references/ejemplo-color-operador.md` — casi
 siempre trae precios/volúmenes/pizarra estimada REALES de un operador de la
@@ -116,16 +145,23 @@ con el otro, son lecturas distintas del mismo día.
 **Contexto del view vigente (V4, opcional — NO es una sección fija)**: si
 `viewsMercado` trae, para algún grano, un dato de `evidencia_externa` que
 siga siendo relevante HOY (ej. "fondos vendidos récord" de la corrida del
-viernes), podés citarlo en el `comentario` como contexto — es un dato ya
-verificado en F5 de `view-mercado` (cero fetch nuevo, cero research propio
-del diario). Nunca reinterpretes el view ni le sumes una lectura nueva: solo
-citás lo que ya está guardado, y solo si aporta al día de hoy — la mayoría de
-los días no hay nada que agregar acá, y está bien que no lo haya (R4/R5 de
-`PLAN_INFORMES_V2.md`: el diario NO se sofistica, su valor es salir siempre,
-en minutos).
+viernes), podés citarlo en `tesisParrafo` o en `lectura` como contexto — es un
+dato ya verificado en F5 de `view-mercado` (cero fetch nuevo, cero research
+propio del diario). Nunca reinterpretes el view ni le sumes una lectura
+nueva: solo citás lo que ya está guardado, y solo si aporta al día de hoy —
+la mayoría de los días no hay nada que agregar acá, y está bien que no lo
+haya (R4/R5 de `PLAN_INFORMES_V2.md`: el diario NO se sofistica, su valor es
+salir siempre, en minutos).
+
+**`noticias`/`bcra`/`informesHoy`/`interpretaciones` ya los renderiza la
+plantilla solos** (sección "En la noticia" + "Informe del día" + fila BCRA en
+la franja "Dólar") — no hace falta repetirlos en la prosa, pero si `bcra` fue
+un día fuerte o `informesHoy` trae algo grande, está bien mencionarlo en
+`tesisParrafo` (mismo criterio que antes con `comentario`).
 
 Regla dura de `voz-lautaro`: **ni un número inventado**. Todo dato sale del
-JSON del paso 1 o del `color` cargado por Lautaro.
+JSON del paso 1 (con las reglas de selección de arriba) o del `color` cargado
+por Lautaro.
 
 ## Paso 3 — Guardar el borrador
 
@@ -133,8 +169,9 @@ JSON del paso 1 o del `color` cargado por Lautaro.
 POST {SUPABASE_URL}/rest/v1/informes_generados
 headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY},
          content-type: application/json, prefer: return=representation,resolution=merge-duplicates
-body: [{ "tipo": "diario", "fecha": "YYYY-MM-DD", "titulo": "<titulo>",
-         "prosa": { "titulo": "<titulo>", "comentario": [...], "lineas_por_grano": {...} },
+body: [{ "tipo": "diario", "fecha": "YYYY-MM-DD", "titulo": "<tesisTitulo>",
+         "prosa": { "tesisTitulo": "<tesisTitulo>", "tesisParrafo": "<tesisParrafo>",
+                    "lectura": [{ "titulo": "...", "texto": "..." }, ...] },
          "estado": "borrador" }]
 ```
 
@@ -144,9 +181,10 @@ mandarlo). Guardá el `id` que devuelve la respuesta.
 
 ## Paso 4 — Screenshotear la placa
 
-La plantilla (`/informes/plantilla/diario?fecha=YYYY-MM-DD&token={INFORME_TOKEN}`)
-lee el borrador recién guardado y arma el layout con la marca de la web (tema
-claro, decidido con Lautaro el 22/07). Con Playwright:
+La plantilla (`/informes/plantilla/research?fecha=YYYY-MM-DD&token={INFORME_TOKEN}`)
+lee el borrador recién guardado y arma el layout — formato "Research" (one-pager
+oscuro, reemplazo de la placa vertical desde el 30/07/2026; `/informes/plantilla/diario`
+sigue en el repo pero YA NO se usa en este pipeline). Con Playwright:
 
 ```bash
 npm install playwright-core --no-save   # no está en package.json a propósito
@@ -159,8 +197,11 @@ const browser = await chromium.launch({
   // NO correr "playwright install": el chromium ya está en esa ruta.
   args: ["--no-sandbox"],
 });
-const page = await browser.newPage({ viewport: { width: 1080, height: 1000 } });
-await page.goto(`${INFORME_BASE_URL}/informes/plantilla/diario?fecha=${fecha}&token=${INFORME_TOKEN}`, { waitUntil: "networkidle" });
+// 816×1056 = carta a 96dpi (el tamaño real del diseño), @2x para que el PNG
+// salga nítido — la página crece en alto sola si hay agenda/noticias/informe
+// del día, `fullPage` la captura completa igual.
+const page = await browser.newPage({ viewport: { width: 816, height: 1056 }, deviceScaleFactor: 2 });
+await page.goto(`${INFORME_BASE_URL}/informes/plantilla/research?fecha=${fecha}&token=${INFORME_TOKEN}`, { waitUntil: "networkidle" });
 await page.screenshot({ path: `informe-${fecha}.png`, fullPage: true });
 await browser.close();
 ```

@@ -6,10 +6,15 @@ import { getMonitorMercados } from "@/lib/monitor-mercados";
 import { getNoticias } from "@/lib/noticias";
 import { getEventos } from "@/lib/calendario";
 import { hoyCordobaISO } from "@/lib/dates";
-import { sbSelect, sbSelectAll } from "@/lib/supabase";
 import { tokenValido, esFechaValida } from "@/lib/informe-auth";
 import { nfmt, pfmt, dirOf, horaCordoba } from "@/lib/format";
-import { parseRows, construirCambios, organismosPresentes, type Cambio } from "@/lib/estimaciones";
+import {
+  getBorrador,
+  getInformesHoy,
+  getInterpretaciones,
+  getBcra,
+  type ProsaDiaria,
+} from "@/lib/informe-diario-datos";
 
 /**
  * Placa del informe diario (MP1 de docs/PLAN_INFORMES.md). Página standalone
@@ -29,61 +34,6 @@ const GRANOS: { underlying: string; nombre: string; emoji: string }[] = [
   { underlying: "MAI", nombre: "Maíz", emoji: "🌽" },
   { underlying: "TRI", nombre: "Trigo", emoji: "🌾" },
 ];
-
-type ProsaDiaria = {
-  titulo?: string;
-  comentario?: string[];
-  lineas_por_grano?: Record<string, string>;
-};
-
-type FilaInforme = {
-  titulo: string | null;
-  prosa: ProsaDiaria | null;
-};
-
-async function getBorrador(fecha: string): Promise<FilaInforme | null> {
-  const res = await sbSelect(
-    `informes_generados?tipo=eq.diario&fecha=eq.${fecha}&select=titulo,prosa&limit=1`,
-    0,
-  );
-  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return null;
-  return res.data[0] as FilaInforme;
-}
-
-type InformeHoy = { organismo: string; fecha: string | null; informe: string; cambios: Cambio[] };
-
-/** Informes de organismo publicados JUSTO ese día (ej. USDA/CONAB/GEA/DEA) — reusa estimaciones.ts. */
-async function getInformesHoy(fecha: string): Promise<InformeHoy[]> {
-  const res = await sbSelectAll(
-    "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url&order=fecha_publicacion.asc",
-    3600,
-  );
-  if (!res.ok) return [];
-  const rows = parseRows(res.data);
-  return organismosPresentes(rows)
-    .map((o) => construirCambios(rows, o))
-    .filter((c) => c.fecha === fecha && c.cambios.length > 0);
-}
-
-type Interpretacion = { organismo: string; informe: string; publicado_md: string };
-
-/** MP4 (interpretación de informes, aún sin construir): degrada a [] mientras no exista la tabla. */
-async function getInterpretaciones(fecha: string): Promise<Interpretacion[]> {
-  const res = await sbSelect(
-    `interpretaciones?estado=eq.publicado&fecha_publicacion=eq.${fecha}&select=organismo,informe,publicado_md`,
-    0,
-  );
-  return res.ok && Array.isArray(res.data) ? (res.data as Interpretacion[]) : [];
-}
-
-type BcraDia = { monto_musd: number; fuente: string };
-
-/** Compras BCRA del día (carga manual de /admin/datos — P3 suma la ingesta automática). */
-async function getBcra(fecha: string): Promise<BcraDia | null> {
-  const res = await sbSelect(`compras_bcra?fecha=eq.${fecha}&select=monto_musd,fuente&limit=1`, 0);
-  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return null;
-  return res.data[0] as BcraDia;
-}
 
 function PosChip({ p }: { p: CierrePos }) {
   const dir = dirOf(p.changePercent);
