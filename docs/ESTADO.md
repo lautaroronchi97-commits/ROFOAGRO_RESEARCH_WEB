@@ -19,11 +19,42 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 📰 plantilla "Research" del informe diario — REEMPLAZO decidido y wireado al skill, falta el OK final para mergear)
+## Ahora (última actualización: 03/08/2026 — 🔒 C29 CERRADO de punta a punta: los 5 últimos ítems opcionales del checklist de pre-lanzamiento)
+
+**🔒 C29 — CIERRE DE LOS 5 ÍTIMOS ÍTEMS OPCIONALES DEL CHECKLIST DE PRE-LANZAMIENTO — HECHO —
+rama `claude/backlog-pendiente-x81f9p` (reiniciada desde `main` — el corte anterior de esta misma
+rama, PR #122, ya estaba mergeado por squash), PR #_.** Lautaro pidió "resolvamos esto" sobre los
+5 ítems que quedaban sin tildar en [`PRELAUNCH_CHECKLIST.md`](PRELAUNCH_CHECKLIST.md) — todos
+opcionales/bajo impacto, sin ninguna decisión suya pendiente.
+**Fase 0 — hook de lint**: `.claude/settings.json` nuevo (no existía ningún hook en el repo),
+`PostToolUse` en `Edit|Write` que corre `eslint` solo sobre el archivo `.ts`/`.tsx` tocado, **no
+bloqueante** a propósito (el CI sigue siendo el único gate real; esto da feedback más rápido
+dentro de la sesión). **Fase S — `/security-review`**: corrido de verdad por primera vez contra
+un diff real (el de esta misma sesión) — sin hallazgos. **Fase 1 — property-based tests**:
+`fast-check` (única dependencia nueva, solo test) + `src/lib/invariantes.property.test.ts` — TEA≥
+TNA (Bernoulli, días≤365) y spread/pase antisimétrico (protege el bug de signo de `pases.ts` del
+29/07). **Fase 2 — semáforo de antigüedad**: `FrescuraDot` (`src/components/frescura-dot.tsx`,
+client, tick cada 15s) + prop opcional `revalidateSeg` en `SourceStamp` — verde/ámbar/rojo según
+el reloj del navegador, umbral relativo al ISR de cada página (2x/6x), cableado en granos (30s) y
+dólar (60s), cero cambio donde no se pasa la prop. **Fase 5 — smoke test k6**: `scripts/k6-smoke.js`
+(5 VUs×1min, p95<500ms, error<1%, solo rutas públicas de verdad) — no entra a CI (decisión ya
+tomada: load testing formal descartado para esta escala), queda disponible para correr a mano.
+
+**Verificado**: lint/tsc/**434 tests** (426+4 property+4 frescura-dot)/build ✅ en cada commit ·
+Playwright real (claro/oscuro, sin errores de consola/hidratación) — el punto de frescura salió
+rojo en la primera prueba porque el dato real de mercado llevaba >6× el revalidate sin moverse,
+confirmando que mide lo que dice medir · k6 real (binario `v0.54.0` descargado ad-hoc) corrido
+contra el server local: 100% de los checks. **Con esto `PRELAUNCH_CHECKLIST.md` queda sin ningún
+ítem `[ ]` real** (los `~~tachados~~` son decisiones explícitas de Lautaro de no hacer algo, no
+pendientes). Detalle:
+[`sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md`](sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md).
+
+## Anterior (30/07/2026 — 📰 plantilla "Research" del informe diario — MERGEADA, PR #114)
 
 **📰 PLANTILLA "RESEARCH" DEL INFORME DIARIO — reemplaza la placa vertical, wireada al skill
-`informe-diario`, SIN MERGEAR (pedido explícito de Lautaro: primero sumarla al skill, después decide el
-merge) — rama `claude/informe-research-p2-ynnz07`, PR #114.** Lautaro importó desde Claude Design un
+`informe-diario` — rama `claude/informe-research-p2-ynnz07`, PR #114 (mergeado — esta entrada
+decía "SIN MERGEAR, falta el OK final" y quedó desactualizada desde que Lautaro lo mergeó;
+corregido acá el 03/08 al pasar esta entrada a "Anterior").** Lautaro importó desde Claude Design un
 mockup ("Informe Research P2" — one-pager tipo research de ALyC, paleta oscura, tesis del día + KPIs + 2
 gráficos + franja de referencia + agenda), lo probó con el informe de un día real y confirmó: **reemplaza**
 la placa vertical (no conviven las dos) — con una condición explícita: *"el informe debe seguir teniendo
