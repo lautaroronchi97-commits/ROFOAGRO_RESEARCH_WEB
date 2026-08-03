@@ -24,6 +24,12 @@
   RLS, policies, funciones, grants) ni de la API pública sin avisarle primero; las migraciones se
   versionan en `supabase/migrations/` y se aplican recién con su OK explícito.
 - **Un fix por vez.** Antes de empezar cada uno, avisar qué se va a tocar. Commits chicos, uno por fix.
+- **Lautaro no corre procesos a mano.** Nada de pedirle un `workflow_dispatch` manual, correr un script,
+  pegar SQL, o un `curl` de verificación — salvo que ya exista un botón explícito para eso en la web
+  (ej. "Ir a cargar →" del checklist, un uploader de `/admin/datos`). Si algo necesita dispararse,
+  que quede automático (cron) o que se le arme el botón; si hay que confirmar que algo corrió, eso lo
+  verifica la sesión (por MCP/SQL/logs) o queda como "se confirma solo con el próximo run programado",
+  nunca como un paso manual para él.
 - **Si algo falla, frenar**: no seguir de largo — parar y explicarle qué pasó.
 - **Nada se da por terminado sin `npm run lint` + `npx tsc --noEmit` + `npx vitest run` en verde**
   (build incluido si se va a pushear — ver protocolo en `ESTADO.md`).
