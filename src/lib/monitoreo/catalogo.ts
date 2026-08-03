@@ -162,15 +162,15 @@ export type CargaManual = {
 };
 
 export const CARGAS_MANUALES: CargaManual[] = [
-  { id: "agrochat", nombre: "Comercialización (Agrochat)", href: "/admin/datos#agrochat", cadenciaTexto: "semanal" },
-  { id: "camiones", nombre: "Camiones en puerto (Williams)", href: "/admin/datos#camiones", cadenciaTexto: "irregular, sin cadencia fija" },
-  { id: "mesa-color", nombre: "Datos del día (color de la rueda)", href: "/admin/datos#mesa-color", cadenciaTexto: "diaria, días hábiles" },
-  { id: "bcra-manual", nombre: "Compras BCRA (MULC) — manual", href: "/admin/datos#bcra-manual", cadenciaTexto: "diaria hábil, tapa el rezago de la API" },
-  { id: "dea", nombre: "Estimaciones DEA-SAGyP", href: "/admin/datos#dea", cadenciaTexto: "semanal" },
-  { id: "pas", nombre: "Estimaciones BCBA-PAS", href: "/admin/datos#pas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
-  { id: "pas-zonas", nombre: "Estimaciones BCBA-PAS por zona", href: "/admin/datos#pas-zonas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
-  { id: "pas-condicion", nombre: "Condición de cultivos BCBA-PAS", href: "/admin/datos#pas-condicion", cadenciaTexto: "semanal (4 archivos, uno por cultivo)" },
-  { id: "lecap", nombre: "Pago final de letras (LECAP)", href: "/admin/datos#lecap", cadenciaTexto: "esporádica (~cada 1-2 meses)" },
+  { id: "agrochat", nombre: "Comercialización (Agrochat)", href: "/admin/datos/agrochat", cadenciaTexto: "semanal" },
+  { id: "camiones", nombre: "Camiones en puerto (Williams)", href: "/admin/datos/camiones", cadenciaTexto: "irregular, sin cadencia fija" },
+  { id: "mesa-color", nombre: "Datos del día (color de la rueda)", href: "/admin/datos/mesa-color", cadenciaTexto: "diaria, días hábiles" },
+  { id: "bcra-manual", nombre: "Compras BCRA (MULC) — manual", href: "/admin/datos/bcra-manual", cadenciaTexto: "diaria hábil, tapa el rezago de la API" },
+  { id: "dea", nombre: "Estimaciones DEA-SAGyP", href: "/admin/datos/dea", cadenciaTexto: "semanal" },
+  { id: "pas", nombre: "Estimaciones BCBA-PAS", href: "/admin/datos/pas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
+  { id: "pas-zonas", nombre: "Estimaciones BCBA-PAS por zona", href: "/admin/datos/pas-zonas", cadenciaTexto: "en cada salida del informe (sin fecha fija)" },
+  { id: "pas-condicion", nombre: "Condición de cultivos BCBA-PAS", href: "/admin/datos/pas-condicion", cadenciaTexto: "semanal (4 archivos, uno por cultivo)" },
+  { id: "lecap", nombre: "Pago final de letras (LECAP)", href: "/admin/datos/lecap", cadenciaTexto: "esporádica (~cada 1-2 meses)" },
   { id: "interpretaciones", nombre: "Revisar interpretaciones", href: "/admin/interpretaciones", cadenciaTexto: "cuando hay un borrador esperando" },
   { id: "view-feedback", nombre: "Calificar el view de mercado", href: "/granos/view", cadenciaTexto: "semanal, tras la Routine del viernes" },
 ];

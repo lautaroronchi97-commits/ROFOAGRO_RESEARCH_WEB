@@ -168,7 +168,7 @@ export function ZonasPanel({ filas, error }: { filas: FilaZonaDB[]; error: strin
         <PanelHead title="Producción por zona agroecológica" sub="BCBA-PAS · solo mesa" />
         <p className="dim" style={{ padding: "8px 2px" }}>
           Todavía no hay datos cargados. Subí el export de zonas desde{" "}
-          <a href="/admin/datos#pas-zonas">/admin/datos</a>.
+          <a href="/admin/datos/pas-zonas">/admin/datos</a>.
         </p>
       </Panel>
     );

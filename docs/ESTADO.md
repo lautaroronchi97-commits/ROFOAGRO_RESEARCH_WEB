@@ -52,6 +52,29 @@ de deploy mandó placeholder por error propio, corregido 1 min después) · CONA
 fuente real en la sesión. Detalle:
 [`sesiones/2026-08-03-diagnostico-ingestas-checks.md`](sesiones/2026-08-03-diagnostico-ingestas-checks.md).
 
+## Anterior (03/08/2026 — 🗂️ /admin/datos: una página por carga manual)
+
+**🗂️ /ADMIN/DATOS — UNA PÁGINA POR CARGA MANUAL — HECHO — rama
+`claude/admin-datos-vistas-separadas-ydr35o`, PR #_.** Lautaro pidió separar `/admin/datos` (un solo
+`page.tsx` largo con las 9 cargas manuales apiladas por anclas — Agrochat, camiones, "datos del
+día", compras BCRA manual, DEA, PAS, PAS-zonas, PAS-condición, LECAP) en **vistas propias, una por
+carga**. Partido en 9 páginas (`src/app/admin/datos/<slug>/page.tsx`) + un **índice** con tarjetas
+que linkean a cada una + **sub-pestañas** en píldora (`datos-nav.tsx`, nuevo, mismo patrón que
+`AdminTabs` de `/admin`) para moverse entre ellas sin volver al índice. `secciones.ts` (metadata
+compartida por el índice y la nav) y `data.ts` (`server-only`, las 3 queries de Supabase que antes
+vivían todas juntas — historial de "Datos del día", huecos de compras BCRA, LECAP actuales — ahora
+una función por página, sin duplicar). Actualizados los 3 lugares que apuntaban a las anclas viejas
+(`src/lib/monitoreo/catalogo.ts` → `/admin/conexiones`, y los 2 paneles de `/produccion/{zonas,
+condicion}` que linkeaban a `#pas-zonas`/`#pas-condicion`) + 3 `revalidatePath` apuntados a su
+página nueva en vez de a toda `/admin/datos`.
+
+**Verificado**: lint/tsc/**434 tests**/build ✅ · `npm run start` + `curl` real contra las 10 rutas
+(bypass temporal de `requireAdmin()` + el gate de sesión del proxy, revertido con `git checkout --`
+al terminar — `git diff` limpio): las 9 subpáginas + el índice devuelven 200 con el título
+correcto, la sub-nav marca el activo bien en ambos niveles, y las 3 páginas con datos reales
+(mesa-color/bcra-manual/lecap) renderizan desde Supabase. Detalle:
+[`sesiones/2026-08-03-admin-datos-vistas-separadas.md`](sesiones/2026-08-03-admin-datos-vistas-separadas.md).
+
 ## Anterior (03/08/2026 — 🔒 C29 CERRADO de punta a punta: los 5 últimos ítems opcionales del checklist de pre-lanzamiento)
 
 **🔒 C29 — CIERRE DE LOS 5 ÍTIMOS ÍTEMS OPCIONALES DEL CHECKLIST DE PRE-LANZAMIENTO — HECHO —
