@@ -19,36 +19,52 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 30/07/2026 — 📰 plantilla "Research" para el informe diario, PROTOTIPO)
+## Ahora (última actualización: 30/07/2026 — 📰 plantilla "Research" del informe diario — REEMPLAZO decidido y wireado al skill, falta el OK final para mergear)
 
-**📰 PLANTILLA "RESEARCH" PARA EL INFORME DIARIO — PROTOTIPO, esperando el OK de Lautaro — rama
-`claude/informe-research-p2-ynnz07`, PR #_.** Lautaro importó desde Claude Design un mockup ("Informe
-Research P2" — one-pager tipo research de ALyC, paleta oscura, tesis del día + KPIs + 2 gráficos +
-franja de referencia + agenda) y pidió probar el informe diario de HOY con ese formato. Página nueva
-**`/informes/plantilla/research`** (mismo patrón de gate por `INFORME_TOKEN` que
-`/informes/plantilla/diario`, que NO se tocó — esta es una segunda plantilla, no un reemplazo) +
-`src/lib/informe-research.ts` (desfasaje A3 vs Chicago por grano, TNA implícita, "las tres cifras",
-franja de referencia — todo aritmética pura sobre los libs ya existentes, cero número inventado) +
-`src/components/informe-research-charts.tsx` (2 gráficos SVG a mano, genéricos) +
-`src/lib/informe-research-copy.ts` (la tesis del día + "lo que se lee acá" — prosa curada por fecha,
-placeholder honesto si falta).
+**📰 PLANTILLA "RESEARCH" DEL INFORME DIARIO — reemplaza la placa vertical, wireada al skill
+`informe-diario`, SIN MERGEAR (pedido explícito de Lautaro: primero sumarla al skill, después decide el
+merge) — rama `claude/informe-research-p2-ynnz07`, PR #114.** Lautaro importó desde Claude Design un
+mockup ("Informe Research P2" — one-pager tipo research de ALyC, paleta oscura, tesis del día + KPIs + 2
+gráficos + franja de referencia + agenda), lo probó con el informe de un día real y confirmó: **reemplaza**
+la placa vertical (no conviven las dos) — con una condición explícita: *"el informe debe seguir teniendo
+la información de hoy, solo quiero que se modifique el formato"* → el layout nuevo suma TODO lo que la
+placa vertical ya traía (noticias, BCRA, informe de organismos), no solo lo que el mockup original
+mostraba.
+
+**Build (2 vueltas, mismo PR)**: página **`/informes/plantilla/research`** (gate por `INFORME_TOKEN`,
+igual que `/informes/plantilla/diario` — que queda en el repo SIN USARSE en el pipeline, no se borró) +
+`src/lib/informe-research.ts` (desfasaje A3 vs Chicago, TNA implícita, "las tres cifras", franja de
+referencia — aritmética pura, cero número inventado) + `src/components/informe-research-charts.tsx` (2
+gráficos SVG genéricos) + **`src/lib/informe-diario-datos.ts` nueva** (extrae `getBorrador`/
+`getInformesHoy`/`getInterpretaciones`/`getBcra`, que vivían duplicadas dentro de la placa vieja — ahora
+las importan las DOS plantillas del mismo lugar) — la prosa (tesis + "lo que se lee acá") **sale del
+borrador real de `informes_generados`** (ya no de un módulo estático, que se borró) + 3 secciones nuevas
+para no perder nada de la placa actual (columna "Dólar" con spot MAE + BCRA en la franja de referencia,
+que pasó a 4 columnas; "En la noticia"; "Informe del día"). **`.claude/skills/informe-diario/SKILL.md`
+reescrito**: Paso 2 pide `tesisTitulo`/`tesisParrafo`/`lectura` (antes `titulo`/`comentario`/
+`lineas_por_grano`) con las reglas de selección EXACTAS de `informe-research.ts` documentadas ahí (para
+que la prosa cite los mismos números que van a salir en los gráficos); Paso 4 apunta a la plantilla nueva
+(816×1056 @2x). Pasos 1 y 5-9 (fuente de datos, Storage, mail, marcar enviado) **sin tocar** — mismo
+pipeline, misma cadencia, tal como pidió Lautaro.
 
 **Corrección real encontrada verificando con datos en vivo**: la TNA implícita "de referencia" por grano
 se había armado tomando la posición de MAYOR TNA — con el trigo real del 30/07 eso elegía SEP26 (55 días,
 solo 11 lotes operados) con 41,74% TNA anualizando el mismo spread que DIC26 (144 días, 4.567 de interés
 abierto) anualiza a 17,16% — un contrato ilíquido, no una tasa representativa. Se cambió el criterio a
-**mayor interés abierto** (convención de mercado) antes de generar la placa final.
+**mayor interés abierto** (convención de mercado) antes de generar la placa final; documentado también en
+el skill para que la prosa nunca la contradiga.
 
-**Verificado con datos reales** (lint/tsc/build ✅, cero archivo tocado fuera de los 4 nuevos):
-`npm run build && npm run start` con las credenciales reales del entorno, `/informes/plantilla/research`
-sirviendo 200 con los 5 bloques en vivo, cotejados contra `/api/informes/datos` y el JSON crudo de
-`getArbitrajes`/`getDolarFuturo`. Screenshot real con Playwright (816×1056 @2x) del informe de HOY
-(30/07/2026), enviado a Lautaro para feedback.
+**Verificado con datos reales** (lint/tsc/build ✅ en las 2 vueltas): `npm run build && npm run start` con
+las credenciales reales del entorno, `/informes/plantilla/research` sirviendo 200 con los datos en vivo,
+cotejados contra `/api/informes/datos`. **Que la prosa realmente sale de la base**: insertada una fila de
+prueba en `informes_generados` (fecha `2099-01-01`, claramente ajena a cualquier fecha real,
+`estado=borrador`), screenshoteada con `?fecha=2099-01-01` — la prosa de prueba + las 3 secciones nuevas
+salieron en el render, fila **borrada** al terminar. **Confirmado que la fila real de HOY (30/07,
+`estado=enviado`, ya mandada por la Routine con el formato viejo) no se tocó** en ningún momento.
+Screenshots reales enviados a Lautaro en las 2 vueltas.
 
-**Próximo paso: el OK de Lautaro sobre el formato** — si aprueba, decidir si reemplaza o convive con la
-placa vertical actual, sumar un Paso 2 al skill `informe-diario` para que la Routine redacte la tesis
-todos los días (hoy solo hay una entrada a mano para el 30/07), y wirear screenshot/mail/Storage igual
-que el resto del pipeline. Detalle:
+**Próximo paso: el OK final de Lautaro para mergear el PR #114** — con el skill ya wireado, lo único que
+falta es su confirmación de que el contenido/formato le sirve. Detalle:
 [`sesiones/2026-07-30-plantilla-research-informe-diario.md`](sesiones/2026-07-30-plantilla-research-informe-diario.md).
 
 ## Anterior (última actualización: 01/08/2026 — 📊 migración de gráficos a ECharts, CERRADA — los 6 charts que faltaban + limpieza + Fase 4 verificada)

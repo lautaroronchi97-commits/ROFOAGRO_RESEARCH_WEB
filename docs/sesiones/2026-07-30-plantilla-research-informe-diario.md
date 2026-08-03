@@ -65,3 +65,54 @@
   es un mockup ilustrativo, no una spec pixel-perfect. Se optó por una codificación propia, consistente
   (A3 y Chicago siempre con etiqueta en negrita y color por signo) en vez de perseguir el detalle exacto
   del mockup.
+
+## Vuelta 2 (misma sesión, misma rama/PR) — REEMPLAZO decidido + wireado al skill, sin mergear
+
+Lautaro confirmó: **el formato nuevo reemplaza a la placa vertical** (no conviven), y pidió sumarlo al
+skill `informe-diario` ANTES de mergear — con una aclaración importante en el camino: *"el informe debe
+seguir teniendo la información de hoy, solo quiero que se modifique el formato"* → por `AskUserQuestion`
+eligió explícitamente que el layout nuevo **sume** todo lo que la placa vertical ya traía (noticias, BCRA,
+informe de organismos) en vez de perder esas secciones por no encajar en el mockup original.
+
+**Build**:
+- **`src/lib/informe-diario-datos.ts` (nuevo)**: extrae `getBorrador`/`getInformesHoy`/
+  `getInterpretaciones`/`getBcra` — vivían duplicadas dentro de `plantilla/diario/page.tsx`; ahora las
+  importan las DOS plantillas desde el mismo lugar (cero comportamiento nuevo, refactor puro). `ProsaDiaria`
+  extendida con los 3 campos nuevos (`tesisTitulo`/`tesisParrafo`/`lectura`) conviviendo con los viejos
+  (`titulo`/`comentario`/`lineas_por_grano`) en el mismo tipo — es la MISMA fila/columna JSON, cada
+  plantilla lee los campos que le tocan.
+- **`src/lib/informe-research-copy.ts` (borrado)**: superado por lo de arriba — la prosa ya no vive en un
+  módulo estático del repo, sale del borrador real de `informes_generados` (mismo que arma el Paso 2/3 del
+  skill), igual que la placa vertical de siempre.
+- **`plantilla/research/page.tsx`**: ahora lee `prosa` con `getBorrador()` (antes: función local que solo
+  traía 3 campos de un objeto hardcodeado) + sumó 3 secciones nuevas para no perder nada de la placa
+  actual — columna **"Dólar"** (spot MAE + BCRA neto) en la franja de referencia (que pasó de 3 a 4
+  columnas), bloque **"En la noticia"** (`noticias.destacados`) y bloque **"Informe del día"**
+  (`informesHoy`+`interpretaciones`), ambos condicionales (solo aparecen si hay algo que mostrar) entre la
+  franja de referencia y la agenda.
+- **`.claude/skills/informe-diario/SKILL.md`**: Paso 2 reescrito de punta a punta — en vez de
+  `titulo`/`comentario`/`lineas_por_grano` (bullets), ahora pide `tesisTitulo`/`tesisParrafo`/`lectura`
+  (título + 2 párrafos), con las reglas de selección EXACTAS que usa `informe-research.ts` documentadas
+  ahí mismo (desfasaje = primera posición viva vs `chicago.agro`; TNA de referencia = mayor interés
+  abierto, no mayor TNA — con la explicación del caso real del 30/07; USD = 2 posiciones con `dias>5`;
+  tres cifras = mayor movida + WTI + mejor carry) — así la prosa que escribe el modelo cita EXACTAMENTE
+  los mismos números que van a aparecer en los gráficos, sin tener que re-derivarlos a mano. Paso 0
+  (registro de voz) pasado de "placa" a "Informe largo" (sin emojis, el diseño no los usa). Paso 3
+  (body del POST) y Paso 4 (URL de la plantilla + viewport 816×1056 @2x) actualizados. Pasos 1 y 5-9
+  (fuente de datos, Storage, mail, marcar enviado, interpretaciones de organismos) **sin tocar** — mismo
+  pipeline, mismo `informes_generados`, misma cadencia.
+
+**Verificado**: lint/tsc/build ✅ (incluida la extracción a `informe-diario-datos.ts`, que no cambia el
+comportamiento de la placa vertical existente) · **verificación real de que la prosa ahora sale de la base
+y no de un archivo**: insertada una fila de prueba en `informes_generados` (fecha `2099-01-01`, claramente
+fuera de cualquier fecha real, `estado=borrador`) con `tesisTitulo`/`tesisParrafo`/`lectura` de prueba,
+screenshoteada la plantilla con `?fecha=2099-01-01` — la prosa de prueba salió tal cual en el render (título,
+párrafo y el bloque "Lo que se lee acá"), junto con las 3 secciones nuevas (Dólar/BCRA — con "—" honesto
+por no haber `bcra` esa fecha —, En la noticia con titulares reales, agenda) — fila de prueba **borrada**
+al terminar (`DELETE ...id=eq...`, verificado que no quedó nada). **Confirmado que la fila real de HOY
+(30/07) en `informes_generados` —`estado=enviado`, ya mandada por la Routine con el formato viejo— no se
+tocó** en ningún momento de esta verificación.
+
+**Sigue sin mergear** (pedido explícito de Lautaro: "antes de mergear sumemoslo al skill" — el wireado ya
+está, falta su OK final para el merge). `/informes/plantilla/diario` queda en el repo, sin usarse en el
+pipeline desde este cambio — no se borró por si hace falta volver atrás.

@@ -4,10 +4,12 @@ import { getPizarra } from "@/lib/pizarra";
 import { getDolarFuturo } from "@/lib/market";
 import { getMonitorMercados } from "@/lib/monitor-mercados";
 import { getArbitrajes } from "@/lib/arbitrajes-cierres";
+import { getNoticias } from "@/lib/noticias";
 import { getEventos } from "@/lib/calendario";
 import { hoyCordobaISO } from "@/lib/dates";
 import { tokenValido, esFechaValida } from "@/lib/informe-auth";
 import { nfmt, pfmt, horaCordoba } from "@/lib/format";
+import { getBorrador, getInformesHoy, getInterpretaciones, getBcra } from "@/lib/informe-diario-datos";
 import {
   buildDesfasaje,
   buildTnaImplicita,
@@ -16,16 +18,21 @@ import {
   buildVolumenA3,
   buildComplejoSoja,
 } from "@/lib/informe-research";
-import { getCopyResearch } from "@/lib/informe-research-copy";
 import { DesfasajeChart, TnaChart } from "@/components/informe-research-charts";
 
 /**
- * Plantilla "Research" del informe diario — formato one-pager tipo research
- * de ALyC (Claude Design "Informe Research P2", implementado 30/07/2026,
- * prototipo a pedido de Lautaro). Página standalone (sin header/nav del
- * sitio), gateada por el mismo `INFORME_TOKEN` que `/informes/plantilla/diario`
- * y `/api/informes/datos`. Paleta SIEMPRE oscura (fija, no depende del tema
- * del sitio ni de next-themes: el screenshot es headless).
+ * Plantilla "Research" del informe diario — formato one-pager tipo research de
+ * ALyC (Claude Design "Informe Research P2", 30/07/2026), REEMPLAZO de la
+ * placa vertical (`/informes/plantilla/diario`, que queda en el repo sin
+ * usarse en el pipeline). Misma información que la placa anterior — cierres/
+ * pizarra/dólar/Chicago/BCRA/noticias/agenda/informe de organismos — con el
+ * layout nuevo: nada de lo que hoy manda el informe se pierde, ver §"Agenda +
+ * noticias + informe del día" más abajo. Página standalone (sin header/nav
+ * del sitio), gateada por el mismo `INFORME_TOKEN` que `/api/informes/datos`.
+ * Paleta SIEMPRE oscura (fija, no depende del tema del sitio: el screenshot
+ * es headless). La prosa (tesis + "lo que se lee acá") sale del MISMO
+ * borrador `informes_generados` (tipo=diario) que ya arma el Paso 2/3 del
+ * skill `informe-diario` — ver ese SKILL.md para el detalle de qué escribe.
  */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -81,14 +88,21 @@ export default async function PlantillaResearchPage({
   const [d, m, a] = fecha.split("-");
   const fechaCorta = `${d}.${m}.${a}`;
 
-  const [cierres, pizarra, dolarFuturo, chicago, arbitrajes] = await Promise.all([
-    getCierresGranos(),
-    getPizarra(),
-    getDolarFuturo(),
-    getMonitorMercados(),
-    getArbitrajes(),
-  ]);
+  const [cierres, pizarra, dolarFuturo, chicago, arbitrajes, noticias, borrador, informesHoy, interpretaciones, bcra] =
+    await Promise.all([
+      getCierresGranos(),
+      getPizarra(),
+      getDolarFuturo(),
+      getMonitorMercados(),
+      getArbitrajes(),
+      getNoticias(),
+      getBorrador(fecha),
+      getInformesHoy(fecha),
+      getInterpretaciones(fecha),
+      getBcra(fecha),
+    ]);
 
+  const copy = borrador?.prosa ?? null;
   const desfasaje = buildDesfasaje(cierres, chicago);
   const tna = buildTnaImplicita(arbitrajes, dolarFuturo);
   const tresCifras = buildTresCifras(chicago, dolarFuturo);
@@ -96,8 +110,7 @@ export default async function PlantillaResearchPage({
   const volumenA3 = buildVolumenA3(cierres);
   const complejoSoja = buildComplejoSoja(chicago);
   const eventos = getEventos(fecha, fecha).slice(0, 3);
-
-  const copy = getCopyResearch(fecha);
+  const titulares = noticias.destacados.slice(0, 3);
 
   return (
     <div
@@ -271,7 +284,7 @@ export default async function PlantillaResearchPage({
             <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".1em", color: INK2 }}>
               Lo que se lee acá
             </div>
-            {copy && copy.lectura.length > 0 ? (
+            {copy?.lectura && copy.lectura.length > 0 ? (
               copy.lectura.map((l, i) => (
                 <p key={i} style={{ margin: 0, fontSize: 11, lineHeight: 1.5, color: INK2 }}>
                   <span style={{ fontFamily: SERIF, fontVariant: "small-caps", fontWeight: 600, fontSize: 12.5, color: INK }}>
@@ -289,7 +302,24 @@ export default async function PlantillaResearchPage({
         </div>
 
         {/* Franja de referencia */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, paddingTop: 14, borderTop: `1px solid ${LINE}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, paddingTop: 14, borderTop: `1px solid ${LINE}` }}>
+          <div>
+            <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".12em", color: INK3, marginBottom: 6 }}>
+              Dólar
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, fontFamily: MONO, fontSize: 10, color: INK2 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Spot MAE</span>
+                <span style={{ color: INK }}>{dolarFuturo.spot != null ? nfmt(dolarFuturo.spot, 1) : "—"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>BCRA neto</span>
+                <span style={{ color: bcra ? BRAND_AGRO : INK2 }}>
+                  {bcra ? `US$${nfmt(bcra.monto_musd, 1)}M` : "—"}
+                </span>
+              </div>
+            </div>
+          </div>
           <div>
             <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".12em", color: INK3, marginBottom: 6 }}>
               Referencia · pizarra CAC
@@ -334,6 +364,50 @@ export default async function PlantillaResearchPage({
             </div>
           </div>
         </div>
+
+        {/* Noticias + informe del día */}
+        {(titulares.length > 0 || informesHoy.length > 0) && (
+          <div style={{ display: "grid", gridTemplateColumns: informesHoy.length > 0 ? "1fr 1fr" : "1fr", gap: 22, paddingTop: 14, borderTop: `1px solid ${LINE}` }}>
+            {titulares.length > 0 && (
+              <div>
+                <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".12em", color: INK3, marginBottom: 6 }}>
+                  En la noticia
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {titulares.map((t) => (
+                    <div key={t.link} style={{ fontSize: 9.5, lineHeight: 1.4, color: INK2 }}>
+                      · {t.titulo} <span style={{ color: INK3 }}>({t.fuente})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {informesHoy.length > 0 && (
+              <div>
+                <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".12em", color: INK3, marginBottom: 6 }}>
+                  Informe del día
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {informesHoy.map((inf) => {
+                    const interp = interpretaciones.find((i) => i.organismo === inf.organismo);
+                    return (
+                      <div key={inf.organismo} style={{ fontSize: 9.5, lineHeight: 1.4, color: INK2 }}>
+                        · <b style={{ color: INK }}>{inf.organismo}</b> — {inf.informe}:{" "}
+                        {inf.cambios.slice(0, 2).map((c, i) => (
+                          <span key={i}>
+                            {i > 0 && " · "}
+                            {c.grano} {c.pais} {nfmt(c.antes, 1)}→{nfmt(c.ahora, 1)} {c.unidad}
+                          </span>
+                        ))}
+                        {interp && <span> — {interp.publicado_md}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Agenda */}
         {eventos.length > 0 && (
