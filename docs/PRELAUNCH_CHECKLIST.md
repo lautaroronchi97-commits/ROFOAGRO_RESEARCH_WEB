@@ -59,8 +59,14 @@
   agrupados, `open-pull-requests-limit: 10`) — es el mecanismo de **version-updates** (PRs
   automáticos). **Dependabot alerts — HECHO 03/08/2026**: Dependency graph + Dependabot alerts
   prendidos por Lautaro en GitHub Settings → Code security and analysis.
-- [ ] 🖐 Re-scan del historial con **gitleaks** (E5 revisó a mano hasta el commit 139) — o correrlo
-  en una sesión de código si el sandbox lo permite.
+- [x] **Re-scan del historial con gitleaks — HECHO 03/08/2026, cero hallazgos.** Corrido en el
+  sandbox (`gitleaks git --log-opts="--all"`, instalado vía `go install`, no necesitó ningún dato
+  de Lautaro). **Trampa real**: el clone de la sesión venía shallow (`git fetch --unshallow`
+  necesario primero) — un primer intento sin unshallow solo cubrió 159 commits desde el 23/07 y
+  hubiera dado un falso "limpio" sin cubrir el historial real. Con el historial completo: **371
+  commits escaneados en todas las ramas** (`--all`, no solo `main`), 27,6 MB, **0 secretos
+  encontrados** — reemplaza la revisión manual de E5 (hasta el commit 139) con un escaneo
+  automatizado de punta a punta.
 - [ ] 🖐 Migrar a las **keys nuevas de Supabase** (`sb_publishable_`/`sb_secret_`) — las legacy
   deprecan a fines de 2026; rotación en segundos sin desloguear. Coordinar: Vercel + GitHub
   secrets + entorno de Claude (Routines) + Edge Functions, en ese orden y con verificación.
