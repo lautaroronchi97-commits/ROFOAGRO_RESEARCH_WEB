@@ -83,19 +83,35 @@ tocó código ni el umbral** — bajar el umbral para silenciar esto ocultaría 
   verificado a mano (Python) que el máximo levantamento de la campaña 2025/26 es 9 para los 6 granos
   — confirma que no hay dato nuevo que nuestro parser esté perdiendo.
 
-## Quedó pendiente / en vuelo
-- **CONAB**: no hay acción de código — es un ítem para que Lautaro tenga en el radar (la fuente sigue
-  sin publicar el 10º levantamento hace más de 3 semanas de lo calendarizado). Se resuelve solo cuando
-  CONAB publique, o Lautaro puede decidir subir el umbral si confirma que este año cambiaron la
-  cadencia.
-- Los crons re-agendados (línea-up, camiones, bcra-mulc, cbot, cierres, compras, usda, pizarra,
-  estimaciones-ar, refresh-calendario, backup-manuales) solo se confirman de punta a punta con las
-  corridas reales de los próximos días — no hay forma de probar el comportamiento de scheduling de
-  GitHub Actions fuera de producción.
-- Sigue sin confirmarse si `dea-fetch` (el otro Edge Function con el mismo bug) tenía algún caller real
-  fallando — su único disparo es manual (`dea_probe`, la fuente DEA está bloqueada por IP desde hace
-  semanas, ver `docs/negocio/`) y no corrió desde antes de la migración de keys, así que no hay run
-  real para confirmar; igual quedó arreglado preventivamente con el mismo fix.
+## Quedó pendiente / en vuelo — plan de cierre (checklist, sin código nuevo)
+
+**Se confirma solo, con el paso de los días (nada que hacer, solo mirar):**
+- [ ] `ingest-camiones-agroentregas` no vuelve a fallar en las corridas de las próximas noches
+      (antes fallaba TODAS — el primer 20:18 ART real es la prueba de fuego).
+- [ ] `ingest-lineup`/`ingest-bcra-mulc`/`ingest-cbot`/`ingest-cierres`/etc. siguen disparando
+      cerca de su horario nominal (sin el retraso de 3,5h de antes) — se ve en
+      `/admin/conexiones` → columna "Último run" de cada workflow.
+- [ ] CONAB: si sigue en el 9º levantamento dentro de 2-3 semanas más, ya no es "la fuente se
+      retrasó un poco" sino "CONAB cambió de cadencia este año" — ahí sí vale una sesión chica
+      para decidir si se sube el umbral de 45 a, por ejemplo, 60 días.
+
+**Dependen de que Lautaro entre logueado (no se puede probar desde acá):**
+- [ ] Mirar `/admin/checklist` en la PC y decir si el agrupamiento/lo que muestra le sirve tal
+      cual, o si quiere mover algo de balde (ver Parte 2 de esta bitácora).
+- [ ] `dea-fetch` (el otro Edge Function con el mismo bug del 403) no tiene ningún caller real
+      desde antes de la migración de keys — queda arreglado preventivamente, pero sin un run real
+      que lo confirme. Se confirma solo la próxima vez que alguien corra `dea_probe` a mano
+      (la fuente DEA sigue bloqueada por IP, así que no hay apuro).
+
+**Ideas para más adelante, NO pedidas todavía — anotadas, no arrancadas:**
+- Un `ingest_log` real (tabla propia con cada corrida: workflow, resultado, filas, timestamp) en
+  vez de inferir todo cruzando la API de GitHub Actions + la frescura de cada tabla. Sería más
+  preciso (hoy "Se rompió" en el checklist depende de `GH_MONITOR_TOKEN` estar cargado en Vercel;
+  sin él, degrada a solo-frescura) pero es una migración + tocar los 16 scripts de ingesta — no
+  se arranca sin que Lautaro lo pida explícitamente.
+- Badge de conteo en el tab "Checklist" de la nav — quedó afuera a propósito (ver Parte 2), se
+  puede sumar más adelante con un query liviano si en la práctica hace falta el aviso desde
+  cualquier página del panel, no solo entrando a Checklist.
 
 ## Follow-up en el mismo PR (mismo día): /admin/checklist — "qué tengo que hacer hoy"
 
