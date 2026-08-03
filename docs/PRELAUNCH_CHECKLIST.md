@@ -216,12 +216,12 @@
   `{status, checks, latencyMs, timestamp}` — 200 si Supabase responde, 503 si no (para que
   UptimeRobot/similar lo detecte como caído). Probado en vivo contra la base real:
   `{"status":"ok","checks":{"app":true,"supabase":true},...}`.
-  **Regresión encontrada 03/08/2026 (sin relación con esta migración, verificada en producción
-  real)**: `/api/health` quedó atrás del gate de `AUTH_ENFORCED` — `src/proxy.ts` solo exceptúa
-  `/api/views/` y `/api/informes/`, no `/api/health` → devuelve `307` a `/ingresar` en vez de
-  `200`, mismo patrón de bug que tuvo `/informes/plantilla/*` (C18/V0, arreglado 27/07). Un
-  monitor externo (UptimeRobot) hoy vería "caído" siempre, nunca el JSON real. **Pendiente: sumar
-  `/api/health` a la lista de exenciones del proxy** (sesión de código aparte).
+  **Regresión encontrada y arreglada 03/08/2026 (sin relación con la migración de keys, hallada
+  mientras se verificaba)**: `/api/health` había quedado atrás del gate de `AUTH_ENFORCED` —
+  `src/proxy.ts` solo exceptuaba `/api/views/` y `/api/informes/`, no `/api/health` → devolvía
+  `307` a `/ingresar` en vez de `200` (un monitor externo tipo UptimeRobot lo hubiera visto
+  "caído" siempre). Mismo patrón de bug que tuvo `/informes/plantilla/*` (C18/V0, 27/07). Fix de
+  una línea en `src/proxy.ts`, verificado con lint/tsc/**426 tests** en verde.
 - [ ] ~~🖐 Acceso de emergencia para **Mauro** con cuenta propia~~ → **DECIDIDO 03/08/2026:
   Lautaro NO lo va a agregar** a Vercel/Supabase/GitHub por ahora. Sigue siendo admin de la web
   (`profiles`), solo sin acceso a la infraestructura.
