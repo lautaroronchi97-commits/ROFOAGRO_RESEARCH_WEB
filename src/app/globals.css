@@ -559,6 +559,11 @@ tr.mc-win td { background:color-mix(in srgb, var(--gold) 10%, transparent);
 .st-prov { font-weight:700; font-size:9px; letter-spacing:.06em; padding:1px 6px; border-radius:3px;
   color:var(--gold-text); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent);
   background:color-mix(in srgb, var(--gold) 7%, transparent); }
+/* Semáforo de antigüedad (FrescuraDot): recalcula en el navegador, verde/ámbar/rojo. */
+.fresc-dot { width:6px; height:6px; border-radius:50%; flex:none; cursor:help; }
+.fresc-fresco { background:var(--pos); }
+.fresc-envejeciendo { background:var(--gold); }
+.fresc-viejo { background:var(--neg); }
 
 /* ===== Módulos de datos (calculadoras, curva, noticias, pizarra editable, rueda) =====
    Clases traídas de la línea de features al unificar con el rediseño premium. */

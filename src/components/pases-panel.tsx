@@ -39,7 +39,7 @@ export async function PasesPanel() {
         glyph={<IconPases />}
         title="Pases"
         sub="Spreads entre posiciones (calendario)"
-        stamp={<SourceStamp meta={meta} />}
+        stamp={<SourceStamp meta={meta} revalidateSeg={30} />}
       />
       <PasesTabla granos={data.granos} puntas={puntas} />
       <QueEsEsto

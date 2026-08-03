@@ -90,7 +90,7 @@ export async function ImplicitasPanel() {
         glyph={<IconLayers />}
         title="Implícitas combinadas"
         sub="TNA USD por plazo — dólar futuro · linked · sintéticos · granos"
-        stamp={<SourceStamp meta={meta} />}
+        stamp={<SourceStamp meta={meta} revalidateSeg={60} />}
       />
       <ImplicitasChart series={series} />
       {plazos.length <= MAX_FILAS_TABLA && (

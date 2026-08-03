@@ -44,7 +44,7 @@ export async function DolarOficialPanel() {
       <PanelHead
         title="Dólar oficial — variación semanal"
         sub="BCRA A3500 (Comunicación 3500)"
-        stamp={<SourceStamp meta={meta} />}
+        stamp={<SourceStamp meta={meta} revalidateSeg={60} />}
       />
       <div className="cbo-head">
         <span className="cbo-kpi">

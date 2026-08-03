@@ -25,7 +25,7 @@ export async function SinteticosPanel() {
         glyph={<IconSint />}
         title="Sintéticos · LECAPs y BONCAPs"
         sub="Tasa de armar un dólar a término con la letra/bono"
-        stamp={<SourceStamp meta={meta} />}
+        stamp={<SourceStamp meta={meta} revalidateSeg={60} />}
       />
 
       <div className="table-scroll">

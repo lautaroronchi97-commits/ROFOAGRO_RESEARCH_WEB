@@ -29,7 +29,7 @@ export async function DolarFuturoPanel() {
         glyph={<IconCurve />}
         title="Dólar futuro"
         sub="Curva + tasas implícitas (A3 · spot mayorista)"
-        stamp={<SourceStamp meta={data.meta} />}
+        stamp={<SourceStamp meta={data.meta} revalidateSeg={60} />}
       />
       <div className="df-stack">
         <div className="df-table">

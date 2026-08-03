@@ -72,7 +72,7 @@ export async function MejorCajaPanel() {
         glyph={<IconCaja />}
         title="Mejor para hacer caja"
         sub="Soja NOV · Maíz DIC · Trigo DIC — plazos comparables"
-        stamp={<SourceStamp meta={data.meta} />}
+        stamp={<SourceStamp meta={data.meta} revalidateSeg={30} />}
       />
       <div className="table-scroll">
         <table className="tbl" style={{ minWidth: 480 }}>
