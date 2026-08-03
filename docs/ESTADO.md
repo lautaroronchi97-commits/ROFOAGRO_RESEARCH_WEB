@@ -84,6 +84,13 @@ por SQL. No se sabe si el bloqueo se levantó de forma permanente o fue una vent
 healthcheck de DEA debería salir en verde en la próxima corrida por esto solo, sin que Lautaro
 tenga que cargar nada.
 
+**Cron de DEA reactivado (mismo día, con OK explícito de Lautaro).** Preguntado si convenía
+esperar más corridas de prueba o reactivar ya el cron semanal — eligió reactivar. DEA vuelve a
+correr junto con GEA los miércoles (antes solo dispatch-only desde el 22/07); si el bloqueo
+vuelve, el guard anti-0-filas + el mail de alerta avisan, y la carga manual en `/admin/datos/dea`
+sigue como respaldo (marcada como tal en el catálogo de monitoreo, ya no como vía primaria).
+lint/tsc/**445 tests**/build ✅.
+
 ## Anterior (03/08/2026 — 🗂️ /admin/datos: una página por carga manual)
 
 **🗂️ /ADMIN/DATOS — UNA PÁGINA POR CARGA MANUAL — HECHO — rama

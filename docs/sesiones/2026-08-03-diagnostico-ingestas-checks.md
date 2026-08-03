@@ -105,8 +105,13 @@ tocó código ni el umbral** — bajar el umbral para silenciar esto ocultaría 
       no por Lautaro a mano. Resultado mejor de lo esperado: no solo pasó el auth (sin 403) —
       **la fuente `datosestimaciones.magyp.gob.ar` volvió a responder** (bloqueada por IP desde el
       22/07) y subió **24 filas reales** (soja/maíz/cebada/girasol, campañas 2024/25 y 2025/26),
-      verificadas por SQL contra `estimaciones_produccion`. No se sabe si el desbloqueo es
-      permanente; el healthcheck de DEA debería salir en verde en la próxima corrida solo por esto.
+      verificadas por SQL contra `estimaciones_produccion`.
+- [x] **Cron de DEA reactivado** — le pregunté a Lautaro si prefería esperar más corridas de
+      prueba o reactivar ya (`AskUserQuestion`); eligió reactivar. DEA vuelve a correr junto con
+      GEA los miércoles (`.github/workflows/ingest-estimaciones-ar.yml`), con el guard anti-0-filas
+      y el mail de alerta como red si el bloqueo vuelve. La carga manual en `/admin/datos/dea`
+      queda marcada como respaldo (no como vía primaria) en el catálogo de monitoreo. lint/tsc/
+      **445 tests**/build ✅.
 
 **Ideas para más adelante, NO pedidas todavía — anotadas, no arrancadas:**
 - Un `ingest_log` real (tabla propia con cada corrida: workflow, resultado, filas, timestamp) en
