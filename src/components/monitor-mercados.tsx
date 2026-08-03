@@ -26,7 +26,7 @@ export async function MonitorMercados() {
         glyph={<IconMonitor />}
         title="Monitor de mercados"
         sub="Chicago en tn · futuros demorados ~10 min"
-        stamp={<SourceStamp meta={data.meta} />}
+        stamp={<SourceStamp meta={data.meta} revalidateSeg={30} />}
       />
 
       <p className="mon-note">

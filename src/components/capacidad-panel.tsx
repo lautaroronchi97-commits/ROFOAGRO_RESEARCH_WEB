@@ -54,7 +54,7 @@ export async function CapacidadPanel() {
         glyph={<IconCap />}
         title="Capacidad de pago"
         sub="FAS teórico BCR vs modelo propio vs pizarra"
-        stamp={<SourceStamp meta={metaCombinada} />}
+        stamp={<SourceStamp meta={metaCombinada} revalidateSeg={30} />}
       />
       <CapacidadEditable granos={granos} industria={industria} />
       <QueEsEsto

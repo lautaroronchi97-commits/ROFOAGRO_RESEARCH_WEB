@@ -25,7 +25,7 @@ export async function DolarLinkedPanel() {
         glyph={<IconLink />}
         title="Dólar linked"
         sub={`TC implícito + TNA USD (vs oficial MAE ${data.oficial ? nfmt(data.oficial, 1) : "—"})`}
-        stamp={<SourceStamp meta={data.meta} />}
+        stamp={<SourceStamp meta={data.meta} revalidateSeg={60} />}
       />
       <div className="table-scroll">
         <table className="tbl" style={{ minWidth: 720 }}>

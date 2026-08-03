@@ -98,7 +98,7 @@ export async function ArbitrajesTable() {
         glyph={<IconArb />}
         title="Arbitrajes"
         sub="Pizarra (disponible) vs A3 (futuro)"
-        stamp={<SourceStamp meta={meta} />}
+        stamp={<SourceStamp meta={meta} revalidateSeg={30} />}
       />
       <ArbitrajesEditable granos={granos} oficial={oficial.valor} bnaOnline={bnaOnline} />
       <QueEsEsto

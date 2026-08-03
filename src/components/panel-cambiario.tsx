@@ -50,7 +50,7 @@ export async function PanelCambiario() {
         glyph={<IconFx />}
         title="Panel cambiario"
         sub="Volumen de rueda por segmento (MAE · USD)"
-        stamp={<SourceStamp meta={data.meta} />}
+        stamp={<SourceStamp meta={data.meta} revalidateSeg={60} />}
       />
       <div className="cbo-head">
         <span className="cbo-kpi">

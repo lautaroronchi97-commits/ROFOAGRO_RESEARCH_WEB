@@ -19,8 +19,17 @@
   actualizado con vitest, que el CI ya corría).
 - [x] Flujo Plan Mode → hallazgos → fixes de a uno: es el protocolo de sesiones vigente del repo
   (rama `claude/*` desde `main`, PR único, verificación antes de push).
-- [ ] Hook PostToolUse de lint tras cada edición (opcional — evaluar si aporta sobre el protocolo
-  actual; el CI ya bloquea el merge).
+- [x] **Hook PostToolUse de lint tras cada edición — HECHO 03/08/2026**: `.claude/settings.json`
+  (nuevo, no existía ninguno), hook `Edit|Write` que corre `eslint` SOLO sobre el archivo tocado
+  cuando es `.ts`/`.tsx` (`jq` extrae `tool_input.file_path`, filtra por extensión). Diseño
+  deliberadamente **no bloqueante** (`; true` al final — nunca frena la sesión ni compite con el
+  gate real, que sigue siendo el CI): el valor es feedback más rápido dentro de la sesión (un
+  error de lint se ve apenas se edita el archivo, no recién al final del batch de verificación),
+  no un segundo gate. Verificado con el flujo de la skill `update-config`: pipe-test con el JSON
+  de stdin real de un `Edit` (silencioso si el archivo está limpio, imprime el error real con un
+  archivo con `any` a propósito, borrado después) + `jq -e` contra el schema. **Nota**: como
+  `.claude/settings.json` no existía al arrancar esta sesión, el watcher de configuración no lo
+  toma en caliente — recién queda activo en la próxima sesión/reinicio.
 
 ## Fase S — Seguridad (AUDITADA 31/07/2026 — hallazgos S1-S4 en la bitácora de sesión)
 
@@ -43,8 +52,12 @@
   `authenticated`; `is_admin()` y las trigger functions con reglas especiales documentadas en
   la migración). Verificado por SQL: `anon` → `permission denied for function is_admin`;
   `authenticated` la sigue ejecutando y lee `empresas` (policies con `is_admin()` sanas).
-- [ ] `/security-review` sobre el diff de cada PR de fixes (el comando revisa diffs; sobre rama
-  limpia no tiene material — la auditoría proyecto-completo de hoy lo cubrió).
+- [x] `/security-review` sobre el diff de cada PR de fixes — **corrido de verdad 03/08/2026** sobre
+  el diff real de esta misma sesión (property tests + FrescuraDot + k6 smoke), no sobre una rama
+  vacía como antes. Sin hallazgos de severidad Alta/Media (ningún input de usuario llega a estas
+  piezas: `updatedAt` sale de `Meta` server-controlled, el k6 script no toca producción sin que
+  alguien lo corra a mano). Queda como práctica del protocolo — correrlo en cada PR de fixes de
+  acá en más, no un ítem puntual a tildar una sola vez.
 - [x] `npm audit` en CI — HECHO 01/08/2026: paso nuevo en `ci.yml` (`npm audit --audit-level=
   high`), **no bloqueante a propósito** (`continue-on-error: true`) — queda visible en cada run
   pero no rompe el merge. Corrido hoy: **4 altas, las 3 con fix disponible son TODAS
@@ -100,8 +113,15 @@
   **Veredicto: sin librería decimal el repo depende 100% de esos tests para no repetir ese tipo
   de bug — sólido hoy, pero fragil a fórmulas nuevas sin su propio `toBeCloseTo`.** No se tocó
   ninguna fórmula (regla dura respetada).
-- [ ] Property-based tests (fast-check) para invariantes (TEA ≥ TNA, spread+inverso=0) — opcional,
-  requiere sumar una dependencia nueva (avisar antes).
+- [x] **Property-based tests (fast-check) — HECHO 03/08/2026**: `fast-check` sumada como
+  devDependency (única dependencia nueva, solo test) · `src/lib/invariantes.property.test.ts`
+  (4 tests, 500 corridas al azar c/u): TEA ≥ TNA con días≤365 (Bernoulli — fuera de ese rango la
+  desigualdad se invierte, documentado en el test, dominio = el uso real de estos instrumentos) ·
+  `spread`/`pase` antisimétricos (`f(a,b)+f(b,a)=0`) — esta última protege exactamente contra
+  repetir el bug de signo invertido que tuvo `pases.ts` el 29/07 (relevamiento web, punto 42): si
+  alguna vez alguien vuelve a invertir un solo argumento por error, explota en cualquier corrida.
+  Los fixtures puntuales del Excel (`arbitraje.test.ts`/`pases.test.ts`) siguen siendo la fuente
+  de verdad de los valores exactos — esto es una capa adicional, no un reemplazo.
 - [x] `FERIADOS_AR` vive en `src/lib/habiles.ts:9-23` (no en `dates.ts`) — 2025/2026/2027 cargados
   (2027 marcado "estimado"), test centinela en `habiles.test.ts:47-54` verificado línea por línea:
   desde octubre exige el año siguiente cargado. **Próximo punto real de falla: octubre de 2027**
@@ -161,10 +181,18 @@
   reprocesaría la tabla ENTERA como "nuevo", con riesgo real de re-alertar todos los días un
   desvío ya conocido y aceptado (ej. el +13-14% de cebada cervecera que D7 ya había encontrado
   y decidido no clampear).
-- [ ] No existe semáforo visual de antigüedad por tiempo transcurrido (verde/rojo según reloj del
-  cliente) — hoy el ⚠ de `SourceStamp` es estático (lo setea el server al momento del fetch, vía
-  `meta.problemas`), no recalcula edad en el navegador. Baja prioridad: el timestamp exacto ya es
-  visible donde `SourceStamp` está presente.
+- [x] **Semáforo visual de antigüedad — HECHO 03/08/2026**: `FrescuraDot`
+  (`src/components/frescura-dot.tsx`) — punto verde/ámbar/rojo que recalcula la edad con el
+  reloj del NAVEGADOR (antes el ⚠ de `SourceStamp` era estático, fijado por el server al momento
+  del fetch). Opt-in vía prop nueva `revalidateSeg` en `SourceStamp` (sin la prop, cero cambio de
+  comportamiento) — umbral relativo al ISR de cada página (2x=envejeciendo, 6x=viejo), así 30s
+  (rueda en vivo) y 3600s (baja frecuencia) no comparten el mismo corte fijo de minutos. Cableado
+  en los 2 grupos de revalidate corto: granos (arbitrajes/pases/caja/capacidad/monitor, 30s) y
+  dólar (futuro/oficial/linked/implícitas/sintéticos/cambiario, 60s) — el resto de `SourceStamp`
+  queda igual que siempre. Verificado con Playwright real (claro/oscuro, sin errores de consola/
+  hidratación) contra datos reales del entorno — el punto salió rojo en la 1ª prueba porque el
+  dato real de mercado llevaba más de 6× el revalidate sin moverse, confirmando que la lógica
+  mide lo que dice medir.
 
 ## Fase 3 — Control de acceso comercial (Informe complementario §3)
 
@@ -249,8 +277,14 @@
 - [ ] ~~🖐 Acceso de emergencia para **Mauro** con cuenta propia~~ → **DECIDIDO 03/08/2026:
   Lautaro NO lo va a agregar** a Vercel/Supabase/GitHub por ahora. Sigue siendo admin de la web
   (`profiles`), solo sin acceso a la infraestructura.
-- [ ] Smoke test k6 (5 VUs × 1 min, p95 < 500 ms, errores < 1%) — opcional según Informe 3; el
-  load testing formal está descartado para esta escala.
+- [x] **Smoke test k6 — HECHO 03/08/2026**: `scripts/k6-smoke.js` (5 VUs × 1 min, thresholds
+  `p(95)<500ms` + `http_req_failed rate<0.01`, tal cual pedía el Informe 3). NO se integra a CI a
+  propósito (el load testing formal sigue descartado para esta escala) — queda como script para
+  correr a mano cuando haga falta (antes de un pico de tráfico esperado, tras un cambio grande de
+  infra). Pega solo a las rutas PÚBLICAS de verdad (`RUTAS_PUBLICAS` de `auth/config.ts` +
+  `/api/health`) — con `AUTH_ENFORCED` prendido el resto redirige a `/ingresar` sin sesión, medirlo
+  no tendría sentido. Validado corriendo el binario real de k6 (descargado ad-hoc en el sandbox)
+  contra el server local: 100% de los checks, thresholds cumplidos.
 
 ## Fase 6 — Legal Argentina (Informe complementario §5)
 
