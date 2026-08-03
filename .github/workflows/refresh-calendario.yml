@@ -11,7 +11,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 12 1 * *" # día 1 de cada mes, 09:00 AR
+    - cron: "33 12 1 * *" # día 1 de cada mes, 09:33 AR — fuera del minuto ":00" (03/08/2026, congestión de GH Actions, ver ingest-noticias.yml)
   workflow_dispatch:
 
 jobs:

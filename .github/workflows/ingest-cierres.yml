@@ -10,7 +10,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 23 * * 1-5" # 23:00 UTC = 20:00 ART, tras el cierre
+    - cron: "8 23 * * 1-5" # 23:08 UTC = 20:08 ART, tras el cierre — fuera del minuto ":00" (03/08/2026, congestión de GH Actions, ver ingest-noticias.yml)
   workflow_dispatch:
     inputs:
       from:

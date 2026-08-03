@@ -13,7 +13,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 13 * * 1-5" # 10:00 ART, L-V
+    - cron: "7 13 * * 1-5" # 10:07 ART, L-V — fuera del minuto ":00" (03/08/2026, congestión de GH Actions, ver ingest-noticias.yml)
   workflow_dispatch:
     inputs:
       backfill:

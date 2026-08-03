@@ -11,7 +11,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 22 * * 1-5" # 22:00 UTC, tras el settle de CBOT
+    - cron: "11 22 * * 1-5" # 22:11 UTC, tras el settle de CBOT — fuera del minuto ":00" (03/08/2026, congestión de GH Actions, ver ingest-noticias.yml)
   workflow_dispatch:
     inputs:
       backfill:

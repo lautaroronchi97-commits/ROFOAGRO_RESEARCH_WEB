@@ -13,6 +13,15 @@ name: Ingesta camiones Agroentregas (JSON público → Supabase)
 #
 # Corre TODOS los días (no solo L-V): los puertos reciben camiones los sábados (y el domingo flojo
 # también es dato real). Los `schedule` de GitHub Actions corren desde la rama default del repo.
+#
+# Fix 03/08/2026: los 2 crons estaban en punto (":00"), el minuto más congestionado de GitHub
+# Actions a nivel global (mismo hallazgo que ya documentaba `ingest-noticias.yml`) — medido en runs
+# reales: el de "0 1 * * *" (nominal 22:00 ART) llegaba a disparar ~3,3-3,5h tarde, cruzando la
+# medianoche ART. Para el segundo cron eso rompía la corrida de VERDAD (no solo ruido): Agroentregas
+# es "foto del día en curso" — al cruzar la medianoche la colección "Camiones" de HOY viene vacía (no
+# entró un solo camión todavía) y el guard anti-falso-verde fallaba la corrida cada noche, con mail de
+# alerta incluido. Fix: además de sacar los 2 crons del minuto ":00", el segundo se adelanta a las
+# 20:15 ART (antes 22:00) para dejar margen real ante ese mismo retraso sin cruzar la medianoche.
 
 # El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
 permissions:
@@ -20,8 +29,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 21 * * *" # 18:00 ART — red de seguridad
-    - cron: "0 1 * * *" #  22:00 ART (del día anterior) — el día casi cerrado
+    - cron: "12 21 * * *" # 18:12 ART — red de seguridad
+    - cron: "18 23 * * *" # 20:18 ART — el día casi cerrado, con margen ante el retraso de GitHub
   workflow_dispatch:
     inputs:
       dry_run:

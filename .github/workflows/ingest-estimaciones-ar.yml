@@ -17,7 +17,9 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 1 * * 4" # mié 22:00 AR — tras la estimación mensual de GEA (2° miércoles)
+    - cron: "16 1 * * 4" # mié 22:16 AR — tras la estimación mensual de GEA (2° miércoles); fuera
+    # del minuto ":00" (03/08/2026: es el más congestionado de GitHub Actions, mismo hallazgo que
+    # `ingest-noticias.yml`/`ingest-lineup.yml`/`ingest-camiones-agroentregas.yml`).
     # DEA salió del schedule (lote L5, 22/07): la fuente está bloqueada por IP desde Actions,
     # así que un cron semanal solo generaría rojo/alertas sin datos. La actualización real es
     # la carga semi-manual por /admin/datos. `dea_probe` abajo reintenta a mano si hace falta.

@@ -19,7 +19,40 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 03/08/2026 — 🔒 C29 CERRADO de punta a punta: los 5 últimos ítems opcionales del checklist de pre-lanzamiento)
+## Ahora (última actualización: 03/08/2026 — 🚨 diagnóstico de ingestas/checks: 403 real en 2 Edge Functions arreglado y desplegado + falso-rojo diario de camiones arreglado (cron) + CONAB confirmado atraso genuino de la fuente)
+
+**🚨 DIAGNÓSTICO DE INGESTAS Y CHECKS — HECHO — rama `claude/ingestas-checks-diagnostico-zzk9es`,
+PR #_.** Lautaro pidió revisar de punta a punta qué ingestas/checks están corriendo bien, cuáles no,
+cuáles atrasadas — disparado por 2 mails reales de alerta en vivo durante la sesión ("Ingesta
+line-up buques en ROJO" y "Healthcheck de frescura en ROJO"). 3 hallazgos, cada uno tratado distinto
+según si era un bug real o una señal correcta:
+
+1. **Bug real de producción, arreglado y desplegado en caliente**: la migración de esta misma mañana
+   a las keys nuevas de Supabase (`sb_publishable_`/`sb_secret_`, `PRELAUNCH_CHECKLIST.md`) se había
+   verificado contra PostgREST directo pero no contra los 2 Edge Functions con auth casero
+   (`lineup-ingest`/`dea-fetch`, decodifican el bearer como JWT y exigen `role=service_role`) — la key
+   nueva no es un JWT → 403 `forbidden` con la key real. Fix: aceptar el secret key nuevo por prefijo
+   ANTES del decode JWT (que sigue sirviendo para la key legacy). **Desplegado por MCP** (`lineup-ingest`
+   v8, `dea-fetch` v4) y **verificado en producción**: reintento del run que había fallado → `success`.
+2. **Bug real recurrente, arreglado (cron)**: `ingest-camiones-agroentregas` fallaba TODAS las noches
+   — su 2º cron, agendado en punto (":00", el minuto más congestionado de GitHub Actions, medido con
+   hasta 3,5h de atraso real), cruzaba la medianoche ART y pegaba contra la colección "de hoy" de
+   Agroentregas todavía vacía. Sin pérdida de datos (la corrida de las 18:00 ya guardaba un valor
+   razonable, por diseño) pero con mail de alerta falso cada noche. Fix: 2º cron adelantado a 20:18
+   ART + **los 16 workflows del repo sacados del minuto ":00"** (mismo criterio que ya usaba
+   `ingest-noticias.yml`, generalizado).
+3. **CONAB atrasado en el healthcheck — confirmado NO ES un bug**: bajado el TXT real de CONAB en
+   vivo, la campaña 2025/26 sigue clavada en el 9º levantamento (verificado a mano) — atraso genuino
+   de la fuente, el healthcheck está midiendo bien. Sin cambios de código ni de umbral.
+
+**Verificado**: lint/tsc/**434 tests**/build ✅ (16 YAML de workflows + 2 Edge Functions tocados) ·
+fix de los Edge Functions confirmado en producción real (rerun del run fallido → success) · contenido
+desplegado releído con `get_edge_function` y comparado byte a byte contra el repo (el primer intento
+de deploy mandó placeholder por error propio, corregido 1 min después) · CONAB verificado bajando la
+fuente real en la sesión. Detalle:
+[`sesiones/2026-08-03-diagnostico-ingestas-checks.md`](sesiones/2026-08-03-diagnostico-ingestas-checks.md).
+
+## Anterior (03/08/2026 — 🔒 C29 CERRADO de punta a punta: los 5 últimos ítems opcionales del checklist de pre-lanzamiento)
 
 **🔒 C29 — CIERRE DE LOS 5 ÍTIMOS ÍTEMS OPCIONALES DEL CHECKLIST DE PRE-LANZAMIENTO — HECHO —
 rama `claude/backlog-pendiente-x81f9p` (reiniciada desde `main` — el corte anterior de esta misma
