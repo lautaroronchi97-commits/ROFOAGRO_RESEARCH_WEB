@@ -31,11 +31,20 @@ function parseFecha(raw: string | undefined): string | null {
   return null;
 }
 
+// Guard de rango (D7/L7, 03/08/2026): el pago final es VN 100 — nunca puede ser menor al
+// capital (100) y el máximo real cargado hoy es 161,10 (T15E7, la BONCAP más larga). 400 da
+// aire de sobra para tasas más altas sin dejar pasar un error de tipeo típico (una coma corrida
+// o un dígito de más, ej. "1176,8" en vez de "117,68").
+const PAGO_FINAL_MIN = 100;
+const PAGO_FINAL_MAX = 400;
+
 function parsePagoFinal(raw: string | undefined): number | null {
   if (!raw) return null;
-  // acepta coma o punto decimal; los valores son VN 100 (100-170), sin separador de miles.
+  // acepta coma o punto decimal; los valores son VN 100, sin separador de miles.
   const n = Number(raw.trim().replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? n : null;
+  if (!Number.isFinite(n)) return null;
+  if (n < PAGO_FINAL_MIN || n > PAGO_FINAL_MAX) return null;
+  return n;
 }
 
 function parseTexto(texto: string): { filas: FilaLecap[]; errores: string[] } {
@@ -54,7 +63,13 @@ function parseTexto(texto: string): { filas: FilaLecap[]; errores: string[] } {
     }
     const pago = parsePagoFinal(partes[1]);
     if (pago === null) {
-      errores.push(`Pago final inválido para ${ticker}: "${partes[1] ?? ""}"`);
+      const n = Number((partes[1] ?? "").replace(",", "."));
+      const fueraDeRango = Number.isFinite(n) && (n < PAGO_FINAL_MIN || n > PAGO_FINAL_MAX);
+      errores.push(
+        fueraDeRango
+          ? `Pago final fuera de rango para ${ticker}: ${partes[1]} (esperado ${PAGO_FINAL_MIN}-${PAGO_FINAL_MAX}, VN 100 — ¿coma corrida?)`
+          : `Pago final inválido para ${ticker}: "${partes[1] ?? ""}"`,
+      );
       continue;
     }
     if (vistos.has(ticker)) {
