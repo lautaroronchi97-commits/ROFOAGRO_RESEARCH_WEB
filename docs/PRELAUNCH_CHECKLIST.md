@@ -163,8 +163,19 @@
   duración 7 días; marca de agua por email.
 - [x] No-aprobado NO entra al producto: pantalla `pendiente` + enforcement en el proxy (no solo
   front) + RLS como segunda capa.
-- [ ] Auditar el ciclo de vida de un registro rechazado/abandonado (fila en `auth.users` +
-  `profiles` en `pendiente` para siempre — ¿limpieza periódica? ¿aviso?).
+- [x] **Auditado 03/08/2026 — 1 gap real encontrado y arreglado, 2 quedan documentados sin
+  tocar (alcance elegido por Lautaro).** Rechazar un usuario solo seteaba `estado='rechazado'`
+  en `profiles`, sin ningún otro efecto — y **no había forma de deshacerlo desde la web**: la
+  fila desaparece de la pestaña Pendientes (filtra `estado='pendiente'`) y en Usuarios el único
+  control disponible era "Bloquear", que mueve a `bloqueado`, nunca de vuelta a `aprobado` — solo
+  quedaba editar la base a mano por SQL. **Arreglado**: `usuario-row.tsx` suma el mismo
+  formulario de aprobación (empresa existente o nueva) que ya usa Pendientes, visible solo con
+  `estado='rechazado'`, reusando `aprobarUsuario` sin action nueva. Verificado con Playwright
+  (bypass temporal + fila sintética, revertido antes del commit) en claro/oscuro. **Quedan sin
+  tocar, por decisión explícita**: `/pendiente` sigue mostrando el mismo mensaje genérico a
+  pendiente/rechazado/bloqueado (nunca le dice a un rechazado que lo rechazaron) · no hay
+  limpieza periódica de filas viejas en `pendiente`/`rechazado` (aceptado — volumen bajo, no es
+  operacionalmente urgente).
 
 ## Fase 4 — Backups y entornos (checklist "backups" + Informe complementario §6)
 
