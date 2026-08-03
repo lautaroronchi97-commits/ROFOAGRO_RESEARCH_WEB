@@ -106,6 +106,6 @@ export async function procesarLecap(_state: LecapState, formData: FormData): Pro
   if (error) return { error: error.message };
 
   revalidatePath("/dolar");
-  revalidatePath("/admin/datos");
+  revalidatePath("/admin/datos/lecap");
   return { ok: { filas: typeof data === "number" ? data : filas.length } };
 }

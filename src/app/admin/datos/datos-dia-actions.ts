@@ -45,6 +45,6 @@ export async function guardarDatosDelDia(_prev: DatosDiaState, formData: FormDat
   });
   if (eColor) return { error: eColor.message };
 
-  revalidatePath("/admin/datos");
+  revalidatePath("/admin/datos/mesa-color");
   return { ok: "Datos del día guardados." };
 }

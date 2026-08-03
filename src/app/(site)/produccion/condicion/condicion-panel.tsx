@@ -182,7 +182,7 @@ export function CondicionPanel({ filas, error }: { filas: FilaCondicionDB[]; err
         <PanelHead title="Condición de cultivos" sub="BCBA-PAS · solo mesa" />
         <p className="dim" style={{ padding: "8px 2px" }}>
           Todavía no hay datos cargados. Subí el export de condición desde{" "}
-          <a href="/admin/datos#pas-condicion">/admin/datos</a> (un archivo por cultivo).
+          <a href="/admin/datos/pas-condicion">/admin/datos</a> (un archivo por cultivo).
         </p>
       </Panel>
     );
