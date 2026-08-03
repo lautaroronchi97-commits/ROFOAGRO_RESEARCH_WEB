@@ -29,7 +29,10 @@
   (ej. "Ir a cargar →" del checklist, un uploader de `/admin/datos`). Si algo necesita dispararse,
   que quede automático (cron) o que se le arme el botón; si hay que confirmar que algo corrió, eso lo
   verifica la sesión (por MCP/SQL/logs) o queda como "se confirma solo con el próximo run programado",
-  nunca como un paso manual para él.
+  nunca como un paso manual para él. **Todo lo que sí requiera su intervención tiene que quedar
+  documentado como un botón/página propia de la web** (no como un paso suelto en una bitácora que
+  hay que acordarse) — el patrón ya usado es el balde 🟠 "Tenés que cargar algo" de
+  `/admin/checklist`, que linkea directo a cada uploader de `/admin/datos/<sección>`.
 - **Si algo falla, frenar**: no seguir de largo — parar y explicarle qué pasó.
 - **Nada se da por terminado sin `npm run lint` + `npx tsc --noEmit` + `npx vitest run` en verde**
   (build incluido si se va a pushear — ver protocolo en `ESTADO.md`).
