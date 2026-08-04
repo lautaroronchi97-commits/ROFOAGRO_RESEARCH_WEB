@@ -161,7 +161,40 @@ Contestadas por Lautaro en el chat de esta sesión:
 | N6 | **Diario: PNG sigue + versión WEB con link** ("que entren los clientes o el público con un link, indaguémoslo") | Etapa E3: página web del informe diario por fecha; el acceso (permiso de sección vs link público firmado) se resuelve en esa etapa con recomendación (§5.4). |
 | N7 | **Alcance de interpretaciones ampliado**: los 5 organismos de estimaciones + **PAS zonas/condición** + **CFTC COT** + **USDA Export Sales** | COT y Export Sales entran por **fetch-en-vivo dentro de la rutina** (con pasaporte), SIN ingesta/cron/tabla nueva — coherente con la decisión vigente "fetch-en-vivo, no ingesta nueva". |
 
-| N11 | **Futuros locales del día (diario): la fuente es el WEBSOCKET de A3** (`a3-live`), que trae volúmenes y ajuste por posición — no `futuros_cierres` (04/08, revisión post-plan) | Motivo verificado: `ingest-cierres` corre 20:08 ART y el diario 18:30 → la tabla tiene la rueda de AYER a esa hora (el "desfasaje" actual cruza Δ local de ayer con Chicago de hoy, y el top-3 "del día" mostraría volúmenes viejos). El WS es la fuente de HOY; CEM queda como histórico. Verificación secundaria en la build: chequear si CEM ya publica el ajuste del día ~18:15 (Lautaro cree que no) y confirmar que el snapshot del WS post-rueda trae el ajuste (entrada SE) además de último/volumen. El SEMANAL sigue sobre `futuros_cierres` (histórico) — su fix es de horario, pendiente de OK (§8.2 de la bitácora). |
+| N11 | **Futuros locales del día (diario): la fuente es el WEBSOCKET de A3** (`a3-live`), que trae volúmenes y ajuste por posición — no `futuros_cierres` (04/08, revisión post-plan) | Motivo verificado: `ingest-cierres` corre 20:08 ART y el diario 18:30 → la tabla tiene la rueda de AYER a esa hora (el "desfasaje" actual cruza Δ local de ayer con Chicago de hoy, y el top-3 "del día" mostraría volúmenes viejos). El WS es la fuente de HOY; CEM queda como histórico. Verificación secundaria en la build: chequear si CEM ya publica el ajuste del día ~18:15 (Lautaro cree que no) y confirmar que el snapshot del WS post-rueda trae el ajuste (entrada SE) además de último/volumen. El SEMANAL sigue sobre `futuros_cierres` (histórico) — su fix es de horario (N12: pasa a vie 20:30 ART). |
+
+**Revisión post-plan (04/08, misma sesión — Lautaro aprobó el paquete completo en bloque)**:
+- **N12 — Semanal pasa de vie 19:00 a vie 20:30 ART** (`30 23 * * 5`): los cierres A3 del viernes
+  entran 20:08 y CBOT 19:11 — a las 19:00 "la semana" terminaba en jueves. Con 20:30 la semana
+  queda completa. (Cadencia nueva en E6.)
+- **N13 — Telemetría de Routines + watchdog**: tabla nueva `routine_runs` (tipo, fecha, duración,
+  degradaciones, mail enviado) que cada skill inserta al cerrar → resuelve la medición R5
+  pendiente de V2, alimenta con dato real el balde "🟣 No se generó" de `/admin/checklist`, y
+  habilita el watchdog "no hay informe diario a las 19:00 → mail de alerta".
+- **N14 — Scorecard de interpretaciones**: el `impacto` por grano se mide contra `futuros_cierres`
+  a 7/14 días con la misma mecánica del scorecard del view (posición fijada en t0). "Qué tan bien
+  leemos los reportes" pasa a ser un número; alimenta los aprendizajes con evidencia.
+- **N15 — Feedback con fricción cero**: los mails del diario/semanal llevan **links firmados de
+  nota 1-tap** (👍/😐/👎 → graban `nota` sin login, HMAC como el link público) y el mail del
+  diario incluye el **eco de lo entendido del color** ("entendí: pizarra estimada soja 340 USD…")
+  para que una mala lectura del texto libre se vea en segundos. (Motivo: el feedback del view
+  lleva 0 notas desde que existe — el loop necesita costo cero.)
+- **N16 — Backtest de umbrales**: los umbrales-perilla (DJVE, camiones, otros mercados) se
+  calibran contra 90 días de datos reales ANTES de fijarse (objetivo ~1-3 disparos/semana) — la
+  lección del 0,7/1,3 de cobertura (L4) que disparaba el 74-95% de los días.
+- **N17 — PNG compacto, web completa**: la placa PNG apunta a **1 página** (tope duro 2, orden de
+  recorte de §5.3) y la **página web con link es el informe completo** — resuelve la tensión
+  entre "1-2 páginas" y todo lo que el Word suma.
+- **N18 — Banco de oro de prosa**: 3-5 informes reales que Lautaro marque como "así quiero sonar"
+  quedan versionados como `references/` de cada skill; el Paso 0 los lee como vara de estilo.
+- **N19 — Firma de las auto-publicadas**: las interpretaciones que salen solas firman
+  "**Mesa ROFO AGRO**"; las que él revisó/editó llevan su firma personal.
+- **N20 — Spikes de datos al backlog derivado** (§13): SIO Granos diario · serie histórica de
+  FAS/basis · scrape del comentario Chicago de BCR · expectativas DTN guardadas estructuradas ·
+  clima SMN propio (recién si el view lo justifica) · suscripción directa a clientes (recién con
+  el login prendido).
+- **Orden de builds**: E3/E4/E5 son **paralelizables** en 3 sesiones Sonnet una vez mergeadas
+  E1+E2.
 
 Decisiones del Word que también son cambios (implícitos en §1.1): **N8** el layout del diario se
 reorganiza **por producto (SOJA→MAÍZ→TRIGO) con local/internacional separados** — reemplaza la
@@ -198,8 +231,9 @@ Regla madre: **cada análisis tiene UNA fuente canónica; los demás lo CITAN, n
 | **Informe semanal** | "La síntesis": la semana en datos + prosa amplia por producto | Viernes 19:00 ART | PDF A4 sin límite de páginas | Los DIARIOS de la semana + las INTERPRETACIONES de la semana + el VIEW del día + noticias 7d + agregados semanales propios | No re-deriva la dirección (cita el view); no re-interpreta reportes (cita interpretaciones); no repite el research del view (usa su `evidencia_externa`) |
 
 Flujo de nutrición (el orden del viernes importa): interpretaciones (todo el día) → view (9:00)
-→ semanal (19:00, lee a los otros dos y a los diarios L-J). El diario de cada día lee las
-interpretaciones ya publicadas. Todos leen `voz-lautaro` en su Paso 0.
+→ semanal (**20:30**, decisión N12 — con los cierres del viernes ya ingestados; lee a los otros
+dos y a los diarios de la semana). El diario de cada día lee las interpretaciones ya publicadas.
+Todos leen `voz-lautaro` en su Paso 0.
 
 Dos aclaraciones anti-repetición concretas:
 - El **research externo pesado vive en el view** (5 subagentes). El semanal NO repite ese research:
@@ -302,10 +336,11 @@ decir una línea. `[E: campo; N: regla]`
   documentados en la skill como perillas), regla del bloque internacional (otros mercados ≥3%),
   regla de noticias ("si nada es de mercado de granos/macro que afecte precios: cero titulares").
 - Regla N9 (sin internals) aplicada: el diario ya casi no los usa; queda explícita.
-- **Tope de tamaño (Word: "1 página, a lo sumo 2")**: alto máximo de la placa = 2×1056 px. Si el
-  render excede, la skill recorta EN ESTE ORDEN: condicionales (otros mercados → camiones → DJVE)
-  → noticias → agenda compactada — nunca los datos por producto. El check de altura entra a la
-  verificación del Paso 4 (el screenshot ya mide `fullPage`).
+- **Tamaño (N17)**: la placa PNG apunta a **1 página** (1056 px de alto; tope duro 2×1056). Si el
+  render excede el objetivo, la skill recorta EN ESTE ORDEN: condicionales (otros mercados →
+  camiones → DJVE) → noticias → agenda compactada — nunca los datos por producto. Lo recortado
+  NO se pierde: la **página web** (§5.4) muestra siempre el informe completo. El check de altura
+  entra a la verificación del Paso 4 (el screenshot ya mide `fullPage`).
 - **Paso 0 nuevo de calibración** (patrón del view): además de `voz-lautaro`, leer
   `references/aprendizajes.md` propio (protocolo gateado, cap 200 líneas) + las últimas ~8
   notas/feedback de `informes_generados` tipo=diario (RPC de E1). Feedback contradice hábito →
@@ -314,8 +349,9 @@ decir una línea. `[E: campo; N: regla]`
 
 ### 5.4 Versión web con link (N6 — "indaguémoslo", etapa E3)
 
-- Página nueva `/informes/diario/[fecha]`: renderiza el mismo contenido de la placa como página
-  web responsive (misma data, componentes reusados), para `estado=enviado`.
+- Página nueva `/informes/diario/[fecha]`: renderiza el **informe COMPLETO** como página web
+  responsive (misma data, componentes reusados; incluye lo que la placa haya recortado por el
+  objetivo de 1 página — N17), para `estado=enviado`.
 - **Acceso — recomendación**: gateada como la sección Informes (con `AUTH_ENFORCED` prendido, la
   ven los clientes con permiso `informes`; los admins siempre). Además, **link público firmado
   opcional** por informe (`?t=<token>`, generable desde `/admin`) para compartir a no clientes
@@ -531,6 +567,8 @@ UI: badge de impacto por grano en las 4 superficies donde se muestra — admin, 
   diario/semanal salgan CON la lectura. Para los tempranos (WASDE ~14:45) la ventana es de horas.
   Si quiere corregir una auto-publicada, la edita después y la web se actualiza (la placa PNG ya
   enviada no — costo aceptado).
+- **Firma (N19)**: las auto-publicadas firman "**Mesa ROFO AGRO**"; las revisadas/editadas por
+  Lautaro llevan su firma personal.
 
 ### 8.2 Rutina propia con calendario y reprogramación
 
@@ -566,10 +604,17 @@ UI: badge de impacto por grano en las 4 superficies donde se muestra — admin, 
 | Producto | Mecanismo hoy | Qué se agrega en V3 |
 |---|---|---|
 | View | Nota 1-5 + texto (`admin_feedback_view`) + scorecard hit-rate/Brier + `aprendizajes.md` gateado — **sin usar (0 notas)** | Nada nuevo que construir: **usarlo**. La adaptación a 5 estados toca el scorecard (§7.1). El plan lo deja anotado como hábito de Lautaro (1 min por semana en `/granos/view`). |
-| Informe diario | Nada | Migración `informes_generados`: `+ nota smallint CHECK 1-5 NULL`, `+ feedback text NULL` + RPC `admin_feedback_informe(p_id, p_feedback, p_nota)` (patrón del view) + mini-form en `/informes` visible solo admin (una línea por informe). La skill lee las últimas ~8 notas/feedback en su Paso 0 y ajusta (patrón calibración del view). |
-| Informe semanal | Nada | Mismo mecanismo (misma tabla/RPC/UI — cero costo marginal). |
+| Informe diario | Nada | Migración `informes_generados`: `+ nota smallint CHECK 1-5 NULL`, `+ feedback text NULL` + RPC `admin_feedback_informe(p_id, p_feedback, p_nota)` (patrón del view) + mini-form en `/informes` visible solo admin (una línea por informe). **Fricción cero (N15)**: el MAIL del informe lleva links firmados de nota 1-tap (👍/😐/👎 → endpoint HMAC que graba la nota sin login) + el **eco de lo entendido del color** en el cuerpo del mail. La skill lee las últimas ~8 notas/feedback en su Paso 0 y ajusta (patrón calibración del view) + banco de oro de prosa (N18). |
+| Informe semanal | Nada | Mismo mecanismo (misma tabla/RPC/UI/links de mail — cero costo marginal). |
 | Interpretaciones | Gate humano (editar antes de publicar) | El **diff contra el texto original ES el feedback**: la skill, en su Paso 0, lee las últimas interpretaciones donde `publicado_md ≠ borrador_original_md` y aprende del delta (qué recorta Lautaro, qué agrega, qué tono corrige). ⚠️ Requiere la columna **`borrador_original_md`** de E1 (snapshot al insertar, que las RPC nunca pisan) — con el esquema actual las RPC dejan `publicado_md == borrador_md` SIEMPRE y el diff daría vacío. Las que él NO tocó (`auto_publicado=true`) también informan: silencio = aceptable. Se agrega además la nota 1-5 opcional reutilizando el patrón (`+ nota smallint` en `interpretaciones`). |
 | Todos | `aprendizajes.md` solo en view | `references/aprendizajes.md` en las 4 skills, con el MISMO protocolo gateado del view (cap 200 líneas, promoción por ≥2 episodios o marca explícita de Lautaro, la Routine NUNCA destila — destilación manual en sesiones). |
+
+Además (N13/N14, aprobados 04/08): **scorecard de interpretaciones** — el `impacto` por grano se
+mide contra `futuros_cierres` a 7/14 días reusando la mecánica de `views-scorecard.ts` (posición
+fijada en t0; superficie en `/admin/interpretaciones`), y **telemetría de Routines** — cada skill
+inserta al cerrar una fila en `routine_runs` (tipo, fecha, duración, degradaciones, mail
+enviado): resuelve la medición R5 de V2, da dato real al balde "🟣 No se generó" del checklist, y
+habilita el watchdog "sin informe diario a las 19:00 → mail de alerta" (E6).
 
 ---
 
@@ -593,7 +638,8 @@ sesión + PR base `main`.
 >    RPC NUNCA pisan — §8.1/§9; backfillear las filas existentes con su `borrador_md` actual);
 >    (c) `informes_generados`: `+ nota smallint CHECK 1-5 NULL` + `+ feedback text NULL` + RPC
 >    `admin_feedback_informe` (patrón exacto de `admin_feedback_view`); (d) `mesa_color`:
->    `+ chicago_bcr text NULL`.
+>    `+ chicago_bcr text NULL`; (e) **`routine_runs`** (N13: tipo, fecha, iniciado/terminado,
+>    duración, degradaciones jsonb, mail_enviado — RLS solo admin, escritura service_role).
 > 2. **Libs nuevas** (puras, con tests): `variacionDiariaPizarra()` ($ y USD, sobre
 >    `pizarra_historico`, null-safe si falta el día previo) · `top3PorVolumen()` (top 3 + total
 >    del producto) **alimentado por el WebSocket de A3** (N11): extender `a3-live.ts` con un
@@ -625,9 +671,18 @@ sesión + PR base `main`.
 >    hasta entonces; el badge de la PLACA del diario lo cablea E3).
 > 6. **Unificar** el criterio "informe de hoy": `getInformesHoy` de `informe-diario-datos.ts`
 >    debe usar también `actualizado_en` (hoy la plantilla y el route divergen).
-> 7. Verificación: tests de las libs nuevas con fixtures reales · `curl` de ambos endpoints
->    con token y campos nuevos presentes · RLS de las columnas nuevas por SQL · Playwright del
->    admin y el badge. Protocolo completo (lint/tsc/vitest/build) + bitácora + PR.
+> 7. **Nota 1-tap por mail (N15)**: endpoint `GET /api/informes/nota?id=&n=&t=` con firma HMAC
+>    (`INFORME_SHARE_SECRET`, timing-safe) que graba la nota en `informes_generados` sin login y
+>    devuelve una página mínima de "gracias" — las skills E3/E4 lo cablean en sus mails.
+> 8. **Backtest de umbrales (N16)**: script ad-hoc que corre los umbrales-perilla del diario
+>    (DJVE ≥1,5× mediana de `ton_7d`/7 · camiones |Δ día| ≥30% o ≥1,5× interanual · otros
+>    mercados |Δ| ≥3% · commodities semanal ≥5%) contra los últimos 90 días reales y reporta
+>    frecuencia de disparo; calibrarlos a ~1-3 disparos/semana y dejar los valores finales
+>    documentados en este plan (§5.3/§6.2) para que E3/E4 los usen.
+> 9. Verificación: tests de las libs nuevas con fixtures reales · `curl` de ambos endpoints
+>    con token y campos nuevos presentes · nota 1-tap probada end-to-end (link firmado válido e
+>    inválido) · RLS de las columnas/tabla nuevas por SQL · Playwright del admin y el badge.
+>    Protocolo completo (lint/tsc/vitest/build) + bitácora + PR.
 
 ### PROMPT E2 — Skill + Rutina de interpretaciones
 
@@ -649,6 +704,11 @@ sesión + PR base `main`.
 >    de GitHub desde el entorno (si no hay permiso, documentar el fallback "esperar al cron").
 > 3. **Calendario**: evento USDA Export Sales + resolver NOPA (sumar evento o sacar del type) +
 >    centinela del array CONAB (§8.2).
+> 3b. **Scorecard de interpretaciones (N14)**: lib que mide el `impacto` por grano contra
+>    `futuros_cierres` a 7/14 días reusando el patrón de `views-scorecard.ts` (posición fijada
+>    en t0, mismas reglas de degradación) + fila de resumen en `/admin/interpretaciones`.
+>    **Firma (N19)**: auto-publicadas = "Mesa ROFO AGRO"; revisadas = firma personal.
+>    **Telemetría (N13)**: la skill inserta su fila en `routine_runs` al cerrar.
 > 4. **Rutina**: crearla por MCP (`create_trigger`) con nombre "ROFO AGRO — Interpretaciones",
 >    cron base `0 12 * * 1-5`, prompt estándar (repo NUEVO `ROFOAGRO_RESEARCH_WEB`, aviso por
 >    mail ante falla). Probar en la primera corrida si el entorno headless tiene `send_later`
@@ -676,8 +736,13 @@ sesión + PR base `main`.
 >    (DJVE/camiones/otros mercados con sus umbrales-perilla) + noticias 24 hs "puede ser cero" +
 >    agenda 7 días + **tope de altura 2×1056 px con el orden de recorte de §5.3**. **Eliminar el
 >    Paso 9** (ya vive en la skill de interpretaciones desde E2). Sigue mono-hilo, cero fetch
->    externo.
-> 3. **Página web** `/informes/diario/[fecha]` (§5.4): mismo contenido como página responsive
+>    externo. Objetivo de tamaño N17: 1 página (tope 2), la web completa lo que la placa
+>    recorte. Umbrales de condicionales: usar los valores calibrados por el backtest de E1.
+>    **Mail (N15)**: sumar los links firmados de nota 1-tap + el eco de lo entendido del color.
+>    **Telemetría (N13)**: fila en `routine_runs` al cerrar. **Banco de oro (N18)**: crear
+>    `references/banco-de-oro.md` (arranca con el mejor informe real a criterio de Lautaro; se
+>    amplía cuando él marque otros) y leerlo en el Paso 0.
+> 3. **Página web** `/informes/diario/[fecha]` (§5.4): el informe COMPLETO como página responsive
 >    para estado=enviado; DOS puertas construidas — gate por sección informes Y link público
 >    firmado **HMAC sin estado** (`INFORME_SHARE_SECRET`, comparación timing-safe, generable en
 >    admin) — para que Lautaro elija cuál activa.
@@ -702,7 +767,9 @@ sesión + PR base `main`.
 >    `references/aprendizajes.md` propio + últimas ~8 notas/feedback vía la RPC de E1), prosa por
 >    producto, ancla al último semanal enviado, lectura de diarios/interpretaciones/view sin
 >    re-derivar (§4), extracción y persistencia de la pizarra estimada del viernes, umbral de
->    commodities |Δ semanal| ≥5% (perilla), regla N9, cae `/Count ≥5`.
+>    commodities calibrado por el backtest de E1, regla N9, cae `/Count ≥5`. **Mail (N15)**:
+>    links firmados de nota 1-tap. **Telemetría (N13)**: fila en `routine_runs` al cerrar.
+>    **Banco de oro (N18)**: `references/banco-de-oro.md` propio, leído en el Paso 0.
 > 3. Verificación: PDF en seco con datos reales de una semana completa (patrón V3 del 28/07,
 >    borrador de prueba borrado), cotejo de cada tabla contra su panel de la web. Protocolo
 >    completo + bitácora + PR.
@@ -717,7 +784,8 @@ sesión + PR base `main`.
 > 2. **Skill `view-mercado` v3** (§7.3): F2 con zona del precio/desacople/patrones, calendario
 >    de ventanas críticas de clima, guía de uso de los 5 estados, tesis_md sin tope (N10),
 >    Paso 0 leyendo interpretaciones de la semana.
-> 3. Verificación: corrida en seco de un grano con los insumos ampliados reales (sin persistir),
+> 3. **Telemetría (N13)**: la skill inserta su fila en `routine_runs` al cerrar.
+> 4. Verificación: corrida en seco de un grano con los insumos ampliados reales (sin persistir),
 >    scorecard verificado con fixture de dirección leve, UI del view con los 5 colores/glifos
 >    en claro/oscuro. Protocolo completo + bitácora + PR.
 
@@ -728,12 +796,17 @@ sesión + PR base `main`.
 > 1. **Routines por MCP**: renombrar las 3 existentes a "ROFO AGRO — …" · corregir los 3 prompts
 >    (repo `ROFOAGRO_RESEARCH_WEB`, quitar referencias viejas) · sumar la cláusula de aviso por
 >    mail ante falla a la del view (hoy no la tiene) · verificar que la de interpretaciones (E2)
->    quedó con su cadencia definitiva. Cadencias sin cambios: diario 18:30 ART L-V · view vie
->    9:00 · semanal vie 19:00 · interpretaciones 9:00 L-V (+cierre 18:20).
-> 2. **Feedback end-to-end**: probar nota+feedback de un informe real desde `/informes` (admin) y
->    que las skills lo lean (corrida en seco del Paso 0 de cada una).
-> 3. **Monitoreo**: dar de alta la Routine de interpretaciones en `src/lib/monitoreo/catalogo.ts`
->    (checklist/conexiones) con su ventana esperada.
+>    quedó con su cadencia definitiva. Cadencias: diario 18:30 ART L-V · view vie 9:00 ·
+>    **semanal vie 20:30 ART (`30 23 * * 5`, decisión N12** — a las 19:00 los cierres del
+>    viernes todavía no estaban en la base) · interpretaciones 9:00 L-V (+cierre 18:20).
+> 2. **Feedback end-to-end**: probar nota+feedback de un informe real desde `/informes` (admin) Y
+>    desde los links 1-tap del mail, y que las skills lo lean (corrida en seco del Paso 0 de
+>    cada una).
+> 3. **Monitoreo (N13)**: dar de alta la Routine de interpretaciones en
+>    `src/lib/monitoreo/catalogo.ts` (checklist/conexiones) con su ventana esperada · cablear
+>    `routine_runs` al balde "🟣 No se generó" del checklist · **watchdog**: check nuevo en el
+>    healthcheck (o cron chico) que alerta por mail si a las 19:00 ART de un día hábil no hay
+>    informe diario generado.
 > 4. Cierre: actualizar `PLAN_INFORMES_V3.md` (tablero §11), `ESTADO.md`, backlog maestro (C30) y
 >    verificar la primera corrida real de cada Routine en la semana siguiente (consumo/duración —
 >    la línea base R5 que sigue pendiente de V2). Protocolo completo + bitácora + PR.
@@ -749,7 +822,9 @@ sesión + PR base `main`.
 | E3 | Diario v3 (placa por producto + skill + página web con link) | ☐ |
 | E4 | Semanal v3 (por producto, sin límite, skill) | ☐ |
 | E5 | View v3 (5 estados + insumos ampliados + skill) | ☐ |
-| E6 | Routines finales + feedback end-to-end + monitoreo + cierre | ☐ |
+| E6 | Routines finales + feedback end-to-end + monitoreo/watchdog + cierre | ☐ |
+
+E3/E4/E5 pueden correr **en paralelo** (3 sesiones Sonnet) una vez mergeadas E1+E2.
 
 ## 12. Criterios de éxito
 
@@ -765,3 +840,25 @@ sesión + PR base `main`.
    día y está publicado (manual o auto) antes del diario de las 18:30.
 6. Ningún principio vigente roto: ni un número inventado, pasaportes, blind-first, gates del
    view, motor Routines, entrega por mail + `/informes`.
+7. **El sistema se mide a sí mismo** (N13/N14): telemetría de cada corrida en `routine_runs`,
+   watchdog de "no salió", scorecard del view Y de interpretaciones andando.
+
+## 13. Backlog derivado (N20 — aprobado 04/08, fuera del alcance E1-E6)
+
+Spikes y mejoras que quedaron registrados para después de que E1→E6 esté andando (cada uno
+arranca con un spike de research barato antes de construir nada):
+
+1. **SIO Granos diario**: ¿el volumen físico del día es automatizable desde SIO? (hoy entra
+   manual por el color). Spike de ~1 h; si es scrapeable, el diario gana su dato más débil.
+2. **Serie histórica de FAS/basis**: persistir la foto diaria de capacidad de pago
+   (FAS BCR/Nuestro vs pizarra) en una tabla chica → en meses, la "zona del precio" del basis
+   para el view ("¿quién pone el precio?") sin tocar fórmulas.
+3. **Scrape del comentario de Chicago de BCR**: si la página del comentario diario es
+   scrapeable, se automatiza con el campo manual de `chicago_bcr` como fallback (no contradice
+   N5 — le saca fricción diaria a Lautaro).
+4. **Expectativas DTN guardadas estructuradas**: las tablas pre-report que interpretaciones ya
+   trae con pasaporte → guardarlas → índice propio de "sorpresa vs consenso" por reporte.
+5. **Clima propio (SMN)**: ingesta liviana solo si el view demuestra que el clima le mueve la
+   aguja (mientras tanto sigue la decisión vigente: research en runtime).
+6. **Suscripción directa a clientes**: mail automático a aprobados por sección cuando el login
+   esté prendido con clientes reales (hoy sigue vigente "Lautaro reenvía a mano").

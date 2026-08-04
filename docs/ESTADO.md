@@ -54,13 +54,17 @@ scorecard + aprendizajes) está construido y **nunca usado** (0 notas) · la pla
 duplica queries del API con un criterio distinto de "informe de hoy" (fix en E1) · GEA/DEA
 ingestan 22:16 → su interpretación hoy sale un día tarde (lo ataca la rutina propia de E2).
 
-**Revisión objetiva post-plan (misma sesión, pedida por Lautaro)** — hallazgo mayor verificado
-contra los workflows: `ingest-cierres` corre 20:08 ART y el diario 18:30 → los bloques A3 EOD se
-armaban con la rueda de AYER. **Decisión N11 de Lautaro: los futuros locales diarios salen del
-WEBSOCKET de A3** (volúmenes + ajuste; CEM como histórico, chequear su timing como secundario) —
-ya bajada al plan (§3/§5.1/E1). Quedan **pendientes de su OK** las demás propuestas de la
-revisión (semanal 19:00→20:30 · telemetría de Routines + watchdog · scorecard de interpretaciones
-· nota 1-tap por mail + eco del color · backtest de umbrales · menores) — listadas en la bitácora.
+**Revisión objetiva post-plan (misma sesión, pedida por Lautaro) — TODA APROBADA E INTEGRADA
+al plan como N11-N20.** Hallazgo mayor verificado contra los workflows: `ingest-cierres` corre
+20:08 ART y el diario 18:30 → los bloques A3 EOD se armaban con la rueda de AYER. **N11 (definida
+por Lautaro): los futuros locales diarios salen del WEBSOCKET de A3** (volúmenes + ajuste; CEM
+como histórico, chequear su timing como secundario). El resto lo aprobó en bloque: **N12** semanal
+19:00→**20:30 ART** (la semana incluye el viernes) · **N13** telemetría de Routines
+(`routine_runs`) + watchdog "no salió el informe" · **N14** scorecard de interpretaciones
+(impacto vs precio a 7/14d) · **N15** nota 1-tap desde el mail + eco de lo entendido del color ·
+**N16** backtest de umbrales contra 90 días reales · **N17** PNG 1 página + web completa ·
+**N18** banco de oro de prosa · **N19** firma "Mesa ROFO AGRO" en auto-publicadas · **N20**
+spikes de datos al backlog derivado (§13 del plan) · E3/E4/E5 paralelizables.
 
 **Verificado**: lint/tsc/**445 tests**/build ✅ (diff solo docs). **Próximo paso: ejecutar
 E1→E6 con Sonnet** (prompts en `PLAN_INFORMES_V3.md` §10; E1 = migraciones+libs+endpoints, con

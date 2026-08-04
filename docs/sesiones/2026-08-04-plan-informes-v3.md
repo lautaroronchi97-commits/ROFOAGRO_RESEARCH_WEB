@@ -65,22 +65,22 @@ los futuros locales diarios, el WebSocket de A3** (trae volúmenes y ajuste); CE
 actualice para el informe, hay que chequearlo" → registrado como **decisión N11** en el plan
 (§3) y bajado a §5.1.C y al prompt E1.
 
-**Propuestas del resto de la revisión, PENDIENTES del OK de Lautaro** (viven en el chat de la
-sesión; se bajan al plan cuando decida):
-1. **Semanal de 19:00 → 20:30 ART** para que la semana incluya el viernes (cambio de cron, E6).
-2. **Telemetría de Routines** (tabla `routine_runs`: duración/degradaciones por corrida) +
-   watchdog "no salió el informe de hoy → mail 19:00" — de paso resuelve la medición R5 de V2.
-3. **Scorecard de interpretaciones**: medir el `impacto` por grano contra `futuros_cierres` a
-   7/14 días con la misma lib del scorecard del view.
-4. **Nota 1-tap desde el mail** (links firmados 👍/😐/👎 sin login) + **eco de lo entendido**
-   del color en el mail (el feedback del view lleva 0 notas desde el 28/07 — el loop necesita
-   fricción cero).
-5. **Backtest de umbrales en E1** (DJVE/camiones/macro contra 90 días reales, objetivo 1-3
-   disparos/semana — la lección del 0,7/1,3 de L4).
-6. Menores: PNG compacto 1 página + web completa como resolución de la tensión "1-2 páginas" ·
-   banco de oro de prosa por skill · firma "Mesa ROFO AGRO" para las auto-publicadas · spikes de
-   datos (SIO diario, serie FAS/basis, scrape del comentario Chicago BCR, expectativas DTN
-   guardadas, clima SMN a futuro) · paralelizar E3/E4/E5 en 3 sesiones Sonnet.
+**El resto de las propuestas de la revisión, APROBADAS EN BLOQUE por Lautaro en la misma sesión**
+("El resto de soluciones me parecen bien. Dejemos todo documentado y listo para poder arrancar en
+otra sesión") — todas bajadas al plan como **decisiones N12-N20** (§3) y cableadas en las
+secciones y prompts:
+1. **N12** — Semanal de 19:00 → **20:30 ART** (la semana incluye el viernes; cadencia en E6).
+2. **N13** — Telemetría de Routines (tabla `routine_runs`, migración en E1; cada skill inserta al
+   cerrar en E2-E5) + watchdog "no salió el informe → mail" (E6) — de paso resuelve la medición
+   R5 de V2.
+3. **N14** — Scorecard de interpretaciones (`impacto` por grano vs `futuros_cierres` a 7/14 días,
+   patrón `views-scorecard`; en E2).
+4. **N15** — Nota 1-tap desde el mail (endpoint firmado en E1, cableado en E3/E4) + eco de lo
+   entendido del color en el mail del diario.
+5. **N16** — Backtest de umbrales contra 90 días reales en E1 (objetivo 1-3 disparos/semana).
+6. **N17** — PNG objetivo 1 página, la web muestra el informe completo · **N18** banco de oro de
+   prosa por skill · **N19** firma "Mesa ROFO AGRO" en auto-publicadas · **N20** spikes de datos
+   al backlog derivado (§13 del plan) · **E3/E4/E5 paralelizables** (3 sesiones Sonnet).
 
 ## Quedó pendiente / en vuelo
 - **Ejecutar E1→E6** con Sonnet (prompts en `PLAN_INFORMES_V3.md` §10). Orden: E1 (datos/

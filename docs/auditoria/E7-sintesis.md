@@ -513,9 +513,16 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   **skill+Routine propias** (calendario + auto-reprogramación horaria + auto-publicación 18:20
   ART) · view a **5 estados** · semanal **sin límite de páginas** (revoca las 5 duras de V2
   §10.3) · diario/semanal **por producto** con local/internacional separados · feedback
-  nota 1-5 en los 4. **Ejecutar E1→E6 con Sonnet** (prompts autocontenidos en §10 del plan):
-  E1 datos/migraciones → E2 interpretaciones → E3 diario (+página web con link) → E4 semanal →
-  E5 view → E6 Routines/cierre. Detalle:
+  nota 1-5 en los 4. **Revisión objetiva post-plan en la misma sesión, aprobada entera
+  (N11-N20)**: futuros locales diarios desde el WebSocket de A3 (los cierres EOD entran 20:08,
+  después del informe de 18:30) · semanal a vie 20:30 ART · telemetría `routine_runs` + watchdog
+  · scorecard de interpretaciones · nota 1-tap por mail + eco del color · backtest de umbrales ·
+  PNG 1 página + web completa · banco de oro de prosa · firma "Mesa ROFO AGRO" en
+  auto-publicadas · backlog derivado en §13 del plan (SIO diario, serie FAS/basis, scrape
+  Chicago BCR, expectativas DTN, clima SMN, suscripción directa). **Ejecutar E1→E6 con Sonnet**
+  (prompts autocontenidos en §10 del plan): E1 datos/migraciones → E2 interpretaciones → E3
+  diario (+página web con link) → E4 semanal → E5 view (E3/E4/E5 paralelizables) → E6
+  Routines/cierre. Detalle:
   [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md).
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
