@@ -679,6 +679,11 @@ sesión + PR base `main`.
 >    mercados |Δ| ≥3% · commodities semanal ≥5%) contra los últimos 90 días reales y reporta
 >    frecuencia de disparo; calibrarlos a ~1-3 disparos/semana y dejar los valores finales
 >    documentados en este plan (§5.3/§6.2) para que E3/E4 los usen.
+>    **[Hecho 04/08/2026, `scripts/backtest-umbrales-informes.mjs`, corrido contra la base real:
+>    las 4 reglas de arriba caen en la banda 1-3 disparos/semana en el primer intento (DJVE
+>    1,62/sem · camiones —solo la pata día-a-día— 2,04/sem · otros mercados diario 0,84/sem ·
+>    commodities semanal 1,41/sem) → quedan validadas SIN CAMBIOS, E3/E4 las usan tal cual están
+>    escritas acá.]**
 > 9. Verificación: tests de las libs nuevas con fixtures reales · `curl` de ambos endpoints
 >    con token y campos nuevos presentes · nota 1-tap probada end-to-end (link firmado válido e
 >    inválido) · RLS de las columnas/tabla nuevas por SQL · Playwright del admin y el badge.
@@ -817,7 +822,7 @@ sesión + PR base `main`.
 
 | Etapa | Contenido | Estado |
 |---|---|---|
-| E1 | Migraciones + libs + endpoints ampliados + admin (Chicago BCR, feedback, badge) | ☐ |
+| E1 | Migraciones + libs + endpoints ampliados + admin (Chicago BCR, feedback, badge) | 🔶 código hecho y verificado en vivo; migraciones escritas con el OK de Lautoro, pendientes de aplicar (ver `sesiones/2026-08-04-e1-datos-infraestructura.md`) |
 | E2 | Skill + Rutina de interpretaciones (calendario, reprogramación, auto-pub) | ☐ |
 | E3 | Diario v3 (placa por producto + skill + página web con link) | ☐ |
 | E4 | Semanal v3 (por producto, sin límite, skill) | ☐ |

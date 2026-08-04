@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { FACTOR_BU_SOJA_TRIGO, FACTOR_BU_MAIZ, FACTOR_ST_HARINA, FACTOR_LB_ACEITE } from "./factores-commodities";
 import type { Meta } from "./market";
+import { calcularDeltaSerie, type DeltaSerie, type PuntoValor } from "./informe-v3-calc";
 
 /**
  * Monitor de mercados (Chicago + macro) — SOLO VISTA, no se guarda nada.
@@ -192,6 +193,99 @@ const fetchSpark = cache(async (): Promise<Map<string, SparkMeta> | null> => {
     });
   }
   return out.size ? out : null;
+});
+
+/* ---------------- serie histórica (para el Δ semanal, informe semanal/view v3) ---------------- */
+
+/** `resp[0]` de un símbolo con `range` > 1d trae, además de `meta`, `timestamp` (epoch seg) +
+ *  `indicators.quote[0].close` paralelos — la sparkline que da nombre al endpoint. */
+function serieDeRespuesta(resp: unknown): { timestamp: number[]; close: (number | null)[] } | null {
+  const r0 = asObj(Array.isArray(resp) ? resp[0] : null);
+  if (!r0) return null;
+  const timestamp = Array.isArray(r0.timestamp) ? (r0.timestamp as unknown[]).map((t) => asNum(t) ?? NaN) : null;
+  const indicators = asObj(r0.indicators);
+  const quoteArr = indicators && Array.isArray(indicators.quote) ? indicators.quote : null;
+  const q0 = quoteArr ? asObj(quoteArr[0]) : null;
+  const close = q0 && Array.isArray(q0.close) ? (q0.close as unknown[]).map((c) => asNum(c)) : null;
+  if (!timestamp || !close || timestamp.length !== close.length) return null;
+  return { timestamp, close };
+}
+
+/** Serie diaria (~2 meses) de cada instrumento, en unidad de origen (sin convertir a USD/tn —
+ *  eso lo hace el caller si lo necesita) — insumo del Δ semanal/mensual, separado del snapshot
+ *  `fetchSpark` (que solo trae el precio del momento) para no pesar la carga normal de `/granos`. */
+const fetchSparkHistorico = cache(async (): Promise<Map<string, PuntoValor[]> | null> => {
+  const symbols = INSTRUMENTOS.map((i) => i.yahoo).join(",");
+  const url = `${SPARK}?symbols=${encodeURIComponent(symbols)}&range=2mo&interval=1d`;
+  let data: unknown;
+  try {
+    const res = await fetch(url, {
+      next: { revalidate: 6 * 3600 }, // serie histórica: no hace falta refrescar cada 30s
+      signal: AbortSignal.timeout(8000),
+      headers: { accept: "application/json", "user-agent": UA },
+    });
+    if (!res.ok) {
+      console.error(`[monitor] histórico HTTP ${res.status}`);
+      return null;
+    }
+    data = await res.json();
+  } catch (e) {
+    const timeout = e instanceof Error && e.name === "TimeoutError";
+    console.error(`[monitor] histórico ${timeout ? "timeout" : "error de red"}`);
+    return null;
+  }
+
+  const root = asObj(data);
+  const spark = root ? asObj(root.spark) : null;
+  const result = spark && Array.isArray(spark.result) ? spark.result : null;
+  if (!result) return null;
+
+  const out = new Map<string, PuntoValor[]>();
+  for (const item of result) {
+    const it = asObj(item);
+    const sym = it ? asStr(it.symbol) : null;
+    const serie = it ? serieDeRespuesta(it.response) : null;
+    if (!sym || !serie) continue;
+    const puntos: PuntoValor[] = [];
+    for (let i = 0; i < serie.timestamp.length; i++) {
+      const c = serie.close[i];
+      const t = serie.timestamp[i];
+      if (c == null || t == null || Number.isNaN(t)) continue;
+      puntos.push({ fecha: new Date(t * 1000).toISOString().slice(0, 10), valor: c });
+    }
+    out.set(sym, puntos);
+  }
+  return out.size ? out : null;
+});
+
+export type DeltaMacro = {
+  yahoo: string;
+  nombre: string;
+  grupo: MonitorGrupo;
+  glyph: MonitorGlyph;
+  unidad: string;
+  unidadDec: number;
+  delta: DeltaSerie;
+};
+
+/**
+ * Δ semanal (~7 días) de cada instrumento de `INSTRUMENTOS` (agro Chicago + macro), en unidad de
+ * origen — insumo de "otros commodities si influyeron" del informe semanal (§6.1) y del view
+ * (§7.2). El caller filtra a los que le interesan citar (el Word pide WTI/oro/DXY/BRL como
+ * ejemplo, "solo si influyeron"; el resto queda disponible por si hace falta).
+ */
+export const getVariacionSemanalMacro = cache(async (hastaISO: string): Promise<DeltaMacro[]> => {
+  const historico = await fetchSparkHistorico();
+  if (!historico) return [];
+  return INSTRUMENTOS.map((def) => ({
+    yahoo: def.yahoo,
+    nombre: def.nombre,
+    grupo: def.grupo,
+    glyph: def.glyph,
+    unidad: def.unidad,
+    unidadDec: def.unidadDec,
+    delta: calcularDeltaSerie(historico.get(def.yahoo) ?? [], hastaISO, 7),
+  }));
 });
 
 /* ---------------- maní ZCE (Sina, contrato continuo principal) ---------------- */

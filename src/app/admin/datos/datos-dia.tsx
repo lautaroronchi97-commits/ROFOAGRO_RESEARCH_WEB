@@ -7,7 +7,7 @@ function ddmmaaaa(iso: string): string {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 }
 
-export type DiaColor = { fecha: string; texto: string; tomado: boolean };
+export type DiaColor = { fecha: string; texto: string; chicagoBcr: string; tomado: boolean };
 
 /**
  * "Datos del día" del informe diario (MP1 de PLAN_INFORMES.md): el color de la
@@ -23,7 +23,7 @@ export type DiaColor = { fecha: string; texto: string; tomado: boolean };
  * defecto), a veces hace falta tapar un hueco de un día anterior.
  */
 export function DatosDia({ fechaHoy, dias }: { fechaHoy: string; dias: DiaColor[] }) {
-  const hoy = dias.find((d) => d.fecha === fechaHoy) ?? { fecha: fechaHoy, texto: "", tomado: false };
+  const hoy = dias.find((d) => d.fecha === fechaHoy) ?? { fecha: fechaHoy, texto: "", chicagoBcr: "", tomado: false };
   const historial = dias.filter((d) => d.fecha !== fechaHoy);
 
   return (
@@ -62,6 +62,11 @@ function FilaColor({ dia, abiertaPorDefecto }: { dia: DiaColor; abiertaPorDefect
           <b style={{ color: "var(--ink)" }}>{ddmmaaaa(dia.fecha)}</b> · 🔒 ya lo tomó el informe diario
         </p>
         {dia.texto && <p style={{ margin: "4px 0 0" }}>{dia.texto}</p>}
+        {dia.chicagoBcr && (
+          <p style={{ margin: "4px 0 0" }} className="admin-sub">
+            Chicago (BCR): {dia.chicagoBcr}
+          </p>
+        )}
       </div>
     );
   }
@@ -80,6 +85,11 @@ function FilaColor({ dia, abiertaPorDefecto }: { dia: DiaColor; abiertaPorDefect
           </button>
         </div>
         {dia.texto && <p style={{ margin: "4px 0 0" }}>{dia.texto}</p>}
+        {dia.chicagoBcr && (
+          <p style={{ margin: "4px 0 0" }} className="admin-sub">
+            Chicago (BCR): {dia.chicagoBcr}
+          </p>
+        )}
       </div>
     );
   }
@@ -95,6 +105,16 @@ function FilaColor({ dia, abiertaPorDefecto }: { dia: DiaColor; abiertaPorDefect
           rows={5}
           defaultValue={dia.texto}
           placeholder="Ej: rueda floja de agro, poco negocio en soja disponible, exportación apretando en trigo julio, volumen X mil t…"
+        />
+      </label>
+      <label className="admin-field">
+        <span>Contexto Chicago (BCR) — opcional</span>
+        <textarea
+          name="chicago_bcr"
+          className="admin-input"
+          rows={3}
+          defaultValue={dia.chicagoBcr}
+          placeholder="Pegá el comentario de la rueda de Chicago que publica BCR — se cita en el informe como «según BCR»."
         />
       </label>
       <div className="admin-card-acciones">

@@ -4,18 +4,31 @@ import { getSemaforo } from "@/lib/lineup/semaforo";
 import { getEmpresas } from "@/lib/lineup/empresas";
 import { getMesaEmbarque } from "@/lib/lineup/embarque";
 import { getNegociado } from "@/lib/compras/negociado";
-import { getSenalCamiones } from "@/lib/camiones/camiones";
+import { getSenalCamiones, getCamiones } from "@/lib/camiones/camiones";
+import { getCamionesPlantas } from "@/lib/camiones/plantas";
 import { getCurvaGranos } from "@/lib/curva";
 import { getPases } from "@/lib/pases-cierres";
 import { getArbitrajes } from "@/lib/arbitrajes-cierres";
 import { getCapacidad } from "@/lib/capacidad";
 import { getPizarra } from "@/lib/pizarra";
 import { getMonitorMercados } from "@/lib/monitor-mercados";
-import { getNoticias } from "@/lib/noticias";
+import { getNoticias, getNoticiasSemana } from "@/lib/noticias";
 import { getDolarFuturo } from "@/lib/market";
 import { getEventos } from "@/lib/calendario";
+import { getDjveResumen } from "@/lib/djve";
+import { getPasZonasInforme } from "@/lib/pas-zonas";
+import { getPasCondicionInforme } from "@/lib/pas-condicion";
+import {
+  getViewMercadoVigentePorGrano,
+  getVariacionSemanalGranos,
+  getVariacionSemanalChicago,
+  getVariacionSemanalPizarra,
+  getVolumenA3Semanal,
+  getDesacopleLocal,
+  getZonaPrecio,
+} from "@/lib/informe-semanal";
 import { hoyCordobaISO } from "@/lib/dates";
-import { sbSelectAll } from "@/lib/supabase";
+import { sbSelect, sbSelectAll } from "@/lib/supabase";
 import { parseRows, construirPizarra, construirCambios, organismosPresentes } from "@/lib/estimaciones";
 
 /**
@@ -51,6 +64,7 @@ export async function GET(request: Request): Promise<Response> {
   const en14 = new Date(new Date(`${hoy}T12:00:00Z`).getTime() + 14 * 86_400_000)
     .toISOString()
     .slice(0, 10);
+  const desde7d = new Date(new Date(`${hoy}T12:00:00Z`).getTime() - 6 * 86_400_000).toISOString().slice(0, 10);
 
   const [
     temperatura,
@@ -68,6 +82,22 @@ export async function GET(request: Request): Promise<Response> {
     dolarFuturo,
     noticias,
     estimRes,
+    // E1 de PLAN_INFORMES_V3.md §7.2 — insumos ampliados del view v3.
+    camiones,
+    camionesPlantas,
+    djveResumen,
+    pasZonas,
+    pasCondicion,
+    noticiasSemana,
+    diariosRes,
+    interpSemanaRes,
+    viewsVigentes,
+    variacionGranos,
+    variacionChicago,
+    variacionPizarraSemanal,
+    volumenA3Semanal,
+    desacopleLocal,
+    zonaPrecio,
   ] = await Promise.all([
     getTemperatura(),
     getSemaforo(),
@@ -87,6 +117,27 @@ export async function GET(request: Request): Promise<Response> {
       "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url,actualizado_en&order=fecha_publicacion.asc",
       3600,
     ),
+    getCamiones(),
+    getCamionesPlantas(),
+    getDjveResumen(),
+    getPasZonasInforme(),
+    getPasCondicionInforme(),
+    getNoticiasSemana(hoy, 7),
+    sbSelect(
+      `informes_generados?tipo=eq.diario&estado=eq.enviado&fecha=gte.${desde7d}&fecha=lte.${hoy}&select=fecha,titulo,prosa&order=fecha.asc`,
+      0,
+    ),
+    sbSelect(
+      `interpretaciones?estado=eq.publicado&editado_en=gte.${desde7d}T00:00:00&select=organismo,informe,fecha_publicacion,granos,publicado_md,editado_en,impacto&order=editado_en.desc`,
+      0,
+    ),
+    getViewMercadoVigentePorGrano(),
+    getVariacionSemanalGranos(hoy),
+    getVariacionSemanalChicago(hoy),
+    getVariacionSemanalPizarra(hoy),
+    getVolumenA3Semanal(hoy),
+    getDesacopleLocal(hoy),
+    getZonaPrecio(hoy),
   ]);
 
   // Estimaciones: pizarra compacta (última por organismo/país/grano + Δ) + cambios del
@@ -103,6 +154,10 @@ export async function GET(request: Request): Promise<Response> {
     categorias: noticias.categorias.map((c) => ({ ...c, items: c.items.slice(0, 6) })),
     meta: noticias.meta,
   };
+
+  const diariosSemana = diariosRes.ok && Array.isArray(diariosRes.data) ? diariosRes.data : [];
+  const interpretacionesSemana =
+    interpSemanaRes.ok && Array.isArray(interpSemanaRes.data) ? interpSemanaRes.data : [];
 
   return Response.json(
     {
@@ -124,6 +179,25 @@ export async function GET(request: Request): Promise<Response> {
       dolarFuturo,
       noticias: noticiasCompactas,
       agenda: getEventos(hoy, en14),
+      // §7.2 — camiones completos (no solo la señal destilada), DJVE por familia, condición de
+      // cultivos, análisis propios de la semana (diarios+interpretaciones+views de otros
+      // granos), Δ semanal de precios, volumen A3 semanal, desacople local-internacional y
+      // zona del precio (percentil histórico 5 años).
+      camiones,
+      camionesPlantas,
+      djveResumen,
+      pasZonas,
+      pasCondicion,
+      noticiasSemana,
+      diariosSemana,
+      interpretacionesSemana,
+      viewsVigentes,
+      variacionGranos,
+      variacionChicago,
+      variacionPizarraSemanal,
+      volumenA3Semanal,
+      desacopleLocal,
+      zonaPrecio,
     },
     { headers: noCache },
   );

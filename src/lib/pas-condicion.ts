@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createSupabaseServerClient } from "./auth/server";
 import { selectAllPaginado } from "./auth/select-all";
+import { sbSelectAll } from "./supabase";
 
 /**
  * pas-condicion.ts — lectura de `pas_condicion` (C27, docs/PLAN_PAS_ZONAS.md §3.b/§6). La tabla
@@ -38,4 +39,14 @@ export const getPasCondicion = cache(async (): Promise<PasCondicionData> => {
       .range(from, to),
   );
   return { filas, error };
+});
+
+/** Variante sin sesión de usuario, mismo motivo que `getPasZonasInforme` en `pas-zonas.ts` — la
+ *  usan el informe semanal y el view v3 (E1, §6.1/§7.2), vía la service key. */
+export const getPasCondicionInforme = cache(async (): Promise<FilaCondicionDB[]> => {
+  const res = await sbSelectAll(
+    "pas_condicion?select=grano,ciclo,zona,campania,semana,siembra_pct,cc_mala,cc_regular,cc_normal,cc_buena,cc_excelente,ch_sequia,ch_regular,ch_adecuada,ch_optima,ch_exceso,fenologia&order=campania.asc,semana.asc,grano.asc,ciclo.asc,zona.asc",
+    3600,
+  );
+  return res.ok && Array.isArray(res.data) ? (res.data as FilaCondicionDB[]) : [];
 });

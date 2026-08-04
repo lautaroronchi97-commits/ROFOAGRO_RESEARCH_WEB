@@ -6,6 +6,7 @@ import { getPases } from "./pases-cierres";
 import { getCierresGranos } from "./futuros";
 import { ruedaAgroAbierta } from "./rueda";
 import type { Meta } from "./market";
+import { elegirTop3PorVolumen, type FilaVolumen, type Top3Grano } from "./informe-v3-calc";
 
 /**
  * Feed A3 en vivo: puntas (comprador/vendedor), último y volumen operado de la
@@ -256,6 +257,43 @@ export type A3PingResult = {
  * quiero saber si el feed responde", separada de `getPasesLive`/`getFuturosLive` (que arman
  * la grilla completa que consumen los paneles de mercado).
  */
+/**
+ * Top 3 posiciones más operadas del día por grano + volumen total del producto (informe diario
+ * v3, N11 de PLAN_INFORMES_V3.md §5.1 bloque C). El "ajuste del día" sale del ÚLTIMO OPERADO en
+ * vivo (`LA` del WS, ya verificado en producción por Arbitrajes/Pases) — a las 18:30 ART la rueda
+ * de agro (10:30-17:00) ya cerró, así que el último operado ES el cierre del día. Se prefirió
+ * reusar `LA`/`TV` (probados) antes que sumar una entrada `SE` (ajuste) nueva y sin verificar al
+ * WS — el propio plan marca esa verificación como pendiente; esto evita depender de ella.
+ *
+ * El `settlement` de `futuros_cierres` (vía `getCierresGranos()`) a esta hora todavía tiene el
+ * cierre de AYER (el cron de cierres corre 20:08 ART, después del informe) — por eso sirve
+ * exactamente como línea de base para el Δ% del día cuando hay dato en vivo, y como fallback
+ * rotulado "cierre_anterior" (con `changePercent` de esa misma fila, el Δ de AYER) si el WS no
+ * respondió. Solo posiciones con vencimiento real (excluye "disponible"/DISPO).
+ */
+export async function top3PorVolumenDelDia(): Promise<Top3Grano[]> {
+  const [{ granos }, live] = await Promise.all([getCierresGranos(), getFuturosLive()]);
+  const hayVivo = live.estado === "ok" || live.estado === "parcial";
+
+  const filas: (FilaVolumen & { underlying: string })[] = [];
+  for (const g of granos) {
+    for (const p of g.posiciones) {
+      if (p.venc <= 0) continue; // sin "disponible": solo posiciones de contrato
+      const l = hayVivo ? live.puntas.get(p.symbol) : undefined;
+      const vivo = l?.last != null;
+      const ajuste = vivo ? l!.last : p.settlement;
+      const volumen = vivo && l?.vol != null ? l.vol : p.volume;
+      const ajusteFuente: FilaVolumen["ajusteFuente"] = vivo ? "vivo" : "cierre_anterior";
+      const deltaPct =
+        vivo && p.settlement != null && p.settlement !== 0
+          ? (ajuste! / p.settlement - 1) * 100
+          : (p.changePercent ?? null);
+      filas.push({ underlying: g.underlying, posicion: p.posicion, ajuste, ajusteFuente, deltaPct, volumen });
+    }
+  }
+  return elegirTop3PorVolumen(filas);
+}
+
 export async function a3Ping(): Promise<A3PingResult> {
   if (!a3Configured()) return { estado: "sin-config", symbol: null, latenciaMs: null, updatedAt: null };
   const instrumentos = await getA3InstrumentsBySegment("DDA");

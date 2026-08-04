@@ -14,6 +14,11 @@ export type EstadoInterp = "borrador" | "publicado" | "descartado";
 /** Pasaporte de un dato externo citado (V2, mismo shape que `views_mercado.evidencia_externa`). */
 export type EvidenciaInterp = { dato: string; url: string; fecha_pub: string; cita: string };
 
+/** Impacto por grano tocado (V3, §8.1 de PLAN_INFORMES_V3.md) — solo los granos que el reporte
+ *  toca; `{}` en filas de V2 o anteriores, y hasta que E2 empiece a escribirlo. */
+export type ImpactoGrano = "alcista" | "neutral" | "bajista";
+export type Impacto = Partial<Record<string, ImpactoGrano>>;
+
 export type Interpretacion = {
   id: string;
   organismo: string;
@@ -26,10 +31,12 @@ export type Interpretacion = {
   editado_en: string;
   creado_en: string;
   evidencia_externa: EvidenciaInterp[];
+  impacto: Impacto;
+  auto_publicado: boolean;
 };
 
 const COLS_ADMIN =
-  "id,organismo,informe,fecha_publicacion,granos,borrador_md,publicado_md,estado,editado_en,creado_en,evidencia_externa";
+  "id,organismo,informe,fecha_publicacion,granos,borrador_md,publicado_md,estado,editado_en,creado_en,evidencia_externa,impacto,auto_publicado";
 
 function parseEvidencia(x: unknown): EvidenciaInterp[] {
   if (!Array.isArray(x)) return [];
@@ -42,6 +49,17 @@ function parseEvidencia(x: unknown): EvidenciaInterp[] {
       cita: String(e.cita ?? ""),
     }))
     .filter((e) => e.dato && e.url);
+}
+
+const IMPACTOS_VALIDOS = new Set<ImpactoGrano>(["alcista", "neutral", "bajista"]);
+
+function parseImpacto(x: unknown): Impacto {
+  if (!x || typeof x !== "object") return {};
+  const out: Impacto = {};
+  for (const [grano, val] of Object.entries(x as Record<string, unknown>)) {
+    if (typeof val === "string" && IMPACTOS_VALIDOS.has(val as ImpactoGrano)) out[grano] = val as ImpactoGrano;
+  }
+  return out;
 }
 
 /**
@@ -59,6 +77,8 @@ export const getInterpretacionesAdmin = cache(async (): Promise<Interpretacion[]
   return (data as Record<string, unknown>[]).map((r) => ({
     ...r,
     evidencia_externa: parseEvidencia(r.evidencia_externa),
+    impacto: parseImpacto(r.impacto),
+    auto_publicado: Boolean(r.auto_publicado),
   })) as Interpretacion[];
 });
 
@@ -77,6 +97,7 @@ export type InterpretacionPublica = {
   /** Cuándo se publicó ESTA interpretación (puede ser mucho después de `fecha_publicacion`,
    * que es la fecha del informe original) — es lo que scopea "Novedades del día" en la home. */
   editado_en: string;
+  impacto: Impacto;
 };
 
 /**
@@ -86,9 +107,11 @@ export type InterpretacionPublica = {
  */
 export async function getInterpretacionesPublicadas(): Promise<InterpretacionPublica[]> {
   const res = await sbSelect(
-    "interpretaciones?estado=eq.publicado&select=organismo,informe,fecha_publicacion,granos,publicado_md,editado_en&order=fecha_publicacion.desc&limit=100",
+    "interpretaciones?estado=eq.publicado&select=organismo,informe,fecha_publicacion,granos,publicado_md,editado_en,impacto&order=fecha_publicacion.desc&limit=100",
     300,
   );
   if (!res.ok || !Array.isArray(res.data)) return [];
-  return (res.data as InterpretacionPublica[]).filter((r) => typeof r.publicado_md === "string" && r.publicado_md.length > 0);
+  return (res.data as Record<string, unknown>[])
+    .filter((r) => typeof r.publicado_md === "string" && (r.publicado_md as string).length > 0)
+    .map((r) => ({ ...r, impacto: parseImpacto(r.impacto) })) as InterpretacionPublica[];
 }

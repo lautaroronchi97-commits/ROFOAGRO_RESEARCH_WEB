@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { MdLite } from "@/components/md-lite";
+import { ImpactoBadges } from "@/components/impacto-badges";
 import { guardarInterpretacion, publicarInterpretacion, descartarInterpretacion, type InterpState } from "./actions";
 import type { Interpretacion } from "@/lib/interpretaciones";
 
@@ -36,6 +37,8 @@ export function InterpretacionEditor({ item }: { item: Interpretacion }) {
           {item.granos.length > 0 ? ` · ${item.granos.join(", ")}` : ""}
         </span>
       </div>
+
+      <ImpactoBadges impacto={item.impacto} />
 
       <div className="interp-toggle">
         <button type="button" className={`admin-btn-sm ${!preview ? "is-on" : ""}`} onClick={() => setPreview(false)}>

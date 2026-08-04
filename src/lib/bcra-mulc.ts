@@ -3,6 +3,7 @@ import { cache } from "react";
 import { sbSelectAll } from "./supabase";
 import { hoyCordobaISO } from "./dates";
 import type { Meta } from "./market";
+import { sumaVentana, type VentanaSuma } from "./informe-v3-calc";
 
 /**
  * bcra-mulc.ts — Compras netas de divisas del BCRA en el MULC (C4 del backlog maestro, research en
@@ -93,3 +94,15 @@ export const getComprasBcra = cache(async (): Promise<BcraMulcData> => {
     },
   };
 });
+
+/** Acumulado semanal (últimos 7 días vs los 7 anteriores) sobre la `serie` que ya trae
+ *  `getComprasBcra()` — insumo del informe semanal v3 (§6.1 "Variación del USD y compras del
+ *  BCRA de la última semana"). Función aparte (no dentro de `getComprasBcra`) para no acoplar el
+ *  panel `/dolar` —que no necesita esta ventana— a un cálculo que solo usa el informe. */
+export function acumuladoSemanalBcra(serie: PuntoBcraMulc[], hastaISO: string): VentanaSuma {
+  return sumaVentana(
+    serie.map((p) => ({ fecha: p.fecha, valor: p.montoMusd })),
+    hastaISO,
+    7,
+  );
+}

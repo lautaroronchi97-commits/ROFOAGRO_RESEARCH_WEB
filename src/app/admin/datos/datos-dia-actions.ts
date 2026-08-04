@@ -21,6 +21,7 @@ export async function guardarDatosDelDia(_prev: DatosDiaState, formData: FormDat
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { error: "Fecha inválida." };
 
   const texto = String(formData.get("texto") ?? "");
+  const chicagoBcr = String(formData.get("chicago_bcr") ?? "");
 
   const supabase = await createSupabaseServerClient();
 
@@ -42,6 +43,7 @@ export async function guardarDatosDelDia(_prev: DatosDiaState, formData: FormDat
   const { error: eColor } = await supabase.rpc("admin_upsert_mesa_color", {
     p_fecha: fecha,
     p_texto: texto,
+    p_chicago_bcr: chicagoBcr,
   });
   if (eColor) return { error: eColor.message };
 

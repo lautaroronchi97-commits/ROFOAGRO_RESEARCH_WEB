@@ -17,12 +17,19 @@ export async function getDiasColor(): Promise<{ fechaHoy: string; dias: DiaColor
   const desde14 = isoMenosDias(fechaHoy, 14);
   const supabase = await createSupabaseServerClient();
   const [{ data: colorRows }, { data: informesDiarios }] = await Promise.all([
-    supabase.from("mesa_color").select("fecha,texto").gte("fecha", desde14).order("fecha", { ascending: false }),
+    supabase
+      .from("mesa_color")
+      .select("fecha,texto,chicago_bcr")
+      .gte("fecha", desde14)
+      .order("fecha", { ascending: false }),
     supabase.from("informes_generados").select("fecha").eq("tipo", "diario").gte("fecha", desde14),
   ]);
 
   const coloresPorFecha = new Map(
-    ((colorRows ?? []) as { fecha: string; texto: string }[]).map((f) => [f.fecha, f.texto]),
+    ((colorRows ?? []) as { fecha: string; texto: string; chicago_bcr: string | null }[]).map((f) => [
+      f.fecha,
+      { texto: f.texto, chicagoBcr: f.chicago_bcr ?? "" },
+    ]),
   );
   const fechasTomadas = new Set(((informesDiarios ?? []) as { fecha: string }[]).map((f) => f.fecha));
   const fechasColor = new Set([fechaHoy, ...coloresPorFecha.keys()]);
@@ -30,7 +37,8 @@ export async function getDiasColor(): Promise<{ fechaHoy: string; dias: DiaColor
     .sort((a, b) => (a < b ? 1 : -1))
     .map((fecha) => ({
       fecha,
-      texto: coloresPorFecha.get(fecha) ?? "",
+      texto: coloresPorFecha.get(fecha)?.texto ?? "",
+      chicagoBcr: coloresPorFecha.get(fecha)?.chicagoBcr ?? "",
       tomado: fechasTomadas.has(fecha),
     }));
 
