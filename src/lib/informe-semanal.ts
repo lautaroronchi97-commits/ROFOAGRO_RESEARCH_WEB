@@ -4,6 +4,17 @@ import { sbSelect, sbSelectAll } from "./supabase";
 import { diasEntre } from "./dates";
 import { GRANOS_VIEW, parseEvidenciaExterna, type EvidenciaExterna, type GranoView } from "./views-mercado";
 import { calcularScorecard, type Scorecard } from "./views-scorecard";
+import {
+  volumenPorUnderlying,
+  calcularDesacople,
+  type PuntoValor,
+  type VolumenUnderlying,
+  type Desacople,
+} from "./informe-v3-calc";
+import { getPizarra } from "./pizarra";
+import { getCierresGranos } from "./futuros";
+import { fetchSerie } from "./series";
+import { percentil } from "./derivadas";
 
 /**
  * Insumos SEMANALES para el informe semanal (MP2 de docs/PLAN_INFORMES.md): variación de
@@ -326,4 +337,147 @@ export const getScorecardResumen = cache(async (): Promise<Scorecard["porGrano"]
     : [];
 
   return calcularScorecard(views, cierres).porGrano;
+});
+
+/* ==================================================================================
+ * E1 de PLAN_INFORMES_V3.md §10 — insumos nuevos del semanal/view v3: volumen A3
+ * semanal, desacople local-internacional (premio/descuento A3 vs CBOT) y zona del
+ * precio (percentil histórico 5 años). Reusan las primitivas puras de
+ * `informe-v3-calc.ts`.
+ * ================================================================================ */
+
+const UNDERLYING_A_GRANO: Record<string, GranoView> = { SOJ: "soja", MAI: "maiz", TRI: "trigo" };
+
+/** Volumen A3 semanal por grano — suma de `futuros_cierres.volume` de las últimas 5 ruedas de
+ *  cada underlying (§6.1 "la semana en números"). */
+export const getVolumenA3Semanal = cache(async (hastaISO: string): Promise<VolumenUnderlying[]> => {
+  const desde = restarDias(hastaISO, 15); // colchón para 5 ruedas con feriados/fin de semana de por medio
+  const res = await sbSelect(
+    `futuros_cierres?select=underlying,fecha,volume&underlying=in.(SOJ,MAI,TRI)&fecha=gte.${desde}&fecha=lte.${hastaISO}`,
+    0,
+  );
+  if (!res.ok || !Array.isArray(res.data)) return [];
+  const filas = (res.data as Record<string, unknown>[])
+    .map((r) => ({
+      underlying: String(r.underlying ?? ""),
+      fecha: String(r.fecha ?? ""),
+      volume: typeof r.volume === "number" ? r.volume : r.volume == null ? null : Number(r.volume),
+    }))
+    .filter((r) => r.underlying && r.fecha);
+  return volumenPorUnderlying(filas, hastaISO, 5);
+});
+
+/**
+ * Serie histórica del contrato "vivo hoy" de una tabla de cierres (`futuros_cierres`/
+ * `cbot_cierres`), dentro de [hastaISO−lookbackDias, hastaISO]. Mismo criterio "vivo" (vencKey ≥
+ * mes de hastaISO) que `getVariacionSemanalGranos`/`getVariacionSemanalChicago` — proxy razonable
+ * de serie continua para leer el nivel de precio en fechas pasadas SIN reconstruir rolleos
+ * históricos (si el contrato de referencia rolleó hace poco, los puntos más viejos del contrato
+ * anterior simplemente no aparecen — el caller degrada honesto con `null`, nunca inventa).
+ */
+async function serieContratoVivo(
+  tabla: "futuros_cierres" | "cbot_cierres",
+  filtroCol: "underlying" | "grano",
+  filtroVal: string,
+  valCol: "settlement" | "settlement_usd_tn",
+  hastaISO: string,
+  lookbackDias: number,
+): Promise<PuntoValor[]> {
+  const desde = restarDias(hastaISO, lookbackDias);
+  const res = await sbSelect(
+    `${tabla}?select=symbol,posicion,fecha,${valCol}&${filtroCol}=eq.${filtroVal}&fecha=gte.${desde}&fecha=lte.${hastaISO}&order=fecha.asc`,
+    0,
+  );
+  if (!res.ok || !Array.isArray(res.data)) return [];
+
+  const hoyYM = hoyVencKey(hastaISO);
+  const bySymbol = new Map<string, PuntoValor[]>();
+  for (const r of res.data as Record<string, unknown>[]) {
+    const symbol = String(r.symbol ?? "");
+    const posicion = String(r.posicion ?? "");
+    const fecha = r.fecha;
+    const raw = r[valCol];
+    const val = typeof raw === "number" ? raw : Number(raw);
+    if (!symbol || typeof fecha !== "string" || !Number.isFinite(val)) continue;
+    if (vencKeyDePosicion(posicion) < hoyYM) continue;
+    const arr = bySymbol.get(symbol) ?? [];
+    arr.push({ fecha, valor: val });
+    bySymbol.set(symbol, arr);
+  }
+
+  // El contrato "vivo" cuyo último cierre dentro de la ventana es más reciente = la referencia de hoy.
+  let mejor: PuntoValor[] = [];
+  let mejorFecha = "";
+  for (const arr of bySymbol.values()) {
+    const ultima = arr.reduce((mx, p) => (p.fecha > mx ? p.fecha : mx), "");
+    if (ultima > mejorFecha) {
+      mejorFecha = ultima;
+      mejor = arr;
+    }
+  }
+  return mejor;
+}
+
+/** Premio/descuento A3 vs CBOT por grano, hoy y hace 1/4 semanas (§7.2 del view v3) — responde
+ *  "¿el precio local y el internacional van de la mano o se desprenden?" con números. */
+export const getDesacopleLocal = cache(async (hastaISO: string): Promise<Record<GranoView, Desacople>> => {
+  const entries = await Promise.all(
+    (Object.entries(UNDERLYING_A_GRANO) as [string, GranoView][]).map(async ([underlying, grano]) => {
+      const [a3, cbot] = await Promise.all([
+        serieContratoVivo("futuros_cierres", "underlying", underlying, "settlement", hastaISO, 40),
+        serieContratoVivo("cbot_cierres", "grano", grano, "settlement_usd_tn", hastaISO, 40),
+      ]);
+      return [grano, calcularDesacople(a3, cbot, hastaISO)] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as Record<GranoView, Desacople>;
+});
+
+export type ZonaPrecioGrano = {
+  grano: GranoView;
+  nivelPizarraUsd: number | null;
+  percentilPizarra5y: number | null;
+  posicionA3: string | null;
+  nivelA3Usd: number | null;
+  percentilA3_5y: number | null;
+};
+
+function restarAniosISO(iso: string, anios: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCFullYear(d.getUTCFullYear() - anios);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Percentil histórico (5 años) del nivel actual de precio — pizarra y 1ª posición A3 — para
+ * responder "¿en qué zona del rango está el precio?" (view v3, §7.2). Reusa la infraestructura
+ * de `/api/series` (`fetchSerie` + `percentil`) en vez de duplicar lógica de series.
+ */
+export const getZonaPrecio = cache(async (hastaISO: string): Promise<Record<GranoView, ZonaPrecioGrano>> => {
+  const desde5y = restarAniosISO(hastaISO, 5);
+  const [pizarra, cierres] = await Promise.all([getPizarra(), getCierresGranos()]);
+
+  const entries = await Promise.all(
+    (Object.entries(UNDERLYING_A_GRANO) as [string, GranoView][]).map(async ([underlying, grano]) => {
+      const seriePizarra = await fetchSerie(`pizarra:${grano}`, desde5y, hastaISO, "usd");
+      const nivelPizarraUsd = pizarra.granos[underlying]?.usd ?? null;
+      const percentilPizarra5y =
+        seriePizarra && nivelPizarraUsd != null ? percentil(nivelPizarraUsd, seriePizarra.v) : null;
+
+      const g = cierres.granos.find((x) => x.underlying === underlying);
+      const front = g?.posiciones[0] ?? null;
+      let nivelA3Usd: number | null = null;
+      let percentilA3_5y: number | null = null;
+      if (front?.settlement != null) {
+        const serieA3 = await fetchSerie(front.symbol, desde5y, hastaISO, "usd");
+        nivelA3Usd = front.settlement;
+        percentilA3_5y = serieA3 ? percentil(nivelA3Usd, serieA3.v) : null;
+      }
+      return [
+        grano,
+        { grano, nivelPizarraUsd, percentilPizarra5y, posicionA3: front?.posicion ?? null, nivelA3Usd, percentilA3_5y },
+      ] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as Record<GranoView, ZonaPrecioGrano>;
 });

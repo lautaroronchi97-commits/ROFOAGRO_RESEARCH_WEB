@@ -417,6 +417,15 @@ tr.mc-win td { background:color-mix(in srgb, var(--gold) 10%, transparent);
 .chip.down { color:var(--neg); background:var(--neg-weak); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--neg) 26%, transparent); }
 .chip .ar { font-size:9px; line-height:1; }
 
+/* Badges de impacto por grano (interpretaciones v3) — texto corto, no numérico → sin el
+   min-width/justify-end de .chip (pensado para valores alineados a la derecha). */
+.impacto-badges { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 0; }
+.impacto-badge { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-weight:700;
+  font-size:11px; letter-spacing:.02em; text-transform:uppercase; padding:2px 8px; border-radius:var(--r-chip); }
+.impacto-badge.alcista { color:var(--pos); background:var(--pos-weak); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pos) 26%, transparent); }
+.impacto-badge.bajista { color:var(--neg); background:var(--neg-weak); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--neg) 26%, transparent); }
+.impacto-badge.neutral { color:var(--ink-3); background:color-mix(in srgb, var(--ink-3) 12%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink-3) 24%, transparent); }
+
 /* ---- InfoTip (traducción de jerga) ---- */
 .infotip { position:relative; display:inline-flex; align-items:center; gap:3px; cursor:help;
   border-bottom:1px dotted currentColor; }
@@ -1996,6 +2005,15 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .vw-fb-ok { font-size:var(--fs-xs); color:var(--pos); }
 .vw-fb-err { font-size:var(--fs-xs); color:var(--neg); }
 .vw-hist-fb { max-width:380px; white-space:normal; }
+
+/* Feedback de informe (E1, /informes solo admin) — mismo patrón visual que .estim-lectura */
+.inf-fb-details { margin-top:8px; }
+.inf-fb-details summary { cursor:pointer; list-style:none; font-size:var(--fs-2xs); text-transform:uppercase;
+  letter-spacing:.06em; font-weight:800; color:var(--gold-text); }
+.inf-fb-details summary::-webkit-details-marker { display:none; }
+.inf-fb-details summary::before { content:"▸"; font-size:10px; margin-right:4px; display:inline-block; transition:transform var(--t-fast) ease; }
+.inf-fb-details[open] summary::before { transform:rotate(90deg); }
+.inf-fb-details .vw-fb { border-top:none; padding-top:6px; }
 
 /* ============================================================
    PLACA — informe diario (MP1 de PLAN_INFORMES.md). Página standalone

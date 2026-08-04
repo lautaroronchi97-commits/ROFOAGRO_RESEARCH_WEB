@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSeccion } from "@/lib/auth/dal";
+import { requireSeccion, getAcceso } from "@/lib/auth/dal";
 import { sbSelect } from "@/lib/supabase";
 import { getInterpretacionesPublicadas } from "@/lib/interpretaciones";
 import { ORG_LABEL } from "@/lib/calendario";
@@ -7,6 +7,8 @@ import { Panel, PanelHead } from "@/components/panel";
 import { QueEsEsto } from "@/components/que-es-esto";
 import { MdLite } from "@/components/md-lite";
 import { PageHead } from "@/components/page-head";
+import { ImpactoBadges } from "@/components/impacto-badges";
+import { InformeFeedback } from "./informe-feedback";
 
 export const metadata: Metadata = {
   title: "Informes · ROFO AGRO",
@@ -18,6 +20,8 @@ type Informe = {
   fecha: string;
   titulo: string | null;
   path_png: string | null;
+  nota: number | null;
+  feedback: string | null;
 };
 
 type InformeSemanal = {
@@ -25,6 +29,8 @@ type InformeSemanal = {
   fecha: string;
   titulo: string | null;
   path_pdf: string | null;
+  nota: number | null;
+  feedback: string | null;
 };
 
 async function signedUrl(path: string): Promise<string | null> {
@@ -60,16 +66,22 @@ function ddmmaaaa(iso: string): string {
 export default async function InformesPage() {
   await requireSeccion("informes");
 
-  const [res, resSemanal] = await Promise.all([
+  const [res, resSemanal, acceso] = await Promise.all([
     sbSelect(
-      "informes_generados?tipo=eq.diario&select=id,fecha,titulo,path_png&order=fecha.desc&limit=20",
+      "informes_generados?tipo=eq.diario&select=id,fecha,titulo,path_png,nota,feedback&order=fecha.desc&limit=20",
       0,
     ),
     sbSelect(
-      "informes_generados?tipo=eq.semanal&select=id,fecha,titulo,path_pdf&order=fecha.desc&limit=12",
+      "informes_generados?tipo=eq.semanal&select=id,fecha,titulo,path_pdf,nota,feedback&order=fecha.desc&limit=12",
       0,
     ),
+    // La página ya es dinámica (las 2 queries de arriba van con revalidate=0) — leer la sesión
+    // acá no le cuesta ISR que no tenga ya. `requireAdmin()` de /admin no depende de
+    // AUTH_ENFORCED (el login de Lautoro funciona siempre); este mini-form solo admin
+    // (E1, §9) sigue el mismo criterio.
+    getAcceso(),
   ]);
+  const esAdminUser = acceso?.esAdmin ?? false;
   const filas = res.ok ? (res.data as Informe[]) : [];
   const [destacado, ...resto] = filas;
   const urlDestacado = destacado?.path_png ? await signedUrl(destacado.path_png) : null;
@@ -129,6 +141,7 @@ export default async function InformesPage() {
                 ) : (
                   <p className="dim">Imagen no disponible en este momento.</p>
                 )}
+                {esAdminUser && <InformeFeedback id={destacado.id} actual={destacado.feedback} actualNota={destacado.nota} />}
               </div>
             )}
 
@@ -139,6 +152,7 @@ export default async function InformesPage() {
                     <tr>
                       <th className="l">Fecha</th>
                       <th className="l">Título</th>
+                      {esAdminUser && <th></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -146,6 +160,11 @@ export default async function InformesPage() {
                       <tr key={f.id}>
                         <td className="num">{ddmmaaaa(f.fecha)}</td>
                         <td className="l">{f.titulo ?? "Mesa de operaciones"}</td>
+                        {esAdminUser && (
+                          <td className="l">
+                            <InformeFeedback id={f.id} actual={f.feedback} actualNota={f.nota} />
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -179,6 +198,7 @@ export default async function InformesPage() {
                       <th className="l">Semana</th>
                       <th className="l">Título</th>
                       <th></th>
+                      {esAdminUser && <th></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -195,6 +215,11 @@ export default async function InformesPage() {
                             <span className="dim">No disponible</span>
                           )}
                         </td>
+                        {esAdminUser && (
+                          <td className="l">
+                            <InformeFeedback id={f.id} actual={f.feedback} actualNota={f.nota} />
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -220,6 +245,7 @@ export default async function InformesPage() {
                       <span className="estim-cam-inf">{l.informe}</span>
                       <span className="estim-cam-fecha">{ddmmaaaa(l.fecha_publicacion)}</span>
                     </div>
+                    <ImpactoBadges impacto={l.impacto} />
                     <MdLite md={l.publicado_md} className="estim-lectura-body" />
                   </div>
                 ))}

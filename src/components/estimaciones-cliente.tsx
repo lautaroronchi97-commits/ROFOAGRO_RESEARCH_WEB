@@ -18,6 +18,7 @@ import {
 import type { InterpretacionPublica } from "@/lib/interpretaciones";
 import { EvolucionChart } from "./evolucion-chart";
 import { MdLite } from "./md-lite";
+import { ImpactoBadges } from "./impacto-badges";
 
 const UNIDAD: Record<Variable, string> = { produccion: "Mt", area: "Mha", rinde: "tn/ha" };
 
@@ -304,6 +305,7 @@ export function EstimacionesCliente({
               {lectura && (
                 <details className="estim-lectura">
                   <summary>La lectura de la mesa</summary>
+                  <ImpactoBadges impacto={lectura.impacto} />
                   <MdLite md={lectura.publicado_md} className="estim-lectura-body" />
                 </details>
               )}

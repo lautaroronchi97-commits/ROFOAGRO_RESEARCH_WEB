@@ -207,7 +207,7 @@ function ms(s?: string | null): number | null {
   return Number.isNaN(t) ? null : t;
 }
 
-function desdeSupabase(rows: RawRow[]): NoticiasData | null {
+function desdeSupabase(rows: RawRow[], horasVentana?: number): NoticiasData | null {
   const items: ItemCat[] = [];
   let ultimoVisto = 0;
   for (const r of rows) {
@@ -223,8 +223,9 @@ function desdeSupabase(rows: RawRow[]): NoticiasData | null {
   }
   if (items.length === 0) return null;
 
-  // Sólo los últimos N días hábiles (fecha del medio, o creado_en si el feed no la trae).
-  const corte = corteHabilesMs(DIAS_HABILES);
+  // Sólo los últimos N días hábiles (fecha del medio, o creado_en si el feed no la trae) — o, si
+  // el caller pidió una ventana en horas (informe diario v3, "últimas 24 hs"), esa en su lugar.
+  const corte = horasVentana != null ? Date.now() - horasVentana * 3_600_000 : corteHabilesMs(DIAS_HABILES);
   const usar = items.filter((i) => (i.fechaMs ?? 0) >= corte);
 
   const { destacados, categorias } = armar(usar, corte);
@@ -339,7 +340,7 @@ async function fetchText(url: string): Promise<string | null> {
   }
 }
 
-async function enVivo(problema: string): Promise<NoticiasData> {
+async function enVivo(problema: string, horasVentana?: number): Promise<NoticiasData> {
   const [bcr, ...feeds] = await Promise.all([fetchText(BCR_URL), ...FEEDS_VIVO.map((f) => fetchText(f.url))]);
   // RSS primero, BCR al final: si una nota llega por RSS y por BCR, la dedup de `agrupar` (primero gana)
   // conserva el registro RSS, que trae fecha real y nombre de medio canónico.
@@ -352,8 +353,9 @@ async function enVivo(problema: string): Promise<NoticiasData> {
 
   const problemas = [problema];
   if (!bcr) problemas.push("Resumen BCR no disponible");
-  // Misma ventana de días hábiles; se conservan los titulares sin fecha (BCR curado del día).
-  const corte = corteHabilesMs(DIAS_HABILES);
+  // Misma ventana de días hábiles (o de horas, si el caller la pidió); se conservan los
+  // titulares sin fecha (BCR curado del día).
+  const corte = horasVentana != null ? Date.now() - horasVentana * 3_600_000 : corteHabilesMs(DIAS_HABILES);
   const { destacados, categorias } = armar(
     items.filter((it) => it.fechaMs == null || it.fechaMs >= corte),
     corte,
@@ -374,15 +376,50 @@ async function enVivo(problema: string): Promise<NoticiasData> {
 
 /* ---------------- API del panel ---------------- */
 
-export const getNoticias = cache(async (): Promise<NoticiasData> => {
+/**
+ * `horasVentana` opcional: por default la ventana es de `DIAS_HABILES` (3) días hábiles — la
+ * usan el panel público de Noticias, la home y `/api/views/insumos`. El informe diario v3 (E1,
+ * §5.1 bloque G — "Noticias últimas 24 hs, puede ser cero") pasa `24` para acotar a ese día.
+ */
+export const getNoticias = cache(async (horasVentana?: number): Promise<NoticiasData> => {
   const res = await sbSelect(
     `noticias?select=titulo,fuente,link,categoria,fecha_pub,visto_en,creado_en&order=creado_en.desc&limit=400`,
     REVALIDATE,
   );
   if (res.ok && Array.isArray(res.data)) {
-    const data = desdeSupabase(res.data as RawRow[]);
+    const data = desdeSupabase(res.data as RawRow[], horasVentana);
     if (data) return data;
-    return enVivo("Tabla noticias vacía (¿primera corrida del cron pendiente?) — lectura en vivo");
+    return enVivo("Tabla noticias vacía (¿primera corrida del cron pendiente?) — lectura en vivo", horasVentana);
   }
-  return enVivo("Supabase no disponible — lectura en vivo");
+  return enVivo("Supabase no disponible — lectura en vivo", horasVentana);
+});
+
+export type NoticiaCruda = { titulo: string; fuente: string; link: string; categoria: string; fechaMs: number | null };
+
+/**
+ * TODAS las noticias de los últimos `dias` días (≤ hastaISO), SIN cap de categoría ni curaduría
+ * de "destacados" — el informe semanal y el view v3 (E1 de docs/PLAN_INFORMES_V3.md §6.1/§7.2)
+ * las leen completas ("lectura de todas las noticias de la última semana"), no un resumen del
+ * resumen que ya recorta `getNoticias()` para el panel público.
+ */
+export const getNoticiasSemana = cache(async (hastaISO: string, dias = 7): Promise<NoticiaCruda[]> => {
+  const desde = new Date(new Date(`${hastaISO}T12:00:00Z`).getTime() - (dias - 1) * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const res = await sbSelect(
+    `noticias?select=titulo,fuente,link,categoria,fecha_pub,creado_en&creado_en=gte.${desde}&order=creado_en.desc&limit=500`,
+    0,
+  );
+  if (!res.ok || !Array.isArray(res.data)) return [];
+  return (res.data as RawRow[])
+    .filter((r): r is Required<Pick<RawRow, "titulo" | "fuente" | "link" | "categoria">> & RawRow =>
+      Boolean(r.titulo && r.fuente && r.link && r.categoria),
+    )
+    .map((r) => ({
+      titulo: r.titulo,
+      fuente: r.fuente,
+      link: r.link,
+      categoria: r.categoria,
+      fechaMs: ms(r.fecha_pub) ?? ms(r.creado_en),
+    }));
 });

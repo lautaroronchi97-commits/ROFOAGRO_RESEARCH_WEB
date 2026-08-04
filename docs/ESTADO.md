@@ -19,7 +19,117 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 📐 PLAN INFORMES V3 cerrado: el Word de Lautaro sobre los 4 productos de research)
+## Ahora (última actualización: 04/08/2026 — 🧱 E1 de PLAN INFORMES V3 CERRADO: migraciones + libs + endpoints ampliados, migraciones APLICADAS y verificadas)
+
+**🧱 E1 — DATOS E INFRAESTRUCTURA COMPARTIDA — HECHO DE PUNTA A PUNTA, migraciones
+aplicadas — rama `claude/plan-informes-v3-migrations-wql0sz`, PR #133.** Ejecuta el
+PROMPT E1 de `PLAN_INFORMES_V3.md` §10 (primera etapa de C30, el plan cerrado el mismo día):
+migraciones + libs puras + endpoints ampliados + admin — CERO cambios de skills/plantillas
+(eso es E2-E5).
+
+**Migraciones (5, versionadas, escritas — ver "Quedó pendiente" abajo)**:
+`20260804120000_e1_views_mercado_5_estados` (CHECK de `direccion` resuelto por catálogo, no
+hardcodeado, pasa de 3 a 5 estados) · `20260804120100_e1_interpretaciones_v3` (`+impacto` jsonb ·
+`+auto_publicado` · `+nota` · `+borrador_original_md` con backfill de las filas existentes) ·
+`20260804120200_e1_informes_generados_feedback` (`+nota` · `+feedback` + RPC
+`admin_feedback_informe`, mismo patrón que `admin_feedback_view`) ·
+`20260804120300_e1_mesa_color_chicago_bcr` (`+chicago_bcr` + RPC `admin_upsert_mesa_color`
+extendida con el 3er parámetro opcional) · `20260804120400_e1_routine_runs` (tabla nueva,
+RLS solo-admin, escritura service_role).
+
+**Libs nuevas**: `src/lib/informe-v3-calc.ts` (PURO, 22 tests) — `calcularDeltaSerie` (Δ vs N
+días atrás por fecha-más-cercana, generaliza "Δ diario" y "Δ semanal") · `elegirTop3PorVolumen` ·
+`sumaVentana` (ventana semanal genérica, reusada por BCRA y camiones) · `volumenPorUnderlying`
+(últimas 5 ruedas POR GRANO, no global — bug real encontrado y corregido en el primer intento,
+con test que lo prueba) · `calcularDesacople` (premio/descuento A3 vs CBOT). Wrappers
+`server-only`: `variacionDiariaPizarra()` (`informe-diario-datos.ts`) ·
+`top3PorVolumenDelDia()` (`a3-live.ts` — **decisión de diseño**: reusa el `LA`/`TV` YA
+VERIFICADOS del WS de A3 en vez de sumar una entrada `SE` nueva sin probar, que el propio plan
+marcaba como "a verificar"; post-rueda el último operado ES el cierre del día, y
+`futuros_cierres` a esa hora todavía tiene el cierre de AYER — exactamente la línea de base que
+hace falta para el Δ%, per N11) · `getVolumenA3Semanal`/`getDesacopleLocal`/`getZonaPrecio`
+(`informe-semanal.ts`) · `getVariacionSemanalMacro` (`monitor-mercados.ts`, serie histórica
+nueva del spark de Yahoo, separada del snapshot que ya usaba `/granos`) ·
+`acumuladoSemanalBcra` (`bcra-mulc.ts`) · `getCamionesSemana` (`camiones/semanal.ts`, agrega
+Williams+Agroentregas SIN mezclarlos) · `getPasZonasInforme`/`getPasCondicionInforme`
+(**bug evitado, no solo corregido**: `getPasZonas()`/`getPasCondicion()` existentes usan el
+cliente SSR con sesión — en una ruta autenticada por token, sin cookies, hubieran devuelto
+vacío en silencio; las nuevas usan `sbSelect`/`sbSelectAll` con la service key, mismo criterio
+que `getViewMercadoVigentePorGrano`) · `getNoticiasSemana` (`noticias.ts`, TODAS las noticias
+de 7 días sin cap, separado del resumen curado del panel público) · `getNoticias(horasVentana)`
+(parámetro nuevo opcional, default intacto).
+
+**Endpoints (aditivos, cero campo removido)**: `/api/informes/datos` diario suma
+`volumenCambiario`/`djveResumen`/`camionesPlantas`/`variacionPizarra`/`top3PorGrano`/
+`chicagoBcr` (de `mesa_color`)/agenda a 7 días/noticias con ventana 24hs; semanal suma
+`diariosSemana`/`interpretacionesSemana`/`noticiasSemana`/`djveResumen`/`camionesSemana`/
+`dolarLinked`/`arbitrajes`/`volatilidadDolar`/`comprasBcraSemana`/`pasZonas`/`pasCondicion`/
+`volumenA3Semanal`/`variacionMacro` + **ancla al último semanal ENVIADO** (reemplaza el fijo
+−7d: si un viernes no salió, la ventana se ensancha sola). `/api/views/insumos` suma
+`camiones`/`camionesPlantas` completos (antes solo la señal destilada), `djveResumen`,
+`pasZonas`/`pasCondicion`, `noticiasSemana`, `diariosSemana`/`interpretacionesSemana`,
+`viewsVigentes` (de los otros granos), `variacionGranos`/`variacionChicago`/
+`variacionPizarraSemanal`, `volumenA3Semanal`, `desacopleLocal`, `zonaPrecio`.
+
+**Admin/web**: segundo textarea "Contexto Chicago (BCR)" en `/admin/datos/mesa-color` (mismo
+candado 🔒) · mini-form de nota 1-5 + feedback por informe en `/informes`, **visible solo
+admin** (`getAcceso()` sin gatear por `AUTH_ENFORCED` — el login de Lautoro ya funciona siempre,
+igual que `requireAdmin()`; la página ya era 100% dinámica por sus queries `revalidate=0`, así
+que leer la sesión acá no le resta nada de ISR que no tuviera) · componente compartido
+`ImpactoBadges` (`src/components/impacto-badges.tsx`) cableado en admin/interpretaciones,
+`/produccion` y `/informes` (la 4ª superficie, la placa del diario, la cablea E3).
+
+**Unificación + nota 1-tap + backtest**: `getInformesHoy` de `informe-diario-datos.ts` (usada
+por las plantillas) ahora también mira `actualizado_en`, igualando el criterio que
+`/api/informes/datos` ya tenía desde V2 (las dos habían divergido) · endpoint nuevo
+`GET /api/informes/nota?id=&n=&t=` (HMAC `INFORME_SHARE_SECRET`, timing-safe, escribe con la
+service key directo — no por RPC, no hay sesión en un click de mail; filtra `estado=eq.enviado`)
+· `scripts/backtest-umbrales-informes.mjs` corrido de verdad contra 90 días reales de
+producción: **las 4 reglas propuestas en el plan (§5.3/§6.2) caen dentro de la banda 1-3
+disparos/semana en el primer intento** — DJVE 1,62/sem · camiones (solo la pata día-a-día)
+2,04/sem · otros mercados diario 0,84/sem · commodities semanal 1,41/sem. Sin cambios a los
+valores del plan: quedan validados tal cual.
+
+**Verificado**: lint/tsc/**460 tests** (22 nuevos)/build ✅ · **los 2 endpoints probados en vivo
+con `curl` contra la base de PRODUCCIÓN real** (`INFORME_TOKEN` del entorno) — los 30 campos
+nuevos entre los 2 endpoints responden con datos reales y plausibles (`pasZonas` 1837 filas/
+`pasCondicion` 1872 — coincide exacto con el historial documentado de C23/C27; `desacopleLocal`
+con premios/descuentos con signo correcto por grano; `zonaPrecio` con percentiles 20-85%) ·
+degradación honesta confirmada EN VIVO mientras las migraciones no estaban aplicadas (los
+endpoints devolvían 200 igual, con los campos nuevos en `null`/`[]`/vacío, `42703 column does
+not exist` confirmado por `curl` directo a PostgREST, nunca un 500) · endpoint de nota 1-tap
+probado en sus 2 caminos de rechazo (firma inválida → 400; columna inexistente → 502 honesto) ·
+bypass temporal de `requireAdmin()`/`esAdminUser` para confirmar que `/admin/*` en este sandbox
+falla por una causa **ajena a esta sesión** (falta `NEXT_PUBLIC_SUPABASE_URL`/`_ANON_KEY` en el
+entorno) — revertido, `git diff` limpio.
+
+**Las 5 migraciones — APLICADAS (mismo día, con Lautoro).** `apply_migration`/`get_advisors`
+del MCP de Supabase devolvieron `requires approval` en todos los intentos (gate del lado del
+cliente, nunca se destrabó) → **Lautoro las corrió a mano, una por una, guiado paso a paso en
+el chat, en el SQL Editor de Supabase** — las 5 dieron "Success". Verificado después por
+`execute_sql` (esa sí funcionó): las 4 columnas de `interpretaciones` + las 2 de
+`informes_generados` + `chicago_bcr` de `mesa_color` existen, el CHECK de
+`views_mercado.direccion` tiene los 5 estados, `admin_upsert_mesa_color` quedó con una sola
+versión limpia (3 parámetros), `routine_runs` existe con RLS activa y su policy de solo-admin.
+**RLS confirmada por SQL**: `admin_feedback_informe`/`admin_upsert_mesa_color` con
+`security definer`+`search_path` fijo, EXECUTE solo `authenticated`/`service_role` (nunca
+`anon`); los grants "de más" a nivel tabla en `routine_runs` (`authenticated` con INSERT/
+UPDATE/DELETE) son el MISMO patrón preexistente de default privileges que ya tienen
+`views_mercado`/`mesa_color`/`informes_generados` — RLS sin policy de escritura es lo que
+bloquea de verdad, confirmado comparando las 4 tablas. **Link de nota 1-tap probado de punta a
+punta**: contra un informe real (`estado=enviado`), con secret de prueba, dio "¡Gracias!" 200 y
+grabó `nota=5` en la fila real — verificado por SQL y limpiado al toque (no queda dato falso en
+producción).
+
+**Sigue pendiente (menor, no bloquea)**: cargar `INFORME_SHARE_SECRET` real en Vercel + el
+entorno de las Routines (hoy nadie lo configuró, solo se usó un valor de prueba local nunca
+guardado) · ver `/admin/datos/mesa-color`/`/admin/interpretaciones` renderizados con datos
+reales en un navegador (este sandbox no tiene `NEXT_PUBLIC_SUPABASE_*`). **Próximo paso: E2**
+(skill + Routine de interpretaciones, prompt en `PLAN_INFORMES_V3.md` §10) — depende de que
+este PR mergee. Detalle:
+[`sesiones/2026-08-04-e1-datos-infraestructura.md`](sesiones/2026-08-04-e1-datos-infraestructura.md).
+
+## Anterior (04/08/2026 — 📐 PLAN INFORMES V3 cerrado: el Word de Lautaro sobre los 4 productos de research)
 
 **📐 C30 — PLAN INFORMES V3 — PLAN CERRADO, SOLO DOCS — rama `claude/reportes-skills-voz-i71jlw`,
 PR #_.** Lautaro entregó un Word ("INFORMES") con los requisitos de los 4 productos —
