@@ -6,8 +6,10 @@ import {
   sumaVentana,
   volumenPorUnderlying,
   calcularDesacople,
+  otrosMercadosRelevantes,
   type FilaVolumen,
 } from "./informe-v3-calc";
+import type { MonitorRow } from "./monitor-mercados";
 
 describe("informe-v3-calc — restarDiasISO", () => {
   it("resta días calendario cruzando de mes", () => {
@@ -190,5 +192,49 @@ describe("informe-v3-calc — calcularDesacople", () => {
     expect(r.hoy.premioUsdTn).toBeNull();
     expect(r.hoy.a3).toBe(350);
     expect(r.hoy.cbot).toBeNull();
+  });
+});
+
+describe("otrosMercadosRelevantes", () => {
+  function fila(nombre: string, deltaPct: number | null): MonitorRow {
+    return {
+      yahoo: nombre,
+      grupo: "macro",
+      nombre,
+      glyph: null,
+      emoji: "x",
+      pos: null,
+      ultimo: 1,
+      usdTn: null,
+      deltaPct,
+      unidad: "u",
+      unidadDec: 2,
+      mercado: "x",
+    };
+  }
+
+  it("descarta instrumentos con |Δ| por debajo del umbral", () => {
+    const macro = [fila("Petróleo WTI", 1.2), fila("Oro", -0.5)];
+    expect(otrosMercadosRelevantes(macro)).toEqual([]);
+  });
+
+  it("incluye instrumentos con |Δ| ≥ umbral (default 3%), positivo o negativo", () => {
+    const macro = [fila("Petróleo WTI", 3.5), fila("Oro", -4), fila("Plata", 1)];
+    expect(otrosMercadosRelevantes(macro).map((r) => r.nombre)).toEqual(["Petróleo WTI", "Oro"]);
+  });
+
+  it("ignora instrumentos fuera de la lista propuesta (SPY/Merval/EWZ/Maní)", () => {
+    const macro = [fila("S&P 500 (SPY)", 10), fila("Merval", 10), fila("Maní", 10)];
+    expect(otrosMercadosRelevantes(macro)).toEqual([]);
+  });
+
+  it("descarta deltaPct null (dato caído, nunca se muestra como relevante)", () => {
+    expect(otrosMercadosRelevantes([fila("Dólar (DXY)", null)])).toEqual([]);
+  });
+
+  it("respeta un umbral custom", () => {
+    const macro = [fila("Real (USD/BRL)", 1.5)];
+    expect(otrosMercadosRelevantes(macro, 1)).toHaveLength(1);
+    expect(otrosMercadosRelevantes(macro, 2)).toHaveLength(0);
   });
 });

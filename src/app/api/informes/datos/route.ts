@@ -1,7 +1,5 @@
-import { getCierresGranos, volumenTotalGrano } from "@/lib/futuros";
 import { getArbitrajes } from "@/lib/arbitrajes-cierres";
-import { getPizarra } from "@/lib/pizarra";
-import { getDolarFuturo, getVolumenCambiario } from "@/lib/market";
+import { getDolarFuturo } from "@/lib/market";
 import { getDolarLinked } from "@/lib/market/dolar-linked";
 import { getDolarOficialHistorico } from "@/lib/dolar-historico";
 import { getMonitorMercados, getVariacionSemanalMacro } from "@/lib/monitor-mercados";
@@ -11,13 +9,12 @@ import { getNegociado } from "@/lib/compras/negociado";
 import { getMesaEmbarque } from "@/lib/lineup/embarque";
 import { getEmpresas } from "@/lib/lineup/empresas";
 import { getDjveResumen } from "@/lib/djve";
-import { getCamionesPlantas } from "@/lib/camiones/plantas";
 import { getCamionesSemana } from "@/lib/camiones/semanal";
 import { getComprasBcra, acumuladoSemanalBcra } from "@/lib/bcra-mulc";
 import { getPasZonasInforme } from "@/lib/pas-zonas";
 import { getPasCondicionInforme } from "@/lib/pas-condicion";
-import { variacionDiariaPizarra } from "@/lib/informe-diario-datos";
-import { top3PorVolumenDelDia } from "@/lib/a3-live";
+import { getPizarra } from "@/lib/pizarra";
+import { datosDiario } from "@/lib/informe-diario-datos";
 import { hoyCordobaISO } from "@/lib/dates";
 import { sbSelect, sbSelectAll } from "@/lib/supabase";
 import { tokenValido, esFechaValida } from "@/lib/informe-auth";
@@ -67,120 +64,6 @@ export async function GET(request: Request): Promise<Response> {
 
   const body = tipo === "semanal" ? await datosSemanal(fecha) : await datosDiario(fecha);
   return Response.json(body, { headers: noCache });
-}
-
-async function datosDiario(fecha: string) {
-  // Agenda a 7 días (§5.1 bloque H, V3 — antes solo mostraba lo de hoy/mañana).
-  const en7 = new Date(new Date(`${fecha}T12:00:00Z`).getTime() + 7 * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-
-  const [
-    cierres,
-    arbitrajes,
-    pizarra,
-    dolarFuturo,
-    chicago,
-    noticias,
-    colorRes,
-    bcraRes,
-    estimRes,
-    interpRes,
-    viewsMercado,
-    volumenCambiario,
-    djveResumen,
-    camionesPlantas,
-    variacionPizarra,
-    top3PorGrano,
-  ] = await Promise.all([
-    getCierresGranos(),
-    getArbitrajes(),
-    getPizarra(),
-    getDolarFuturo(),
-    getMonitorMercados(),
-    // Noticias últimas 24 hs (§5.1 bloque G, V3) — "puede ser cero", no la ventana de 3 días
-    // hábiles del panel público.
-    getNoticias(24),
-    sbSelect(`mesa_color?fecha=eq.${fecha}&select=fecha,texto,chicago_bcr,actualizado`, 0),
-    // Compras BCRA: hoy solo carga MANUAL (P3 de PLAN_BACKLOG.md sumará la ingesta
-    // automática a esta misma tabla, con fuente='api').
-    sbSelect(`compras_bcra?fecha=eq.${fecha}&select=fecha,monto_musd,fuente`, 0),
-    sbSelectAll(
-      "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url,actualizado_en&order=fecha_publicacion.asc",
-      3600,
-    ),
-    // MP4 (interpretación de informes de organismos, aún sin construir): consulta
-    // "adelantada" — mientras la tabla no exista, sbSelect degrada a [] sin romper.
-    sbSelect(
-      `interpretaciones?estado=eq.publicado&fecha_publicacion=eq.${fecha}&select=organismo,informe,publicado_md,impacto`,
-      0,
-    ),
-    // V4 (PLAN_INFORMES_V2.md §6.4): view vigente por grano con su evidencia_externa ya
-    // verificada — el diario la puede citar de contexto, sin research propio.
-    getViewMercadoVigentePorGrano(),
-    // E1 de PLAN_INFORMES_V3.md §5.1 bloque D: Δ% del oficial + volumen MAE de especies USD —
-    // la lib ya trae `oficial`/`oficialVarPct`, una sola vía (no tocar DolarFuturoData).
-    getVolumenCambiario(),
-    getDjveResumen(),
-    getCamionesPlantas(),
-    variacionDiariaPizarra(fecha),
-    top3PorVolumenDelDia(),
-  ]);
-
-  // Color de la rueda: null si no cargó nada ese día (el informe sale igual, degrada).
-  const color = colorRes.ok && Array.isArray(colorRes.data) && colorRes.data.length > 0
-    ? (colorRes.data[0] as { fecha: string; texto: string; chicago_bcr: string | null; actualizado: string })
-    : null;
-
-  const bcra = bcraRes.ok && Array.isArray(bcraRes.data) && bcraRes.data.length > 0
-    ? (bcraRes.data[0] as { fecha: string; monto_musd: number; fuente: string })
-    : null;
-
-  // Noticias: solo lo citable del día, acotado (top 4 destacadas, ya sobre la ventana de 24 hs).
-  const noticiasCompactas = {
-    destacados: noticias.destacados.slice(0, 4),
-    meta: noticias.meta,
-  };
-
-  // Volumen operado del día en A3 por grano (suma de todas las posiciones vivas).
-  const volumenPorGrano = Object.fromEntries(
-    cierres.granos.map((g) => [g.underlying, volumenTotalGrano(g)]),
-  );
-
-  // Informe de organismo publicado JUSTO hoy (ej. USDA/CONAB/GEA/DEA) O cargado a la base
-  // hoy con una fecha_publicacion vieja (BCBA-PAS: Lautaro lo sube con la fecha real del
-  // informe, que puede ser de días atrás) — fix de auditoría V2: antes solo miraba `fecha`,
-  // el disparo de PAS nunca matcheaba. Reusa estimaciones.ts, cero lógica nueva. Si además
-  // MP4 ya publicó su interpretación de ese mismo informe, se adjunta vía `interpretaciones`.
-  const estimRows = estimRes.ok ? parseRows(estimRes.data) : [];
-  const informesHoy = organismosPresentes(estimRows)
-    .map((o) => construirCambios(estimRows, o))
-    .filter((c) => c.cambios.length > 0 && (c.fecha === fecha || c.actualizadoEn?.slice(0, 10) === fecha));
-  const interpretaciones = interpRes.ok && Array.isArray(interpRes.data) ? interpRes.data : [];
-
-  return {
-    generado: new Date().toISOString(),
-    tipo: "diario" as const,
-    fecha,
-    cierres,
-    arbitrajes,
-    pizarra,
-    dolarFuturo,
-    chicago,
-    noticias: noticiasCompactas,
-    agenda: getEventos(fecha, en7),
-    color,
-    bcra,
-    volumenPorGrano,
-    informesHoy,
-    interpretaciones,
-    viewsMercado,
-    volumenCambiario,
-    djveResumen,
-    camionesPlantas,
-    variacionPizarra,
-    top3PorGrano,
-  };
 }
 
 /** Fecha del último semanal ENVIADO antes de `antesDe` — el ancla de la ventana semanal (E1 de

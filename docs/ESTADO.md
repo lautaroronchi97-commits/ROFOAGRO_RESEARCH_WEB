@@ -19,7 +19,75 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 📰 E2 de PLAN INFORMES V3: skill + calendario + scorecard de interpretaciones — falta confirmar la Routine)
+## Ahora (última actualización: 04/08/2026 — 📰 E3 de PLAN INFORMES V3: informe diario reorganizado por producto + página web con link)
+
+**📰 E3 — INFORME DIARIO V3 (PLACA POR PRODUCTO + SKILL + PÁGINA WEB) — HECHO Y VERIFICADO —
+rama `claude/e3-plan-informes-dk3qgq`, PR #_.** Ejecuta el PROMPT E3 de `PLAN_INFORMES_V3.md`
+§10 (requiere E1+E2, ambas mergeadas). Reorganiza la placa "Research" por producto
+**SOJA→MAÍZ→TRIGO con local/internacional SIEMPRE separados** (N8, el requisito central del
+Word de Lautaro) — nada de lo que ya mostraba se pierde, y de paso se cierra un gap real: E1
+(04/08, mismo día) ya había sumado 5 campos nuevos a `/api/informes/datos` (`volumenCambiario`,
+`djveResumen`, `camionesPlantas`, `top3PorGrano`, `variacionPizarra`, agenda a 7 días, noticias
+24hs) pero la plantilla nunca los consumía — confirmado por research antes de escribir código.
+
+**`datosDiario()` se mudó** de `/api/informes/datos/route.ts` a
+`src/lib/informe-diario-datos.ts` — ahora es la ÚNICA función que arma los insumos del diario,
+llamada por el route (Routines externas por token), la plantilla PNG y la página web nueva:
+cero query duplicada entre las 3 superficies (pedido explícito del prompt E3). `ProsaDiaria`
+suma 4 campos opcionales que la skill escribe extrayendo del texto libre de la mesa:
+`pizarraEstimada`/`volumenFisico` (por grano) y `condicionalDjve`/`condicionalCamiones` (ausentes
+si el día es normal — perillas calibradas por el backtest de E1: DJVE ≥1,5× mediana, camiones
+|Δ|≥30% o ≥1,5× interanual).
+
+**Página nueva `/informes/diario/[fecha]`**: el informe completo como página del sitio
+(responsive, sigue el tema — no la paleta fija de la plantilla), con TODO lo que la placa
+muestre. **Dos puertas (N6)**: link público firmado `?t=` (HMAC-SHA256 sin estado, mismo
+`INFORME_SHARE_SECRET` de la nota 1-tap de E1) O `requireSeccion("informes")` (sesión con
+permiso, o admin) — admin ve el link firmado directo en la página. Linkeada desde `/informes`
+("Ver informe completo →"). `src/proxy.ts` suma `/informes/diario/` a las rutas que saltean el
+gate optimista (mismo motivo ya documentado ahí para `/informes/plantilla/`).
+
+**Skill `informe-diario` v3**: Paso 0 suma banco de oro + aprendizajes propios + últimas 8
+notas/feedback; Paso 2 suma las reglas de extracción del color para los 4 campos nuevos +
+regla "sin internals" (N9); Paso 4 suma el chequeo de altura (N17, tope 2×1056, SIN recorte
+automático — decisión de esta sesión, ver abajo); Paso 6 (mail) suma eco del color + link a la
+página web + 3 links de nota 1-tap; Paso 8 suma telemetría (`routine_runs`, N13). **Paso 9
+(interpretación de informes) ELIMINADO** — vive en la skill `interpretaciones` desde E2, el
+diario ahora solo LEE lo que esa skill ya publicó.
+
+**Bug real encontrado y arreglado en la propia verificación**: la primera versión de la página
+web usaba `<table className="tbl">` (clase con `min-width:640px`, pensada para tablas de mercado
+a todo el ancho del panel) DENTRO de tarjetas angostas (~230px) — el contenido desbordaba y se
+solapaba visualmente con la tarjeta vecina, confirmado con Playwright (capturas antes/después).
+Reemplazado por filas flex propias (`StatLine`) + un mini-grid para el Top 3, mismo patrón sin
+`<table>` que ya usaba la plantilla PNG (que nunca tuvo el bug). **Hallazgo de paso, sin tocar**
+(fuera de alcance): `tbl-wrap` (usado en 3 páginas del sitio) es una clase FANTASMA — no está
+definida en `globals.css`, esas tablas nunca tuvieron scroll horizontal real en mobile pese al
+nombre; esta sesión usó la clase que sí existe (`.table-scroll`) en la página nueva.
+
+**Decisión: sin recorte automático de contenido si la placa supera 1 página.** El prompt preveía
+un "orden de recorte" (condicionales → noticias → agenda) pero implementarlo requeriría lógica
+condicional de renderizado por altura estimada, con riesgo real de dejar la placa con huecos. Con
+datos reales de hoy (sin color cargado) la placa mide ~1,7 páginas — dentro del tope duro de 2.
+Documentado en la skill en vez de construir algo sin un caso real que lo dispare para validar.
+
+**Verificado**: lint/tsc/**476 tests** (5 nuevos)/build ✅ · `npm run start` con datos reales de
+producción (`/api/informes/datos`, la plantilla y la página web, los 3 con 200 y datos reales:
+pizarra real de soja, top3 con posiciones reales, TNA implícita real) · Playwright real (capturas
+antes/después del fix de overlap, mobile 390px sin scroll horizontal) · **fila de prueba real
+insertada y BORRADA al terminar** (fecha `2099-01-01`, patrón ya usado en sesiones anteriores):
+confirmado que los 4 campos nuevos de prosa (`pizarraEstimada`/`volumenFisico`/
+`condicionalDjve`/`condicionalCamiones`) renderizan correctamente en la placa Y en la página web,
+sin residuo en producción.
+
+**Pendiente (no bloquea)**: `INFORME_SHARE_SECRET` real sigue sin cargarse en Vercel/Routines
+(mismo pendiente de E1) — sin él la nota 1-tap y el link público quedan honestamente cerrados,
+no rotos · el `tbl-wrap` fantasma (3 páginas) queda para una sesión de limpieza chica · primera
+corrida real de la Routine diaria con el formato nuevo, el próximo día hábil post-merge.
+**Próximo paso: E4 (semanal v3) y E5 (view v3), paralelizables** (ya no dependen de nada más).
+Detalle: [`sesiones/2026-08-04-e3-informe-diario.md`](sesiones/2026-08-04-e3-informe-diario.md).
+
+## Anterior (04/08/2026 — 📰 E2 de PLAN INFORMES V3: skill + calendario + scorecard de interpretaciones — falta confirmar la Routine)
 
 **📰 E2 — SKILL + CALENDARIO + SCORECARD DE INTERPRETACIONES — CÓDIGO HECHO Y VERIFICADO, falta
 confirmar la Routine — rama `claude/plan-informes-v3-migrations-wql0sz`, PR #134 (mergeado).**
