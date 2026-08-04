@@ -19,7 +19,46 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 🧱 E1 de PLAN INFORMES V3 CERRADO: migraciones + libs + endpoints ampliados, migraciones APLICADAS y verificadas)
+## Ahora (última actualización: 04/08/2026 — 📰 E2 de PLAN INFORMES V3: skill + calendario + scorecard de interpretaciones — falta confirmar la Routine)
+
+**📰 E2 — SKILL + CALENDARIO + SCORECARD DE INTERPRETACIONES — CÓDIGO HECHO Y VERIFICADO, falta
+confirmar la Routine — rama `claude/plan-informes-v3-migrations-wql0sz`, PR #134 (mergeado).**
+Ejecuta el PROMPT E2 de `PLAN_INFORMES_V3.md` §10 (requiere E1, mergeada el mismo día en el
+PR #133). **Nota de proceso**: la conversación de esta sesión se perdió por un `/clear` a mitad
+de trabajo — la sesión que retomó E1 volvió a arrancar con el contexto viejo, encontró el código
+de E2 ya escrito en el disco (sin memoria de haberlo hecho), lo verificó desde cero (tsc/lint/
+vitest/build) antes de commitear, y reconstruyó la bitácora leyendo el prompt + el diff en vez de
+la conversación real (Lautoro confirmó que esa sesión perdida fue "solo construcción", sin
+decisiones de negocio nuevas en el medio).
+
+**Skill nueva `.claude/skills/interpretaciones/`** (procedimiento de 7 pasos, sucesora del Paso 9
+de `informe-diario`): detección de informes de organismo nuevos + PAS zonas/condición + CFTC COT
++ USDA Export Sales (fetch-en-vivo) · redacción segmentada por grano con voz-lautaro + campo
+`impacto` estructurado (3 estados) · auto-publicación al cierre 18:20 ART si Lautoro no la tocó
+(N4, firma "Mesa ROFO AGRO" — escritura directa por service_role, no por la RPC que exige
+`is_admin()`) · telemetría en `routine_runs` (N13) · `references/aprendizajes.md` propio para el
+loop de calibración por diff (§9 del plan).
+
+**`calendario.ts`**: evento USDA Export Sales nuevo (jueves 8:30 ET) · NOPA Crush Report por fin
+genera eventos (estaba declarado en el tipo `Organismo` pero nunca disparaba) · `CONAB_2026` pasa
+a `CONAB_FECHAS` por año con un centinela en tests (mismo patrón que `FERIADOS_AR`).
+
+**`interpretaciones-scorecard.ts`** (N14, puro, 7 tests): mide `impacto` por grano contra
+`futuros_cierres` a 7/14 días, reusando `elegirPosicionT0`/`medirVentana`/`esAcierto` de
+`views-scorecard.ts`. `/admin/interpretaciones` suma la tarjeta de scorecard + columna Firma
+(N19, personal vs. "Mesa ROFO AGRO (automática)").
+
+**Verificado**: lint/tsc/**471 tests** (11 nuevos)/build ✅ (re-corrido desde cero antes de
+commitear, no se confió en el estado de la sesión perdida).
+
+**Quedó pendiente**: confirmar que la Routine "ROFO AGRO — Interpretaciones" existe de verdad
+(`list_triggers` por MCP no se pudo correr — gate de permisos) — si no existe, el código está
+listo pero no dispara solo. Primera corrida real contra un informe verdadero, para terminar la
+verificación que el propio prompt E2 pedía. **Próximo paso: confirmar/crear la Routine → E3/E4/E5
+en paralelo** (informe diario/semanal/view v3, prompts en `PLAN_INFORMES_V3.md` §10). Detalle:
+[`sesiones/2026-08-04-e2-interpretaciones.md`](sesiones/2026-08-04-e2-interpretaciones.md).
+
+## Anterior (04/08/2026 — 🧱 E1 de PLAN INFORMES V3 CERRADO: migraciones + libs + endpoints ampliados, migraciones APLICADAS y verificadas)
 
 **🧱 E1 — DATOS E INFRAESTRUCTURA COMPARTIDA — HECHO DE PUNTA A PUNTA, migraciones
 aplicadas — rama `claude/plan-informes-v3-migrations-wql0sz`, PR #133.** Ejecuta el
