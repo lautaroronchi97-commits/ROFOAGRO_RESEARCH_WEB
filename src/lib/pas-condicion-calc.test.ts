@@ -8,6 +8,7 @@ import {
   overlayBuenaExcelente,
   overlayAdecuadaOptima,
   fenologiaCampania,
+  deltaCondicionReciente,
   type FilaCondicionDB,
 } from "./pas-condicion-calc";
 
@@ -115,5 +116,46 @@ describe("fenologiaCampania — multi-etapa, orden real del header", () => {
 
   it("campaña sin datos para ese grano/ciclo devuelve series vacías (sin fantasma)", () => {
     expect(fenologiaCampania(filas, "trigo", "total", "2020/21")).toEqual([]);
+  });
+});
+
+describe("deltaCondicionReciente — Δ de Buena+Excelente entre las 2 últimas semanas (E4, informe semanal)", () => {
+  it("compara las 2 últimas semanas CON DATO de la campaña vigente (la más reciente)", () => {
+    const filas: FilaCondicionDB[] = [
+      fila("soja", "total", "2023/24", 50, 40, 5, 25, 15),
+      fila("soja", "total", "2024/25", 5, 50, 10, 30, 20),
+      fila("soja", "total", "2024/25", 6, 55, 12, 32, 22),
+      fila("soja", "total", "2024/25", 7, 50, 10, 28, 20),
+    ];
+    expect(deltaCondicionReciente(filas, "soja", "total")).toEqual({
+      campania: "2024/25",
+      semanaActual: 7,
+      semanaPrevia: 6,
+      valorActual: 60,
+      valorPrevio: 67,
+      deltaPts: -7,
+    });
+  });
+
+  it("salta semanas con valor null en vez de compararlas (huecos del corte semanal)", () => {
+    const filas: FilaCondicionDB[] = [
+      fila("trigo", "total", "2024/25", 5, 60, 20, 40, 30),
+      fila("trigo", "total", "2024/25", 6, null, null, 40, 30),
+      fila("trigo", "total", "2024/25", 7, 65, 25, 40, 30),
+    ];
+    expect(deltaCondicionReciente(filas, "trigo", "total")).toEqual({
+      campania: "2024/25",
+      semanaActual: 7,
+      semanaPrevia: 5,
+      valorActual: 90,
+      valorPrevio: 80,
+      deltaPts: 10,
+    });
+  });
+
+  it("null si el grano no tiene datos, o la campaña vigente tiene menos de 2 semanas con valor", () => {
+    const filas: FilaCondicionDB[] = [fila("soja", "total", "2024/25", 5, 50, 10, 30, 20)];
+    expect(deltaCondicionReciente(filas, "soja", "total")).toBeNull();
+    expect(deltaCondicionReciente(filas, "girasol", "total")).toBeNull();
   });
 });
