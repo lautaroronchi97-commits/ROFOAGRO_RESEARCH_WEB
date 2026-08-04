@@ -32,13 +32,29 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// 5 estados (V3, N2/§7.1): "levemente_*" comparte color con su extremo (misma dirección, menor
+// convicción) y se distingue con un glifo hueco en vez de uno lleno.
 const DIR_COLOR: Record<DireccionView, string> = {
   alcista: "var(--pos)",
+  levemente_alcista: "var(--pos)",
   bajista: "var(--neg)",
+  levemente_bajista: "var(--neg)",
   neutral: "var(--neu)",
 };
-const DIR_GLIFO: Record<DireccionView, string> = { alcista: "▲", bajista: "▼", neutral: "◆" };
-const DIR_COLOR_VAR: Record<DireccionView, string> = { alcista: "--pos", bajista: "--neg", neutral: "--neu" };
+const DIR_GLIFO: Record<DireccionView, string> = {
+  alcista: "▲",
+  levemente_alcista: "△",
+  bajista: "▼",
+  levemente_bajista: "▽",
+  neutral: "◆",
+};
+const DIR_COLOR_VAR: Record<DireccionView, string> = {
+  alcista: "--pos",
+  levemente_alcista: "--pos",
+  bajista: "--neg",
+  levemente_bajista: "--neg",
+  neutral: "--neu",
+};
 const GRANO_EMOJI: Record<string, string> = { soja: "🌱", maiz: "🌽", trigo: "🌾" };
 
 const RELACION_LABEL: Record<RelacionPrevia, string> = {

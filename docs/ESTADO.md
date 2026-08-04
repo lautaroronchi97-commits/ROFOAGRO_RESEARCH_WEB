@@ -19,7 +19,51 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 📊 E4 de PLAN INFORMES V3: informe semanal reorganizado por producto)
+## Ahora (última actualización: 04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)
+
+**🎯 E5 — VIEW V3 (5 ESTADOS) — HECHO Y VERIFICADO — rama `claude/plan-informe-e5-owgf06`,
+PR #_.** Ejecuta el PROMPT E5 de `PLAN_INFORMES_V3.md` §10 (requiere E1, ya mergeada, con la
+migración de 5 estados aplicada). El view direccional pasa de 3 a **5 estados** — alcista ·
+levemente alcista · neutral · levemente bajista · bajista — con la guía dura de que "levemente"
+NO es el default tibio: es para cuando la dirección es clara pero el driver es débil o agotable.
+
+**Réplicas TS**: `DireccionView` (`views-mercado.ts`) con los 5 valores + labels · `/granos/view`
+con colores/glifos nuevos (`levemente_*` comparte color con su extremo — misma dirección, menor
+convicción — y se distingue con un glifo hueco △/▽ contra los llenos ▲/▼, decisión propia sin
+sumar una paleta nueva) · la plantilla del informe semanal **ya toleraba los 5 estados de forma
+genérica** desde E4 (sin mapa fijo de 3 valores), confirmado sin cambios. **Scorecard**
+(`views-scorecard.ts`): `esAcierto` cuenta "levemente_X" como X para el hit-rate; `confianzaAProbabilidad`
+ahora recibe la dirección — las plenas mantienen el mapeo lineal 0,55-0,95, las "leves" usan un
+mapeo más chato 0,55-0,75 (provisorio, a calibrar cuando haya masa de datos, mismo criterio que
+la banda neutral).
+
+**Skill `view-mercado` v3**: F1 suma los 14 campos aditivos que E1 había dejado en
+`/api/views/insumos` sin consumir (noticiasSemana, camiones completos, djveResumen, pasZonas/
+pasCondicion, diariosSemana/interpretacionesSemana, viewsVigentes, variaciones semanales
+precomputadas, volumenA3Semanal, desacopleLocal, zonaPrecio) · F2 suma las 3 preguntas explícitas
+del plan (zona histórica del precio, desacople local-internacional, patrones que rompen lo
+esperado) + un calendario fijo de ventanas críticas de clima por cultivo · F6 con la guía de uso
+de los 5 estados y `tesis_md` sin tope de largo (N10, único campo del template sin techo) · Paso 0
+suma la lectura de `interpretacionesSemana` como contexto de calibración (nunca fuente de
+números) · telemetría N13 (`routine_runs`, `tipo:"view"`, `mail_enviado` siempre `false` — el view
+nunca manda mail).
+
+**Verificado**: lint/tsc/**484 tests** (5 nuevos)/build ✅ · `/api/views/insumos` probado en vivo
+contra producción real (los 14 campos aditivos de E1 responden con datos reales y plausibles —
+zonaPrecio con percentiles, desacopleLocal con premio real vs CBOT, viewsVigentes con los 3 views
+reales del 31/07) · **UI de `/granos/view` con los 5 colores/glifos verificada con Playwright real
+en claro y oscuro** (3 filas de prueba reales insertadas por SQL —fecha `2099-01-01`— con bypass
+temporal de sesión/lectura, revertido íntegramente al terminar —`git diff` limpio— y las 3 filas
+**borradas**, confirmado `count=0`): △ LEVEMENTE ALCISTA verde, ▽ LEVEMENTE BAJISTA rojo, ▼
+BAJISTA rojo, ◆ NEUTRAL y ▲ ALCISTA en el historial, cero errores de consola.
+
+**Pendiente (no bloquea)**: el rango 0,55-0,75 de Brier para direcciones "leve" sigue sin
+calibrar contra scorecards reales (todavía no hay ningún view real con esa dirección). **Próximo
+paso: E6** (Routines finales + cierre — renombrar Routines, cadencias definitivas incl. semanal
+20:30 ART/N12, feedback end-to-end, monitoreo N13 con watchdog, cierre del plan V3). Detalle:
+[`sesiones/2026-08-04-e5-view-mercado-5-estados.md`](sesiones/2026-08-04-e5-view-mercado-5-estados.md).
+
+## Anterior (04/08/2026 — 📊 E4 de PLAN INFORMES V3: informe semanal reorganizado por producto)
 
 **📊 E4 — INFORME SEMANAL V3 (UNA SECCIÓN POR PRODUCTO) — HECHO Y VERIFICADO — rama
 `claude/plan-informes-e4-w6ao57`, PR #_.** Ejecuta el PROMPT E4 de `PLAN_INFORMES_V3.md` §10

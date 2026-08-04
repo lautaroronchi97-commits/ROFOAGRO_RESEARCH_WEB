@@ -86,13 +86,30 @@ describe("esAcierto", () => {
   it("null si no hay retorno medido", () => {
     expect(esAcierto("alcista", null)).toBeNull();
   });
+
+  // V3, N2/§7.1: "levemente_X" cuenta como la misma dirección que X para el hit-rate.
+  it("levemente_alcista acierta igual que alcista (misma dirección, menor convicción)", () => {
+    expect(esAcierto("levemente_alcista", 0.05)).toBe(true);
+    expect(esAcierto("levemente_alcista", -0.01)).toBe(false);
+  });
+  it("levemente_bajista acierta igual que bajista", () => {
+    expect(esAcierto("levemente_bajista", -0.02)).toBe(true);
+    expect(esAcierto("levemente_bajista", 0.01)).toBe(false);
+  });
 });
 
 describe("confianzaAProbabilidad / brierDeVentana", () => {
-  it("mapea 1→0.55 y 5→0.95 linealmente", () => {
-    expect(confianzaAProbabilidad(1)).toBeCloseTo(0.55, 10);
-    expect(confianzaAProbabilidad(5)).toBeCloseTo(0.95, 10);
-    expect(confianzaAProbabilidad(3)).toBeCloseTo(0.75, 10);
+  it("direcciones plenas: mapea 1→0.55 y 5→0.95 linealmente", () => {
+    expect(confianzaAProbabilidad(1, "alcista")).toBeCloseTo(0.55, 10);
+    expect(confianzaAProbabilidad(5, "alcista")).toBeCloseTo(0.95, 10);
+    expect(confianzaAProbabilidad(3, "alcista")).toBeCloseTo(0.75, 10);
+    expect(confianzaAProbabilidad(3, "neutral")).toBeCloseTo(0.75, 10);
+  });
+
+  it("direcciones leves: mapeo más chato, 1→0.55 y 5→0.75 (V3, N2/§7.1)", () => {
+    expect(confianzaAProbabilidad(1, "levemente_alcista")).toBeCloseTo(0.55, 10);
+    expect(confianzaAProbabilidad(5, "levemente_alcista")).toBeCloseTo(0.75, 10);
+    expect(confianzaAProbabilidad(3, "levemente_bajista")).toBeCloseTo(0.65, 10);
   });
 
   it("Brier bajo cuando acierta con alta confianza, alto cuando falla con alta confianza", () => {
@@ -101,6 +118,11 @@ describe("confianzaAProbabilidad / brierDeVentana", () => {
     expect(acierta).toBeCloseTo((0.95 - 1) ** 2, 10);
     expect(falla).toBeCloseTo((0.95 - 0) ** 2, 10);
     expect(falla).toBeGreaterThan(acierta);
+  });
+
+  it("Brier de una dirección leve usa el techo 0.75, no 0.95, aun con confianza 5", () => {
+    const acierta = brierDeVentana("levemente_alcista", 5, 0.05)!;
+    expect(acierta).toBeCloseTo((0.75 - 1) ** 2, 10);
   });
 
   it("null si la ventana no tiene retorno", () => {
@@ -159,5 +181,25 @@ describe("calcularScorecard — resumen por grano (hit-rate, Brier, racha)", () 
   it("granos sin views medidas devuelven resumen vacío, no error", () => {
     const sc = calcularScorecard(views, rowsSoja);
     expect(sc.porGrano.maiz).toEqual({ grano: "maiz", nMedidos: 0, hitRate: null, brier: null, racha: null });
+  });
+});
+
+describe("calcularScorecard — direcciones leves (V3, N2/§7.1) cuentan como su extremo", () => {
+  const rowsMaiz: FuturoCierreRow[] = [
+    fila("JUL26", "2026-07-01", 200, "MAI"),
+    fila("JUL26", "2026-07-29", 220, "MAI"), // +10% → acierto para levemente_alcista
+  ];
+  const views: Pick<ViewMercado, "id" | "grano" | "fecha" | "direccion" | "confianza">[] = [
+    { id: "v-leve", grano: "maiz", fecha: "2026-07-01", direccion: "levemente_alcista", confianza: 5 },
+  ];
+
+  it("un view levemente_alcista que sube acierta igual que uno alcista pleno", () => {
+    const sc = calcularScorecard(views, rowsMaiz);
+    const w28 = sc.porView["v-leve"]!.ventanas.find((w) => w.dias === 28)!;
+    expect(w28.acierto).toBe(true);
+    expect(sc.porGrano.maiz.nMedidos).toBe(1);
+    expect(sc.porGrano.maiz.hitRate).toBe(1);
+    // Brier con el techo 0.75 de las direcciones leves (confianza 5): (0.75-1)^2, no (0.95-1)^2.
+    expect(sc.porGrano.maiz.brier).toBeCloseTo((0.75 - 1) ** 2, 10);
   });
 });
