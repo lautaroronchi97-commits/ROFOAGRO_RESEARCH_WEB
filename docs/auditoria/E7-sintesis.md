@@ -510,7 +510,7 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   alcance de interpretaciones +PAS zonas/condición +COT +Export Sales):
   **[`PLAN_INFORMES_V3.md`](../PLAN_INFORMES_V3.md)** — sucede a `PLAN_INFORMES.md` (MP1-4) y
   `PLAN_INFORMES_V2.md` (V0-V4) sin tirar nada. Cambios mayores: interpretaciones pasa a
-  **skill+Routine propias** (calendario + auto-reprogramación horaria + auto-publicación 18:00
+  **skill+Routine propias** (calendario + auto-reprogramación horaria + auto-publicación 18:20
   ART) · view a **5 estados** · semanal **sin límite de páginas** (revoca las 5 duras de V2
   §10.3) · diario/semanal **por producto** con local/internacional separados · feedback
   nota 1-5 en los 4. **Ejecutar E1→E6 con Sonnet** (prompts autocontenidos en §10 del plan):

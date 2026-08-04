@@ -23,7 +23,13 @@
   retroalimentación para los 4 (§9) · **6 prompts de ejecución autocontenidos E1→E6 para builds
   con Sonnet** (§10) · criterios de éxito (§12). Registrado como **C30** en el backlog maestro.
 - **Plan auditado adversarialmente** (agente revisor: completitud vs Word, consistencia interna,
-  verificación por muestreo de las afirmaciones sobre el código) y corregido antes de commitear.
+  verificación por muestreo de 15 afirmaciones sobre el código) y **corregido en la misma
+  sesión** — 3 hallazgos ALTOS reales: (1) el feedback por diff de interpretaciones nacía muerto
+  (las RPC dejan `publicado_md == borrador_md` SIEMPRE → se sumó `borrador_original_md` a la
+  migración de E1); (2) el Paso 0 de feedback/aprendizajes de diario/semanal se prometía en §9
+  pero ninguna etapa lo construía (sumado a E3/E4); (3) colisión horaria entre la
+  auto-publicación y los despertadores de la tarde (cierre movido a 18:20 ART, después de
+  GEA/DEA/PAS/COT y antes del diario 18:30).
 
 ## Decisiones tomadas (y por qué) — las 4 contestadas por Lautaro en el chat
 - **Carga diaria sigue TEXTO LIBRE** (sin form estructurado): pizarra estimada/volumen físico
@@ -31,7 +37,7 @@
   (`pizarra_historico`) y **si falta cualquiera de los dos, no se calcula** (textual de Lautaro).
 - **Interpretaciones se AUTO-PUBLICAN "tras unas horas"** si no las tocó — revoca parcialmente
   "su firma nunca sale sin su OK" SOLO para interpretaciones (propuesta concreta del plan:
-  cierre 18:00 ART + marca `auto_publicado`).
+  cierre 18:20 ART + marca `auto_publicado`).
 - **Diario: PNG sigue + versión WEB con link** ("que entren los clientes o el público con un
   link, indaguémoslo") — E3 construye las dos puertas (gate por sección + link firmado) y él elige.
 - **Alcance de interpretaciones**: los 5 organismos + **PAS zonas/condición + CFTC COT + USDA

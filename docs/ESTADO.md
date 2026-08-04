@@ -38,7 +38,7 @@ Sonnet** (§10). Auditado adversarialmente antes de commitear.
 **Las 4 decisiones que contestó Lautaro en la sesión**: carga diaria sigue TEXTO LIBRE (la
 variación de la pizarra estimada se calcula contra el último valor del cron; falta alguno → no se
 calcula) · interpretaciones se **AUTO-PUBLICAN** tras unas horas sin tocar (revoca "firma nunca
-sin OK" SOLO para interpretaciones; propuesta: cierre 18:00 ART) · diario = PNG + **versión web
+sin OK" SOLO para interpretaciones; propuesta: cierre 18:20 ART) · diario = PNG + **versión web
 con link** (E3 construye gate por sección Y link firmado, él elige) · alcance de interpretaciones
 ampliado a PAS zonas/condición + CFTC COT + USDA Export Sales (fetch-en-vivo, sin ingesta nueva).
 **Del Word además**: semanal SIN límite de páginas (revoca las 5 duras de V2 §10.3) · view con
