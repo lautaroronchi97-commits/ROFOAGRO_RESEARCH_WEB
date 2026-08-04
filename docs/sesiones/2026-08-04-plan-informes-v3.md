@@ -55,6 +55,33 @@ internals**" (percentiles → tendencias en lo que sale a clientes).
   pasaron por el revisor adversarial con verificación por muestreo.
 - Routines auditadas contra el MCP real (ids, crons, prompts completos — no contra docs).
 
+## Revisión objetiva post-plan (pedida por Lautaro en la misma sesión)
+
+Se revisó el trabajo con ojo crítico, verificando contra el repo. **Hallazgo mayor confirmado
+contra los workflows**: `ingest-cierres` corre 20:08 ART y el diario 18:30 → los bloques A3 EOD
+del informe se armaban con la rueda de AYER (y el semanal de vie 19:00 cierra su semana en
+jueves: los cierres del viernes entran 20:08 y CBOT 19:11). **Lautaro definió la fuente: para
+los futuros locales diarios, el WebSocket de A3** (trae volúmenes y ajuste); CEM "no creo que
+actualice para el informe, hay que chequearlo" → registrado como **decisión N11** en el plan
+(§3) y bajado a §5.1.C y al prompt E1.
+
+**Propuestas del resto de la revisión, PENDIENTES del OK de Lautaro** (viven en el chat de la
+sesión; se bajan al plan cuando decida):
+1. **Semanal de 19:00 → 20:30 ART** para que la semana incluya el viernes (cambio de cron, E6).
+2. **Telemetría de Routines** (tabla `routine_runs`: duración/degradaciones por corrida) +
+   watchdog "no salió el informe de hoy → mail 19:00" — de paso resuelve la medición R5 de V2.
+3. **Scorecard de interpretaciones**: medir el `impacto` por grano contra `futuros_cierres` a
+   7/14 días con la misma lib del scorecard del view.
+4. **Nota 1-tap desde el mail** (links firmados 👍/😐/👎 sin login) + **eco de lo entendido**
+   del color en el mail (el feedback del view lleva 0 notas desde el 28/07 — el loop necesita
+   fricción cero).
+5. **Backtest de umbrales en E1** (DJVE/camiones/macro contra 90 días reales, objetivo 1-3
+   disparos/semana — la lección del 0,7/1,3 de L4).
+6. Menores: PNG compacto 1 página + web completa como resolución de la tensión "1-2 páginas" ·
+   banco de oro de prosa por skill · firma "Mesa ROFO AGRO" para las auto-publicadas · spikes de
+   datos (SIO diario, serie FAS/basis, scrape del comentario Chicago BCR, expectativas DTN
+   guardadas, clima SMN a futuro) · paralelizar E3/E4/E5 en 3 sesiones Sonnet.
+
 ## Quedó pendiente / en vuelo
 - **Ejecutar E1→E6** con Sonnet (prompts en `PLAN_INFORMES_V3.md` §10). Orden: E1 (datos/
   migraciones) → E2 (interpretaciones) → E3 (diario) → E4 (semanal) → E5 (view) → E6 (Routines

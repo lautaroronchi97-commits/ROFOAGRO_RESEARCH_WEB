@@ -161,6 +161,8 @@ Contestadas por Lautaro en el chat de esta sesión:
 | N6 | **Diario: PNG sigue + versión WEB con link** ("que entren los clientes o el público con un link, indaguémoslo") | Etapa E3: página web del informe diario por fecha; el acceso (permiso de sección vs link público firmado) se resuelve en esa etapa con recomendación (§5.4). |
 | N7 | **Alcance de interpretaciones ampliado**: los 5 organismos de estimaciones + **PAS zonas/condición** + **CFTC COT** + **USDA Export Sales** | COT y Export Sales entran por **fetch-en-vivo dentro de la rutina** (con pasaporte), SIN ingesta/cron/tabla nueva — coherente con la decisión vigente "fetch-en-vivo, no ingesta nueva". |
 
+| N11 | **Futuros locales del día (diario): la fuente es el WEBSOCKET de A3** (`a3-live`), que trae volúmenes y ajuste por posición — no `futuros_cierres` (04/08, revisión post-plan) | Motivo verificado: `ingest-cierres` corre 20:08 ART y el diario 18:30 → la tabla tiene la rueda de AYER a esa hora (el "desfasaje" actual cruza Δ local de ayer con Chicago de hoy, y el top-3 "del día" mostraría volúmenes viejos). El WS es la fuente de HOY; CEM queda como histórico. Verificación secundaria en la build: chequear si CEM ya publica el ajuste del día ~18:15 (Lautaro cree que no) y confirmar que el snapshot del WS post-rueda trae el ajuste (entrada SE) además de último/volumen. El SEMANAL sigue sobre `futuros_cierres` (histórico) — su fix es de horario, pendiente de OK (§8.2 de la bitácora). |
+
 Decisiones del Word que también son cambios (implícitos en §1.1): **N8** el layout del diario se
 reorganiza **por producto (SOJA→MAÍZ→TRIGO) con local/internacional separados** — reemplaza la
 organización por métrica de la plantilla research actual, **conservando el 100% de la información
@@ -232,7 +234,10 @@ solo números del JSON/color. `[E]`
   libre y calcula contra el JSON]`
 - **Top 3 posiciones A3 más operadas del día**: posición, precio de ajuste, Δ% del día, volumen —
   + **volumen total del producto** (todas las posiciones). `[N: builder `top3PorVolumen()` sobre
-  `cierres.granos[].posiciones` que ya traen `volume`/`change`/`changePercent`; aritmética pura]`
+  el snapshot del **WebSocket de A3** (`a3-live`, decisión N11 — a las 18:30 `futuros_cierres`
+  todavía tiene la rueda de AYER): extender `a3-live.ts` para exponer ajuste + volumen por
+  posición post-rueda; `futuros_cierres` queda de fallback rotulado "al cierre anterior" si el
+  WS no responde]`
 - Volumen del **físico** del día (si la mesa lo cargó en el color). `[M]`
 - TNA implícita de referencia (posición de mayor open interest — regla vigente). `[E]`
 
@@ -590,8 +595,12 @@ sesión + PR base `main`.
 >    `admin_feedback_informe` (patrón exacto de `admin_feedback_view`); (d) `mesa_color`:
 >    `+ chicago_bcr text NULL`.
 > 2. **Libs nuevas** (puras, con tests): `variacionDiariaPizarra()` ($ y USD, sobre
->    `pizarra_historico`, null-safe si falta el día previo) · `top3PorVolumen()` (sobre
->    `CierrePos[]`, top 3 + total del producto) · volumen A3 semanal por underlying (suma de
+>    `pizarra_historico`, null-safe si falta el día previo) · `top3PorVolumen()` (top 3 + total
+>    del producto) **alimentado por el WebSocket de A3** (N11): extender `a3-live.ts` con un
+>    fetch post-rueda de ajuste + volumen por posición (verificar que el snapshot `smd` traiga
+>    el ajuste — entrada SE — además de último/TV; probar además, como chequeo secundario, si el
+>    API del CEM ya publica los ajustes del día ~18:15 — Lautaro cree que no) con
+>    `futuros_cierres` de fallback rotulado · volumen A3 semanal por underlying (suma de
 >    `futuros_cierres.volume`, 5 ruedas) · Δ semanal de macro (WTI/oro/DXY/BRL sobre la serie
 >    spark) · acumulado semanal de compras BCRA (derivado de `serie`) · premio/descuento A3 vs
 >    CBOT por grano (USD/tn, hoy y −7/−28 días) · percentil histórico 5 años del nivel (pizarra +
