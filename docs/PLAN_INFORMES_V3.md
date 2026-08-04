@@ -823,7 +823,7 @@ sesión + PR base `main`.
 | Etapa | Contenido | Estado |
 |---|---|---|
 | E1 | Migraciones + libs + endpoints ampliados + admin (Chicago BCR, feedback, badge) | ✅ hecho — código verificado en vivo y las 5 migraciones aplicadas (Lautoro las corrió a mano en el SQL Editor de Supabase, guiado paso a paso), RLS y el link de nota 1-tap verificados de punta a punta (ver `sesiones/2026-08-04-e1-datos-infraestructura.md`) |
-| E2 | Skill + Rutina de interpretaciones (calendario, reprogramación, auto-pub) | ☐ |
+| E2 | Skill + Rutina de interpretaciones (calendario, reprogramación, auto-pub) | 🔶 skill+calendario+scorecard hechos y verificados; falta confirmar que la Routine exista (ver `sesiones/2026-08-04-e2-interpretaciones.md`) |
 | E3 | Diario v3 (placa por producto + skill + página web con link) | ☐ |
 | E4 | Semanal v3 (por producto, sin límite, skill) | ☐ |
 | E5 | View v3 (5 estados + insumos ampliados + skill) | ☐ |
