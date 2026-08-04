@@ -1,33 +1,7 @@
-import { getArbitrajes } from "@/lib/arbitrajes-cierres";
-import { getDolarFuturo } from "@/lib/market";
-import { getDolarLinked } from "@/lib/market/dolar-linked";
-import { getDolarOficialHistorico } from "@/lib/dolar-historico";
-import { getMonitorMercados, getVariacionSemanalMacro } from "@/lib/monitor-mercados";
-import { getNoticias, getNoticiasSemana } from "@/lib/noticias";
-import { getEventos } from "@/lib/calendario";
-import { getNegociado } from "@/lib/compras/negociado";
-import { getMesaEmbarque } from "@/lib/lineup/embarque";
-import { getEmpresas } from "@/lib/lineup/empresas";
-import { getDjveResumen } from "@/lib/djve";
-import { getCamionesSemana } from "@/lib/camiones/semanal";
-import { getComprasBcra, acumuladoSemanalBcra } from "@/lib/bcra-mulc";
-import { getPasZonasInforme } from "@/lib/pas-zonas";
-import { getPasCondicionInforme } from "@/lib/pas-condicion";
-import { getPizarra } from "@/lib/pizarra";
 import { datosDiario } from "@/lib/informe-diario-datos";
+import { datosSemanal } from "@/lib/informe-semanal-datos";
 import { hoyCordobaISO } from "@/lib/dates";
-import { sbSelect, sbSelectAll } from "@/lib/supabase";
 import { tokenValido, esFechaValida } from "@/lib/informe-auth";
-import { parseRows, construirCambios, organismosPresentes } from "@/lib/estimaciones";
-import {
-  getVariacionSemanalGranos,
-  getVariacionSemanalChicago,
-  getVariacionSemanalPizarra,
-  getVariacionSemanalDolarOficial,
-  getViewMercadoVigentePorGrano,
-  getScorecardResumen,
-  getVolumenA3Semanal,
-} from "@/lib/informe-semanal";
 
 /**
  * GET /api/informes/datos?fecha=YYYY-MM-DD[&tipo=diario|semanal] — auth: header
@@ -38,14 +12,17 @@ import {
  * $/USD), dólar mayorista + curva DDF, Chicago + macro, noticias del día, agenda de
  * hoy/mañana, el "color de la rueda"/BCRA que Lautaro carga en /admin/datos, y el view de
  * mercado vigente por grano (V1, con su `evidencia_externa` ya verificada — V4 de
- * PLAN_INFORMES_V2.md §6.4: el diario la puede citar como contexto, cero fetch nuevo).
+ * PLAN_INFORMES_V2.md §6.4: el diario la puede citar como contexto, cero fetch nuevo). Todo
+ * lo arma `datosDiario()` (`informe-diario-datos.ts`) — la MISMA función que consume la
+ * plantilla y la página web (E3).
  *
- * `tipo=semanal` (MP2/V3): variación SEMANAL (último dato real vs el de ~7 días antes, sin
+ * `tipo=semanal` (MP2/V3/E4): variación SEMANAL (último dato real vs el de ~7 días antes, sin
  * asumir "viernes calendario") de granos/Chicago/pizarra/dólar oficial, negociado SIO de
  * la semana, comercio exterior (embarques + empresas), view de mercado por grano (con
  * `relacion_previa` — V3 la usa para el bullet automático de SWITCH) y su scorecard
  * (hit-rate/racha a 4 semanas, mencionado 1 vez por mes), y agenda de la semana próxima.
- * Todo reusando las libs existentes.
+ * Todo lo arma `datosSemanal()` (`informe-semanal-datos.ts`) — la MISMA función que consume
+ * la plantilla `/informes/plantilla/semanal` (E4).
  */
 
 export async function GET(request: Request): Promise<Response> {
@@ -64,158 +41,4 @@ export async function GET(request: Request): Promise<Response> {
 
   const body = tipo === "semanal" ? await datosSemanal(fecha) : await datosDiario(fecha);
   return Response.json(body, { headers: noCache });
-}
-
-/** Fecha del último semanal ENVIADO antes de `antesDe` — el ancla de la ventana semanal (E1 de
- *  PLAN_INFORMES_V3.md §6.1: "vs la fecha del último informes_generados tipo=semanal
- *  estado=enviado", en vez de un fijo −7d; si un viernes no salió, la ventana se ensancha sola
- *  y cubre el hueco). `null` si nunca se envió uno (primera corrida). */
-async function fechaUltimoSemanalEnviado(antesDe: string): Promise<string | null> {
-  const res = await sbSelect(
-    `informes_generados?tipo=eq.semanal&estado=eq.enviado&fecha=lt.${antesDe}&select=fecha&order=fecha.desc&limit=1`,
-    0,
-  );
-  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return null;
-  return (res.data[0] as { fecha: string }).fecha;
-}
-
-async function datosSemanal(fecha: string) {
-  const semanaProxima = new Date(new Date(`${fecha}T12:00:00Z`).getTime() + 7 * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  const desdeSemanaFallback = new Date(new Date(`${fecha}T12:00:00Z`).getTime() - 6 * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  const ultimoSemanalFecha = await fechaUltimoSemanalEnviado(fecha);
-  const desdeSemana = ultimoSemanalFecha
-    ? new Date(new Date(`${ultimoSemanalFecha}T12:00:00Z`).getTime() + 86_400_000).toISOString().slice(0, 10)
-    : desdeSemanaFallback;
-
-  const [
-    variacionGranos,
-    variacionChicago,
-    variacionPizarra,
-    variacionDolarOficial,
-    viewsMercado,
-    negociado,
-    embarques,
-    empresas,
-    pizarra,
-    dolarFuturo,
-    chicago,
-    noticias,
-    estimRes,
-    scorecard,
-    diariosRes,
-    interpSemanaRes,
-    noticiasSemana,
-    djveResumen,
-    camionesSemana,
-    dolarLinked,
-    arbitrajes,
-    dolarHistorico,
-    comprasBcra,
-    pasZonas,
-    pasCondicion,
-    volumenA3Semanal,
-    variacionMacro,
-  ] = await Promise.all([
-    getVariacionSemanalGranos(fecha),
-    getVariacionSemanalChicago(fecha),
-    getVariacionSemanalPizarra(fecha),
-    getVariacionSemanalDolarOficial(fecha),
-    getViewMercadoVigentePorGrano(),
-    getNegociado(),
-    getMesaEmbarque(),
-    getEmpresas(),
-    getPizarra(),
-    getDolarFuturo(),
-    getMonitorMercados(),
-    getNoticias(),
-    sbSelectAll(
-      "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url&order=fecha_publicacion.asc",
-      3600,
-    ),
-    // V3 (PLAN_INFORMES_V2.md §6.3): hit-rate/racha a 4 semanas por grano, se menciona 1 vez
-    // por mes en el cierre — cero fórmula nueva, reusa la lib pura de /granos/view.
-    getScorecardResumen(),
-    // E1 de PLAN_INFORMES_V3.md §6.1: los DIARIOS de la semana ("lectura de los informes
-    // diarios desde la última publicación") — la skill los usa para el hilo narrativo, no
-    // para números (esos salen de las libs).
-    sbSelect(
-      `informes_generados?tipo=eq.diario&estado=eq.enviado&fecha=gte.${desdeSemana}&fecha=lte.${fecha}&select=fecha,titulo,prosa&order=fecha.asc`,
-      0,
-    ),
-    // Interpretaciones PUBLICADAS esta semana (por cuándo se publicaron, no por la fecha del
-    // informe original — mismo criterio "day-scoped" que la home usa para Novedades del día).
-    sbSelect(
-      `interpretaciones?estado=eq.publicado&editado_en=gte.${desdeSemana}T00:00:00&select=organismo,informe,fecha_publicacion,granos,publicado_md,editado_en,impacto&order=editado_en.desc`,
-      0,
-    ),
-    getNoticiasSemana(fecha, 7),
-    getDjveResumen(),
-    getCamionesSemana(fecha),
-    getDolarLinked(),
-    getArbitrajes(),
-    getDolarOficialHistorico(),
-    getComprasBcra(),
-    getPasZonasInforme(),
-    getPasCondicionInforme(),
-    getVolumenA3Semanal(fecha),
-    getVariacionSemanalMacro(fecha),
-  ]);
-
-  const noticiasCompactas = {
-    destacados: noticias.destacados.slice(0, 8),
-    meta: noticias.meta,
-  };
-
-  // Informes de organismos publicados EN LA SEMANA (desde el último semanal enviado) — mismo
-  // cálculo que el diario, ventana ahora anclada en vez de fija.
-  const estimRows = estimRes.ok ? parseRows(estimRes.data) : [];
-  const informesSemana = organismosPresentes(estimRows)
-    .map((o) => construirCambios(estimRows, o))
-    .filter((c) => c.fecha && c.fecha >= desdeSemana && c.fecha <= fecha && c.cambios.length > 0);
-
-  const diariosSemana = diariosRes.ok && Array.isArray(diariosRes.data) ? diariosRes.data : [];
-  const interpretacionesSemana =
-    interpSemanaRes.ok && Array.isArray(interpSemanaRes.data) ? interpSemanaRes.data : [];
-
-  return {
-    generado: new Date().toISOString(),
-    tipo: "semanal" as const,
-    fecha,
-    desdeSemana,
-    variacionGranos,
-    variacionChicago,
-    variacionPizarra,
-    variacionDolarOficial,
-    viewsMercado,
-    negociado,
-    embarques,
-    empresas,
-    pizarra,
-    dolarFuturo,
-    chicago,
-    noticias: noticiasCompactas,
-    informesSemana,
-    agenda: getEventos(fecha, semanaProxima),
-    scorecard,
-    diariosSemana,
-    interpretacionesSemana,
-    noticiasSemana,
-    djveResumen,
-    camionesSemana,
-    dolarLinked,
-    arbitrajes,
-    volatilidadDolar: {
-      volatilidadSemanal: dolarHistorico.volatilidadSemanal.slice(-8),
-      volatilidadDiaria: dolarHistorico.volatilidadDiaria.slice(-30),
-    },
-    comprasBcraSemana: acumuladoSemanalBcra(comprasBcra.serie, fecha),
-    pasZonas,
-    pasCondicion,
-    volumenA3Semanal,
-    variacionMacro,
-  };
 }

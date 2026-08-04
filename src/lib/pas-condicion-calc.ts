@@ -104,6 +104,41 @@ export function overlayAdecuadaOptima(filas: FilaCondicionDB[], grano: string, c
   return overlayDosCategorias(filas, grano, ciclo, "ch_adecuada", "ch_optima");
 }
 
+export type DeltaCondicion = {
+  campania: string;
+  semanaActual: number;
+  semanaPrevia: number;
+  valorActual: number;
+  valorPrevio: number;
+  deltaPts: number;
+};
+
+/**
+ * Δ de "Buena+Excelente" entre las 2 últimas semanas CON DATO de la campaña vigente — informe
+ * semanal v3 (E4, §6.1 "Producción": PAS condición "si hubo cambios significativos"). `null` si
+ * el grano no tiene datos de condición, o si la campaña vigente todavía no acumuló 2 semanas
+ * comparables (recién arrancó, o el corte semanal trae huecos). No inventa nada: reusa el mismo
+ * overlay que ya pinta el chart de `/produccion/condicion`, solo mira sus últimos 2 puntos.
+ */
+export function deltaCondicionReciente(filas: FilaCondicionDB[], grano: string, ciclo: string): DeltaCondicion | null {
+  const campania = campaniaDefaultCondicion(filas, grano, ciclo);
+  if (!campania) return null;
+  const serie = overlayBuenaExcelente(filas, grano, ciclo).find((s) => s.campania === campania);
+  if (!serie) return null;
+  const conValor = serie.puntos.filter((p) => p.valor != null).sort((a, b) => a.semana - b.semana);
+  if (conValor.length < 2) return null;
+  const actual = conValor[conValor.length - 1]!;
+  const previa = conValor[conValor.length - 2]!;
+  return {
+    campania,
+    semanaActual: actual.semana,
+    semanaPrevia: previa.semana,
+    valorActual: actual.valor as number,
+    valorPrevio: previa.valor as number,
+    deltaPts: (actual.valor as number) - (previa.valor as number),
+  };
+}
+
 export type SerieEtapa = { etapa: string; puntos: { semana: number; pct: number | null }[] };
 
 /** Chart 3 — fenología: una serie por etapa (nombres literales del header, en su orden real),

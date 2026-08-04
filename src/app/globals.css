@@ -1231,6 +1231,7 @@ a.estim-inf:hover { color:var(--gold-text); }
   --ink:#17251B; --ink-2:#44553D; --ink-3:#5B6C51;
   --line:rgba(47,74,42,.16); --line-2:rgba(47,74,42,.10);
   --gold:#EFBF2E; --gold-text:#8A6608; --pos:#16A34A; --neg:#DC2626; --neu:#7E8C74;
+  --pos-weak:rgba(22,163,74,.12); --neg-weak:rgba(220,38,38,.12);
   --brand-deep:#2F6E34; --grid:rgba(47,74,42,.14);
   background:var(--panel); color:var(--ink); font-family:var(--font-ui);
 }
@@ -1261,6 +1262,27 @@ a.estim-inf:hover { color:var(--gold-text); }
    flotando a mitad de contenido en vez de al pie real. En esa página el pie fluye después del
    contenido en vez de anclarse (27/07/2026, primera vez que se probó con views reales). */
 .sem-pie-flow { position:static; margin-top:24px; }
+
+/* E4 (informe semanal v3, docs/PLAN_INFORMES_V3.md §6.1) — UNA SECCIÓN POR PRODUCTO
+   (soja→maíz→trigo) + bloques transversales. Grillas/tarjetas chicas reusando los tokens
+   ya redefinidos por .sem-hoja (siempre tema claro) — nada de color nuevo. */
+.sem-grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.sem-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.sem-card { background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:11px 13px; }
+.sem-card-tit { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--ink-3); margin:0 0 8px; }
+.sem-stat-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+  font-family:var(--font-mono); font-size:12.5px; padding:2px 0; }
+.sem-stat-row .l { color:var(--ink-2); }
+.sem-mini-tit { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-3); margin:10px 0 4px; padding-top:8px; border-top:1px solid var(--line-2); }
+.sem-badge-dir { display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono);
+  font-weight:800; font-size:11px; letter-spacing:.03em; padding:3px 9px; border-radius:99px;
+  text-transform:uppercase; }
+.sem-badge-dir.alcista { color:var(--pos); background:var(--pos-weak); }
+.sem-badge-dir.bajista { color:var(--neg); background:var(--neg-weak); }
+.sem-badge-dir.neutral { color:var(--ink-3); background:color-mix(in srgb, var(--ink-3) 12%, transparent); }
+@media print { .sem-grid-3, .sem-grid-2 { break-inside:avoid; } }
 
 /* VariacionBarras (informe semanal MP2): barras horizontales centradas en 0%. */
 .vb-wrap { display:flex; flex-direction:column; gap:6px; padding:10px 4px; }

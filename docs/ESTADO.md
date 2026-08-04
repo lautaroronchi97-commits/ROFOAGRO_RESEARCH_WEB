@@ -19,7 +19,69 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 📰 E3 de PLAN INFORMES V3: informe diario reorganizado por producto + página web con link)
+## Ahora (última actualización: 04/08/2026 — 📊 E4 de PLAN INFORMES V3: informe semanal reorganizado por producto)
+
+**📊 E4 — INFORME SEMANAL V3 (UNA SECCIÓN POR PRODUCTO) — HECHO Y VERIFICADO — rama
+`claude/plan-informes-e4-w6ao57`, PR #_.** Ejecuta el PROMPT E4 de `PLAN_INFORMES_V3.md` §10
+(requiere E1, mergeada el mismo día; ideal post-E2, también mergeada). Reestructura la placa
+semanal (MP2/V2) por producto **SOJA→MAÍZ→TRIGO con local/internacional SIEMPRE separados**
+(N8) y le sacó el tope de 5 páginas (N1) — flujo libre A4, cada sección lógica imprime tantas
+hojas físicas como necesite.
+
+**`datosSemanal()` se mudó** de `/api/informes/datos/route.ts` a
+`src/lib/informe-semanal-datos.ts` (mismo patrón que `informe-diario-datos.ts` de E3) — ahora
+es la ÚNICA función que arma los insumos del semanal, consumida por el route (Routine externa
+por token) Y por la plantilla nueva, cero query duplicada. Sumó 2 campos aditivos que el JSON
+no necesitaba pero la plantilla sí: `comprasBcra` completo (con `serie`, para el gráfico de
+barras) y `pases` (tasas implícitas por producto).
+
+**Plantilla `/informes/plantilla/semanal` reescrita por producto**: tapa → "la semana en
+números" (transversal) → una sección por SOJA/MAÍZ/TRIGO (precios · volúmenes · comercial
+—negociado/DJVE/gap de cobertura 60d, agregados por familia de producto— · tasas implícitas
+—arbitrajes+pases, con canal de **pizarra estimada del viernes** vía `prosa.pizarra_estimada`,
+recalculando `tasaDirecta`/`tnaUSD` de `src/lib/arbitraje.ts`— · producción —cambios de
+organismos + Δ de condición BCBA-PAS semana a semana, `deltaCondicionReciente()` nueva en
+`pas-condicion-calc.ts`, 3 tests— · "la semana según la mesa" —view + interpretaciones del
+producto—) → "Dólar y macro local" (oficial + volatilidad + compras BCRA + linked + carry) →
+"Contexto internacional" (Chicago + "el mundo esta semana" + otros mercados ≥5%) → "Comercio
+exterior transversal" (cumplimiento + camiones Williams+Agroentregas) → "Cierre" (agenda +
+scorecard mensual). Reusa `VariacionBarras`/`DolarOficialChart`/`DolarOficialVolatilidadChart`/
+`BcraMulcChart`/`ImpactoBadges`, todos ya construidos por sesiones previas.
+
+**Skill `informe-semanal` v3**: Paso 0 de calibración nuevo (banco de oro + aprendizajes
+propios + últimas notas/feedback, mismo patrón que E3) · Paso 1 documenta los ~25 campos del
+JSON ampliado por E1 · Paso 2 (criterio) reescrito para la estructura por producto + regla N9
+explícita (sin internals) · Paso 3 con los campos de prosa nuevos por producto (`soja_texto`/
+`maiz_texto`/`trigo_texto` + `local_texto`/`internacional_texto` + `pizarra_estimada`) ·
+Paso 5 sin el check `/Count ≥5` (ya no hay techo de páginas) · Paso 7 (mail) suma los 3 links
+de nota 1-tap (N15) · Paso 9 suma telemetría (`routine_runs`, N13). `references/aprendizajes.md`
+y `references/banco-de-oro.md` propios, vacíos.
+
+**Bug real encontrado y arreglado en la propia verificación**: `BcraMulcChart` (chart+tabla
+pensado para un panel de ancho completo, con `RangoChips`) metido en una columna de grid de
+~334px se cortaba silenciosamente contra el borde de la hoja A4 — sin error, sin overflow
+visible en el propio elemento (Playwright solo lo detectó al mirar la captura). Fix: cada chart
+de "Dólar y macro local" pasó a su propia fila a ancho completo; el grid de 2 columnas queda
+reservado para pares de texto plano. **Decisión propia** (el plan usaba "pizarra del jueves"
+como ejemplo): el rótulo de la pizarra oficial en la tabla de tasas implícitas quedó dinámico
+(`Pizarra oficial del DD/MM/AAAA`, leyendo `arbitrajes.pizarraFecha` real) en vez de fijo a
+"jueves" — generaliza correctamente sin perder el requisito de rótulo obligatorio.
+
+**Verificado**: lint/tsc/**479 tests** (3 nuevos)/build ✅ · `npm run start` con datos reales de
+producción (`curl` a `/api/informes/datos?tipo=semanal` con los ~32 campos esperados) ·
+Playwright real (9 hojas lógicas confirmadas, capturas por sección con datos 100% reales: soja
+ALCISTA/NEUTRAL con tesis completa, DJVE/gap de cobertura reales, agenda real) · **canal de
+pizarra estimada probado de punta a punta** (fila de prueba real insertada y BORRADA al
+terminar, patrón ya usado en sesiones anteriores — confirmado por SQL que no queda residuo).
+
+**Pendiente (no bloquea)**: primera corrida real de la Routine semanal con este formato (el
+viernes que viene, post-merge) · `references/aprendizajes.md`/`banco-de-oro.md` arrancan
+vacíos. **Próximo paso: E5 (view v3, 5 estados) y E6 (Routines finales + cierre)** — E5 ya no
+debería requerir tocar esta plantilla (el badge de dirección tolera los 5 estados de forma
+genérica, sin mapa fijo de 3 valores). Detalle:
+[`sesiones/2026-08-04-e4-informe-semanal.md`](sesiones/2026-08-04-e4-informe-semanal.md).
+
+## Anterior (04/08/2026 — 📰 E3 de PLAN INFORMES V3: informe diario reorganizado por producto + página web con link)
 
 **📰 E3 — INFORME DIARIO V3 (PLACA POR PRODUCTO + SKILL + PÁGINA WEB) — HECHO Y VERIFICADO —
 rama `claude/e3-plan-informes-dk3qgq`, PR #_.** Ejecuta el PROMPT E3 de `PLAN_INFORMES_V3.md`
