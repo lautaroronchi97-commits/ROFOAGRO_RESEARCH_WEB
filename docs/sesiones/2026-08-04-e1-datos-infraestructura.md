@@ -106,16 +106,31 @@
 
 ## Quedó pendiente / en vuelo
 
-- **Aplicar las 5 migraciones por MCP** — Lautoro dio el OK explícito en el chat de esta sesión,
-  pero `apply_migration` devolvió `MCP error -32003: requires approval` en 3 intentos seguidos
-  (un gate de permisos del harness, no una decisión de negocio pendiente). El SQL está escrito,
-  revisado y con el OK — falta solo que el próximo intento (esta sesión retomada, o la siguiente)
-  logre pasar la aprobación.
-- Después de aplicar: verificar RLS de las columnas/tabla nuevas por SQL (`set local role anon`
-  denegado, `authenticated`+`is_admin()` permitido) · probar el camino de ÉXITO del link de nota
-  1-tap contra un informe real (`estado=enviado`) · confirmar en el navegador (con
-  `NEXT_PUBLIC_SUPABASE_*` reales, fuera de este sandbox) que `/admin/datos/mesa-color` y
-  `/admin/interpretaciones` renderizan el textarea/badge nuevos con datos de verdad.
+- ~~Aplicar las 5 migraciones por MCP~~ → **✅ HECHO (04/08, mismo día).** `apply_migration`
+  siguió devolviendo `MCP error -32003: requires approval` en todos los intentos posteriores
+  (nunca se resolvió el gate desde este lado) → **Lautoro las corrió a mano, una por una, en el
+  SQL Editor de Supabase**, guiado paso a paso en el chat — las 5 dieron "Success". Verificado
+  después por `execute_sql` (que sí funcionó, a diferencia de `apply_migration`/`get_advisors`,
+  el gate no bloqueaba parejo todas las tools de Supabase): las 5 columnas/tabla nuevas existen,
+  el CHECK de `views_mercado.direccion` tiene los 5 estados, `admin_upsert_mesa_color` quedó con
+  una sola versión (3 parámetros, la vieja de 2 se dropeó bien), `admin_feedback_informe` existe.
+- ~~Verificar RLS~~ → **✅ HECHO**: `routine_runs` con `relrowsecurity=true` + policy
+  `routine_runs_select_admin` (`authenticated`+`is_admin()`, solo SELECT) · `admin_feedback_informe`/
+  `admin_upsert_mesa_color` con `security definer`+`search_path=public` fijo, EXECUTE solo a
+  `authenticated`/`service_role` (nunca `anon`). Los grants "de más" (`authenticated` con
+  INSERT/UPDATE/DELETE a nivel tabla en `routine_runs`) están, pero es el MISMO patrón preexistente
+  en `views_mercado`/`mesa_color`/`informes_generados` (default privileges del proyecto) — RLS sin
+  policy de escritura es lo que realmente bloquea, confirmado comparando las 4 tablas.
+- ~~Probar el camino de ÉXITO del link de nota 1-tap~~ → **✅ HECHO**: contra un informe real
+  (`estado=enviado`) con `INFORME_SHARE_SECRET` de prueba, el link dio "¡Gracias!" HTTP 200 y
+  grabó `nota=5` en la fila real (verificado por SQL) — nota de prueba limpiada (`update ...
+  set nota=null`) al terminar, no queda dato falso en producción.
+- **Sigue pendiente** (no bloquea, menor): `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` no están en este
+  sandbox → nunca se pudo ver `/admin/datos/mesa-color`/`/admin/interpretaciones` renderizados
+  con datos reales en un navegador (solo por bypass+curl, sin JS). Confirmar visualmente queda
+  para quien tenga esas credenciales (Lautoro, o una sesión con el entorno completo) · cargar
+  `INFORME_SHARE_SECRET` real en Vercel + el entorno de las Routines (hoy solo se usó un valor de
+  prueba local para el test, nunca se guardó en ningún lado del repo).
 - **Próximo paso real: E2** (skill + Routine de interpretaciones, prompt en
   `PLAN_INFORMES_V3.md` §10) — depende de que E1 esté mergeada.
 

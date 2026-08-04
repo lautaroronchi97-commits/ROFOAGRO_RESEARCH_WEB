@@ -19,10 +19,10 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 🧱 E1 de PLAN INFORMES V3: migraciones + libs + endpoints ampliados — código listo, migraciones ESCRITAS SIN APLICAR)
+## Ahora (última actualización: 04/08/2026 — 🧱 E1 de PLAN INFORMES V3 CERRADO: migraciones + libs + endpoints ampliados, migraciones APLICADAS y verificadas)
 
-**🧱 E1 — DATOS E INFRAESTRUCTURA COMPARTIDA — CÓDIGO HECHO Y VERIFICADO, migraciones
-pendientes de aplicar — rama `claude/plan-informes-v3-migrations-wql0sz`, PR #_.** Ejecuta el
+**🧱 E1 — DATOS E INFRAESTRUCTURA COMPARTIDA — HECHO DE PUNTA A PUNTA, migraciones
+aplicadas — rama `claude/plan-informes-v3-migrations-wql0sz`, PR #133.** Ejecuta el
 PROMPT E1 de `PLAN_INFORMES_V3.md` §10 (primera etapa de C30, el plan cerrado el mismo día):
 migraciones + libs puras + endpoints ampliados + admin — CERO cambios de skills/plantillas
 (eso es E2-E5).
@@ -95,25 +95,38 @@ con `curl` contra la base de PRODUCCIÓN real** (`INFORME_TOKEN` del entorno) �
 nuevos entre los 2 endpoints responden con datos reales y plausibles (`pasZonas` 1837 filas/
 `pasCondicion` 1872 — coincide exacto con el historial documentado de C23/C27; `desacopleLocal`
 con premios/descuentos con signo correcto por grano; `zonaPrecio` con percentiles 20-85%) ·
-degradación honesta confirmada EN VIVO: como las 5 migraciones todavía no están aplicadas,
-cada columna/tabla nueva no existe todavía — los endpoints devuelven 200 igual, con esos campos
-en `null`/`[]`/vacío, sin romper nada (confirmado con `curl` directo a PostgREST: los 4 `42703
-column does not exist` esperados) · endpoint de nota 1-tap probado en sus 2 caminos de rechazo
-(firma inválida → 400; firma válida pero columna todavía inexistente → 502 honesto, no 500) ·
+degradación honesta confirmada EN VIVO mientras las migraciones no estaban aplicadas (los
+endpoints devolvían 200 igual, con los campos nuevos en `null`/`[]`/vacío, `42703 column does
+not exist` confirmado por `curl` directo a PostgREST, nunca un 500) · endpoint de nota 1-tap
+probado en sus 2 caminos de rechazo (firma inválida → 400; columna inexistente → 502 honesto) ·
 bypass temporal de `requireAdmin()`/`esAdminUser` para confirmar que `/admin/*` en este sandbox
 falla por una causa **ajena a esta sesión** (falta `NEXT_PUBLIC_SUPABASE_URL`/`_ANON_KEY` en el
-entorno — afecta a `/admin` mismo, sin tocar) — revertido, `git diff` limpio.
+entorno) — revertido, `git diff` limpio.
 
-**Quedó pendiente — aplicar las 5 migraciones por MCP**: Lautoro dio el OK explícito en la
-sesión, pero el tool `apply_migration` devolvió `MCP error -32003: requires approval` en 3
-intentos — un gate de permisos del propio harness, no una decisión de negocio pendiente. Con
-las migraciones aplicadas, además falta: verificar RLS de las columnas/tabla nuevas por SQL ·
-probar el camino de ÉXITO del link de nota 1-tap contra un informe real · confirmar en el
-navegador (con `NEXT_PUBLIC_SUPABASE_*` reales) que `/admin/datos/mesa-color` y
-`/admin/interpretaciones` renderizan el textarea/badge nuevos con datos de verdad. **Próximo
-paso: aplicar las 5 migraciones (SQL ya escrito y con el OK, en `supabase/migrations/
-20260804120*_e1_*.sql`) → correr esa verificación → seguir con E2** (skill + Routine de
-interpretaciones, prompt en `PLAN_INFORMES_V3.md` §10). Detalle:
+**Las 5 migraciones — APLICADAS (mismo día, con Lautoro).** `apply_migration`/`get_advisors`
+del MCP de Supabase devolvieron `requires approval` en todos los intentos (gate del lado del
+cliente, nunca se destrabó) → **Lautoro las corrió a mano, una por una, guiado paso a paso en
+el chat, en el SQL Editor de Supabase** — las 5 dieron "Success". Verificado después por
+`execute_sql` (esa sí funcionó): las 4 columnas de `interpretaciones` + las 2 de
+`informes_generados` + `chicago_bcr` de `mesa_color` existen, el CHECK de
+`views_mercado.direccion` tiene los 5 estados, `admin_upsert_mesa_color` quedó con una sola
+versión limpia (3 parámetros), `routine_runs` existe con RLS activa y su policy de solo-admin.
+**RLS confirmada por SQL**: `admin_feedback_informe`/`admin_upsert_mesa_color` con
+`security definer`+`search_path` fijo, EXECUTE solo `authenticated`/`service_role` (nunca
+`anon`); los grants "de más" a nivel tabla en `routine_runs` (`authenticated` con INSERT/
+UPDATE/DELETE) son el MISMO patrón preexistente de default privileges que ya tienen
+`views_mercado`/`mesa_color`/`informes_generados` — RLS sin policy de escritura es lo que
+bloquea de verdad, confirmado comparando las 4 tablas. **Link de nota 1-tap probado de punta a
+punta**: contra un informe real (`estado=enviado`), con secret de prueba, dio "¡Gracias!" 200 y
+grabó `nota=5` en la fila real — verificado por SQL y limpiado al toque (no queda dato falso en
+producción).
+
+**Sigue pendiente (menor, no bloquea)**: cargar `INFORME_SHARE_SECRET` real en Vercel + el
+entorno de las Routines (hoy nadie lo configuró, solo se usó un valor de prueba local nunca
+guardado) · ver `/admin/datos/mesa-color`/`/admin/interpretaciones` renderizados con datos
+reales en un navegador (este sandbox no tiene `NEXT_PUBLIC_SUPABASE_*`). **Próximo paso: E2**
+(skill + Routine de interpretaciones, prompt en `PLAN_INFORMES_V3.md` §10) — depende de que
+este PR mergee. Detalle:
 [`sesiones/2026-08-04-e1-datos-infraestructura.md`](sesiones/2026-08-04-e1-datos-infraestructura.md).
 
 ## Anterior (04/08/2026 — 📐 PLAN INFORMES V3 cerrado: el Word de Lautaro sobre los 4 productos de research)
