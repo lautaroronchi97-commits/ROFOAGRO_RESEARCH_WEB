@@ -1,7 +1,14 @@
 import "server-only";
 import { cache } from "react";
 import { createSupabaseServerClient } from "./auth/server";
-import { sbSelect } from "./supabase";
+import { sbSelect, sbSelectAll } from "./supabase";
+import {
+  calcularScorecardInterpretacion,
+  resumirScorecardInterpretaciones,
+  type ScorecardInterpretacion,
+  type ResumenScorecardInterp,
+} from "./interpretaciones-scorecard";
+import type { FuturoCierreRow } from "./views-scorecard";
 
 /**
  * Interpretaciones de informes de organismos (MP4 de docs/PLAN_INFORMES.md, ítem 21):
@@ -115,3 +122,36 @@ export async function getInterpretacionesPublicadas(): Promise<InterpretacionPub
     .filter((r) => typeof r.publicado_md === "string" && (r.publicado_md as string).length > 0)
     .map((r) => ({ ...r, impacto: parseImpacto(r.impacto) })) as InterpretacionPublica[];
 }
+
+/**
+ * Scorecard N14 (docs/PLAN_INFORMES_V3.md §3/§9) — "qué tan bien leemos los reportes": mide el
+ * `impacto` por grano de cada interpretación contra `futuros_cierres` a 7/14 días
+ * (`interpretaciones-scorecard.ts`). `futuros_cierres` es pública, se lee con `sbSelectAll` (env
+ * key), no con la sesión del admin — mismo patrón exacto que `getScorecard` en `views-mercado.ts`.
+ * Nunca tira: si `futuros_cierres` no responde, el resumen queda en `hitRate: null` (la UI ya sabe
+ * mostrar "sin datos todavía" para eso).
+ */
+export const getScorecardInterpretaciones = cache(async (): Promise<ResumenScorecardInterp> => {
+  const filas = await getInterpretacionesAdmin();
+  const conImpacto = filas.filter((f) => Object.keys(f.impacto).length > 0);
+  if (conImpacto.length === 0) return { n7: 0, hitRate7: null, n14: 0, hitRate14: null };
+
+  const res = await sbSelectAll(
+    "futuros_cierres?select=underlying,posicion,fecha,settlement&underlying=in.(SOJ,MAI,TRI)&order=fecha.asc",
+    3600,
+  );
+  type RawRow = { underlying: string; posicion: string; fecha: string; settlement: number | string };
+  const rows: FuturoCierreRow[] = res.ok
+    ? (res.data as RawRow[]).map((r) => ({
+        underlying: r.underlying,
+        posicion: r.posicion,
+        fecha: r.fecha,
+        settlement: Number(r.settlement),
+      }))
+    : [];
+
+  const scorecards: ScorecardInterpretacion[] = conImpacto.map((f) =>
+    calcularScorecardInterpretacion({ id: f.id, fecha_publicacion: f.fecha_publicacion, impacto: f.impacto }, rows),
+  );
+  return resumirScorecardInterpretaciones(scorecards);
+});

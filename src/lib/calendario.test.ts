@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getEventos } from "./calendario";
+import { getEventos, CONAB_FECHAS } from "./calendario";
 
 // Fixtures: docs/auditoria/E2-formulas-fichas.md, ficha 6.3 (conversiones TZ + corrimiento por feriado).
 describe("calendario.ts — ficha E2 6.3", () => {
@@ -75,6 +75,48 @@ describe("calendario.ts — ficha E2 6.3", () => {
 
   it("sin seed para un año (ej. 2027, NASS todavía no lo publicó) -> degrada sin romper, sin eventos NASS", () => {
     const eventos = getEventos("2027-01-01", "2027-01-31");
-    expect(eventos.find((e) => e.organismo === "USDA")).toBeUndefined();
+    // Export Sales es organismo USDA pero "regla" (jueves fijo, no depende del seed de NASS) —
+    // el que sí tiene que faltar es lo que SÍ sale del ICS (tipo "oficial").
+    expect(eventos.find((e) => e.organismo === "USDA" && e.tipo === "oficial")).toBeUndefined();
+  });
+
+  // E2 (docs/PLAN_INFORMES_V3.md §8.2): USDA Export Sales + NOPA + centinela CONAB.
+  it("USDA Export Sales: jueves 8:30 ET -> 9:30 AR en julio (EDT, con horario de verano EEUU)", () => {
+    const eventos = getEventos("2026-07-20", "2026-07-24"); // semana del jueves 23/07
+    const es = eventos.find((e) => e.informe.includes("Export Sales"));
+    expect(es?.fechaISO).toBe("2026-07-23");
+    expect(es?.horaArg).toBe("09:30");
+  });
+
+  it("USDA Export Sales: 8:30 ET -> 10:30 AR en diciembre (EST, sin horario de verano)", () => {
+    const eventos = getEventos("2026-12-07", "2026-12-11"); // semana del jueves 10/12
+    const es = eventos.find((e) => e.informe.includes("Export Sales"));
+    expect(es?.fechaISO).toBe("2026-12-10");
+    expect(es?.horaArg).toBe("10:30");
+  });
+
+  it("NOPA Crush Report: 15/08/2026 cae sábado -> se corre al viernes 14/08", () => {
+    const eventos = getEventos("2026-08-01", "2026-08-31");
+    const nopa = eventos.find((e) => e.organismo === "NOPA");
+    expect(nopa?.fechaISO).toBe("2026-08-14");
+    expect(nopa?.horaArg).toBe("13:00"); // 12:00 ET EDT -> 13:00 AR
+  });
+
+  it("NOPA Crush Report: 15/09/2026 cae martes -> queda en el día 15 exacto", () => {
+    const eventos = getEventos("2026-09-01", "2026-09-30");
+    const nopa = eventos.find((e) => e.organismo === "NOPA");
+    expect(nopa?.fechaISO).toBe("2026-09-15");
+  });
+
+  it("CONAB_FECHAS tiene cargado el año siguiente (obligatorio desde noviembre, mismo patrón que FERIADOS_AR)", () => {
+    // CONAB publica su calendario boletín a boletín, sin ICS máquina-legible (a diferencia de NASS) —
+    // el centinela avisa (falla en CI) cuando se necesita cargar el año siguiente a mano, en vez de
+    // quedar en silencio con un calendario incompleto desde enero (mismo criterio que habiles.test.ts).
+    const hoy = new Date();
+    const esDesdeNoviembre = hoy.getUTCMonth() >= 10; // 10 = noviembre
+    const anioProximo = hoy.getUTCFullYear() + 1;
+    const tieneProximo = Object.keys(CONAB_FECHAS).includes(String(anioProximo));
+    if (esDesdeNoviembre) expect(tieneProximo).toBe(true);
+    else expect(true).toBe(true); // antes de noviembre no exige nada
   });
 });

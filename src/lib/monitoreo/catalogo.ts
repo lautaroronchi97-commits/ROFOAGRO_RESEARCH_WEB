@@ -81,7 +81,7 @@ export const FUTURO: SeedFuturo[] = [
   },
 ];
 
-// Última fecha OFICIAL sembrada en src/lib/calendario.ts (CONAB_2026 termina el 15/12/2026).
+// Última fecha OFICIAL sembrada en src/lib/calendario.ts (CONAB_FECHAS["2026"] termina el 15/12/2026).
 // ⚠️ Mantener EN SYNC al sembrar el seed del año siguiente (y subir SEED_ACTUAL en
 // refresh-calendario.mjs). Con <60 días de seed restante este check enrojece el healthcheck.
 export const ULTIMO_SEED_CALENDARIO = "2026-12-15";
