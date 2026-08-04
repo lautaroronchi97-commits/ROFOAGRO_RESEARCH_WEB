@@ -147,8 +147,17 @@ function fechasNass(clave: keyof SeedNassAnio): string[] {
 
 /** CONAB — Levantamento da Safra de Grãos. 09:00 Brasília. NASS no cubre este organismo (Brasil no
  *  publica un ICS/calendario máquina-legible verificado — PLAN_CALENDARIO_PRODUCCION §8) → sigue a
- *  mano, renovar una vez al año con las fechas oficiales del boletín. */
-const CONAB_2026 = ["2026-07-14", "2026-08-13", "2026-09-15", "2026-10-15", "2026-11-13", "2026-12-15"];
+ *  mano, renovar una vez al año con las fechas oficiales del boletín. Por año (mismo criterio que
+ *  SEED_NASS) para que el centinela de abajo detecte cuándo falta cargar el año siguiente (E2 de
+ *  PLAN_INFORMES_V3.md §8.2 — "centinela del array CONAB", mismo patrón que el de FERIADOS_AR en
+ *  habiles.test.ts). */
+export const CONAB_FECHAS: Record<string, string[]> = {
+  "2026": ["2026-07-14", "2026-08-13", "2026-09-15", "2026-10-15", "2026-11-13", "2026-12-15"],
+};
+
+function fechasConab(): string[] {
+  return Object.values(CONAB_FECHAS).flat();
+}
 
 const U = {
   wasde: "https://www.usda.gov/oce/commodity-markets/wasde",
@@ -165,6 +174,8 @@ const U = {
   eia: "https://www.eia.gov/petroleum/supply/weekly/",
   conabProgresso:
     "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/progresso-de-safra",
+  exportSales: "https://apps.fas.usda.gov/export-sales/esrd1.html",
+  nopa: "https://www.nopa.org/resources/nopa-monthly-crush-report/",
 };
 
 /* ------------------------------------------------------------------ */
@@ -265,7 +276,7 @@ export function getEventos(desdeISO: string, hastaISO: string): EventoCalendario
       ),
     );
   }
-  for (const f of CONAB_2026) {
+  for (const f of fechasConab()) {
     if (!inRange(f, desdeISO, hastaISO)) continue;
     out.push(
       ev(
@@ -304,6 +315,27 @@ export function getEventos(desdeISO: string, hastaISO: string): EventoCalendario
         },
         "15:00",
         TZ.AR,
+      ),
+    );
+    // USDA Export Sales — jueves 8:30 ET (verificado 04/08/2026 contra fas.usda.gov: el plan traía
+    // "~9:30 ET" pero esa hora es la de Argentina en horario de verano EEUU, no la de origen — acá
+    // se usa la hora ET real, que el conversor de arriba ya pasa a AR con DST. Se corre a viernes
+    // en semanas con feriado US o el informe de fin de año agrícola — no modelado, solo nota).
+    out.push(
+      ev(
+        {
+          organismo: "USDA",
+          informe: "Export Sales (ventas de exportación semanales)",
+          fechaISO: ymd(d),
+          region: "EEUU",
+          granos: "maíz, soja, trigo",
+          importancia: "media",
+          tipo: "regla",
+          url: U.exportSales,
+          nota: "Ventas semanales por destino. Se corre a viernes en semanas con feriado US.",
+        },
+        "08:30",
+        TZ.ET,
       ),
     );
     // GEA semanal zona núcleo (BCR) — jueves ~17:30 (si es feriado se ADELANTA al hábil anterior:
@@ -427,6 +459,34 @@ export function getEventos(desdeISO: string, hastaISO: string): EventoCalendario
     );
   }
 
+  // --- REGLAS: mensuales EEUU ---
+  // NOPA Crush Report — día hábil más cercano al 15, 12:00 ET (verificado 04/08/2026 contra
+  // nopa.org: "on or around the 15th"). Molienda de soja EEUU — mueve harina/aceite en CBOT.
+  // Estaba declarado en el type Organismo (y ya coloreado en la UI: globals.css .org-NOPA,
+  // evolucion-chart.tsx, produccion/calendario) pero nunca generaba eventos (E2 §8.2).
+  for (const [y, m] of mesesEnRango(desdeISO, hastaISO)) {
+    const f = diaHabilCercanoA15(y, m);
+    if (inRange(f, desdeISO, hastaISO)) {
+      out.push(
+        ev(
+          {
+            organismo: "NOPA",
+            informe: "NOPA Crush Report (molienda de soja EEUU)",
+            fechaISO: f,
+            region: "EEUU",
+            granos: "soja (harina y aceite)",
+            importancia: "baja",
+            tipo: "regla",
+            url: U.nopa,
+            nota: "Molienda mensual reportada por los socios de NOPA. Día hábil más cercano al 15.",
+          },
+          "12:00",
+          TZ.ET,
+        ),
+      );
+    }
+  }
+
   // --- REGLAS: mensuales AR ---
   // GEA mensual (BCR) — 2° miércoles del mes, ~17:00 AR. Actualiza el número nacional.
   for (const [y, m] of mesesEnRango(desdeISO, hastaISO)) {
@@ -514,6 +574,16 @@ function nEsimoDiaDeSemana(anio: number, mes: number, weekday: number, n: number
   const dia = 1 + shift + (n - 1) * 7;
   const d = new Date(Date.UTC(anio, mes - 1, dia));
   if (d.getUTCMonth() !== mes - 1) return "";
+  return ymd(d);
+}
+
+/** Día hábil (lun-vie) más cercano al 15 del mes — convención NOPA. Sáb->vie 14, dom->lun 16. No
+ *  ajusta por feriados US (mismo criterio ya usado para CFTC/EIA: nota de texto, sin código). */
+function diaHabilCercanoA15(anio: number, mes: number): string {
+  const d = new Date(Date.UTC(anio, mes - 1, 15));
+  const dow = d.getUTCDay();
+  if (dow === 6) d.setUTCDate(d.getUTCDate() - 1);
+  else if (dow === 0) d.setUTCDate(d.getUTCDate() + 1);
   return ymd(d);
 }
 

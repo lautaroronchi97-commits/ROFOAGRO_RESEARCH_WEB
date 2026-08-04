@@ -65,7 +65,9 @@ export type Scorecard = {
   porView: Record<string, ScorecardView>;
 };
 
-function sumarDias(iso: string, dias: number): string {
+/** Exportada para `interpretaciones-scorecard.ts` (N14, PLAN_INFORMES_V3.md §9) — mismo cálculo
+ *  de fecha objetivo, sin duplicar aritmética de fechas entre los dos scorecards. */
+export function sumarDias(iso: string, dias: number): string {
   return new Date(new Date(`${iso}T12:00:00Z`).getTime() + dias * 86_400_000).toISOString().slice(0, 10);
 }
 
