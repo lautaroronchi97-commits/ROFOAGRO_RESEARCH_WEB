@@ -38,6 +38,19 @@ import type { Meta } from "./market";
  * Overrides manuales (JSON `{"SOJ":320,...}`): `CAPACIDAD_OVERRIDE` pisa el FAS de BCR (legado,
  * emergencia si BCR cae) y `CAPACIDAD_MODELO_OVERRIDE` pisa directo el FAS "Nuestro" ya calculado
  * (para fijar un valor fijo sin tocar gastos/alícuotas).
+ *
+ * **Excepción: la fila "Girasol"** toma su columna BCR de la sección "Industria Aceitera
+ * Exportadora" (`parseBcrIndustria`, mismo bloque "Complejo Soja+Girasol" que arma la fila "Soja
+ * (industria)", girasol es el ÚLTIMO valor de cada fila) — NO del bloque "Commodity" (grano sin
+ * procesar) que usan los demás granos. Casi toda la producción de girasol se cruza (aceite +
+ * pellets), muy poca se exporta como semilla entera, así que el FAS teórico "de grano" queda muy
+ * por debajo de lo que de verdad paga el mercado (misma razón por la que existe "Soja
+ * (industria)"). A diferencia de soja, girasol NO tiene una fila propia — sin necesidad de
+ * separarlo en dos filas: la fila única "Girasol" ya muestra el valor de industria. El FOB
+ * oficial de subproductos (aceite/harina) solo está homologado para soja
+ * (`POSICIONES_FOB_INDUSTRIA` en fob-oficial.ts) → "Nuestro" para girasol sigue siendo el modelo
+ * de grano sin procesar (`capacidad-modelo.ts`, fob-oficial de la semilla entera), único cálculo
+ * independiente disponible.
  */
 
 const URL_BCR =
@@ -119,7 +132,11 @@ export const getCapacidad = cache(async (): Promise<CapData> => {
   const granos: CapGrano[] = GRANOS_ORDEN.map((u) => {
     const filaBcr = bcr[u];
     const ovBcrVal = ovBcr[u];
-    const fasBcr = ovBcrVal != null && Number.isFinite(ovBcrVal) ? round2(ovBcrVal) : (filaBcr?.fas ?? null);
+    // Girasol: la columna BCR sale de la sección Industria (ver docstring del módulo), no del
+    // bloque "Commodity" de grano sin procesar — `filaBcr` (bcr[u]) sigue usándose para sembrar
+    // los gastos de "Nuestro" (cfgSembrada, abajo), que es un cálculo aparte.
+    const fasBcrFuente = u === "GIR" ? (bcrIndustria.GIR?.fas ?? null) : (filaBcr?.fas ?? null);
+    const fasBcr = ovBcrVal != null && Number.isFinite(ovBcrVal) ? round2(ovBcrVal) : fasBcrFuente;
 
     const cfg = cfgSembrada(u, filaBcr);
     const fob = fobOficial.granos[u] ?? null;
