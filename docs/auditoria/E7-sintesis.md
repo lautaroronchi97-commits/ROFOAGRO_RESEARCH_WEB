@@ -501,6 +501,30 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   pendiente. **Con esto `PRELAUNCH_CHECKLIST.md` no tiene ningún ítem real abierto.** Detalle:
   [`sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md`](../sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md).
 
+- [ ] **C30. Informes V3 — el Word de Lautaro sobre los 4 productos de research (04/08/2026 —
+  PLAN CERRADO, builds pendientes).** Lautaro entregó el Word "INFORMES" con los requisitos de
+  los 4 productos y las reglas transversales (un skill + una Routine por producto, todos con
+  `voz-lautaro`, feedback donde se pueda, datos explícitos, sin repetir entre informes). Plan
+  cerrado con relevamiento profundo (7 agentes) + 4 decisiones contestadas en la sesión
+  (carga diaria texto libre · auto-publicación de interpretaciones · diario PNG+web con link ·
+  alcance de interpretaciones +PAS zonas/condición +COT +Export Sales):
+  **[`PLAN_INFORMES_V3.md`](../PLAN_INFORMES_V3.md)** — sucede a `PLAN_INFORMES.md` (MP1-4) y
+  `PLAN_INFORMES_V2.md` (V0-V4) sin tirar nada. Cambios mayores: interpretaciones pasa a
+  **skill+Routine propias** (calendario + auto-reprogramación horaria + auto-publicación 18:20
+  ART) · view a **5 estados** · semanal **sin límite de páginas** (revoca las 5 duras de V2
+  §10.3) · diario/semanal **por producto** con local/internacional separados · feedback
+  nota 1-5 en los 4. **Revisión objetiva post-plan en la misma sesión, aprobada entera
+  (N11-N20)**: futuros locales diarios desde el WebSocket de A3 (los cierres EOD entran 20:08,
+  después del informe de 18:30) · semanal a vie 20:30 ART · telemetría `routine_runs` + watchdog
+  · scorecard de interpretaciones · nota 1-tap por mail + eco del color · backtest de umbrales ·
+  PNG 1 página + web completa · banco de oro de prosa · firma "Mesa ROFO AGRO" en
+  auto-publicadas · backlog derivado en §13 del plan (SIO diario, serie FAS/basis, scrape
+  Chicago BCR, expectativas DTN, clima SMN, suscripción directa). **Ejecutar E1→E6 con Sonnet**
+  (prompts autocontenidos en §10 del plan): E1 datos/migraciones → E2 interpretaciones → E3
+  diario (+página web con link) → E4 semanal → E5 view (E3/E4/E5 paralelizables) → E6
+  Routines/cierre. Detalle:
+  [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md).
+
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN
   descartado (le falta la campaña 2025/26 completa). Decisión: carga semi-manual (Lautaro sube el
