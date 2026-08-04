@@ -19,7 +19,47 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 03/08/2026 — 🚨 diagnóstico de ingestas/checks + 🗒️ /admin/checklist nuevo: "qué tengo que hacer hoy")
+## Ahora (última actualización: 04/08/2026 — 📐 PLAN INFORMES V3 cerrado: el Word de Lautaro sobre los 4 productos de research)
+
+**📐 C30 — PLAN INFORMES V3 — PLAN CERRADO, SOLO DOCS — rama `claude/reportes-skills-voz-i71jlw`,
+PR #_.** Lautaro entregó un Word ("INFORMES") con los requisitos de los 4 productos —
+informe diario · informe semanal · view · interpretaciones — y pidió: relevar lo ya hecho sin
+tirar nada, sumar lo del Word, un skill + una Routine por producto (todos con `voz-lautaro`),
+retroalimentación donde se pueda, no repetir entre informes, y los DATOS explícitos por informe
+(lo visual lo trabaja él aparte). **Relevamiento profundo con 7 agentes en paralelo** (los 4
+pipelines con gap-analysis contra el Word · mapa de datos con ruta exacta de cada lib · decisiones
+vigentes de V1/V2 · auditoría de las 3 Routines REALES por MCP). **Entregable:
+[`PLAN_INFORMES_V3.md`](PLAN_INFORMES_V3.md)** — Word transcripto fiel (§1.1) · roles y nutrición
+anti-duplicación (§4: interpretaciones=el evento · diario=la rueda · view=la dirección ·
+semanal=la síntesis que LEE a los otros tres) · decisiones N1-N10 (§3) · datos campo por campo
+por informe (§5-§8) · feedback para los 4 (§9) · **6 prompts autocontenidos E1→E6 para builds con
+Sonnet** (§10). Auditado adversarialmente antes de commitear.
+
+**Las 4 decisiones que contestó Lautaro en la sesión**: carga diaria sigue TEXTO LIBRE (la
+variación de la pizarra estimada se calcula contra el último valor del cron; falta alguno → no se
+calcula) · interpretaciones se **AUTO-PUBLICAN** tras unas horas sin tocar (revoca "firma nunca
+sin OK" SOLO para interpretaciones; propuesta: cierre 18:00 ART) · diario = PNG + **versión web
+con link** (E3 construye gate por sección Y link firmado, él elige) · alcance de interpretaciones
+ampliado a PAS zonas/condición + CFTC COT + USDA Export Sales (fetch-en-vivo, sin ingesta nueva).
+**Del Word además**: semanal SIN límite de páginas (revoca las 5 duras de V2 §10.3) · view con
+**5 estados** (± levemente) · diario/semanal por producto SOJA→MAÍZ→TRIGO con local/internacional
+separados · regla "sin internals" (percentiles → tendencias en lo que sale a clientes) ·
+interpretaciones pasa de Paso 9 del diario a **rutina propia** diaria con calendario y
+auto-reprogramación horaria.
+
+**Hallazgos del relevamiento que las builds tienen que saber**: las 3 Routines siguen con nombre
+"RF AGRO" y prompt citando el repo viejo (funcionan por el `job_config`) · la del view no avisa
+por mail ante falla · no existe Routine de interpretaciones · el feedback del view (nota 1-5 +
+scorecard + aprendizajes) está construido y **nunca usado** (0 notas) · la plantilla del diario
+duplica queries del API con un criterio distinto de "informe de hoy" (fix en E1) · GEA/DEA
+ingestan 22:16 → su interpretación hoy sale un día tarde (lo ataca la rutina propia de E2).
+
+**Verificado**: lint/tsc/**445 tests**/build ✅ (diff solo docs). **Próximo paso: ejecutar
+E1→E6 con Sonnet** (prompts en `PLAN_INFORMES_V3.md` §10; E1 = migraciones+libs+endpoints, con
+OK de Lautaro para aplicar las migraciones). Registrado como **C30** en el backlog maestro.
+Detalle: [`sesiones/2026-08-04-plan-informes-v3.md`](sesiones/2026-08-04-plan-informes-v3.md).
+
+## Anterior (03/08/2026 — 🚨 diagnóstico de ingestas/checks + 🗒️ /admin/checklist nuevo: "qué tengo que hacer hoy")
 
 **🚨 DIAGNÓSTICO DE INGESTAS Y CHECKS — HECHO — rama `claude/ingestas-checks-diagnostico-zzk9es`,
 PR #_.** Lautaro pidió revisar de punta a punta qué ingestas/checks están corriendo bien, cuáles no,
