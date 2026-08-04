@@ -138,6 +138,16 @@ export function buildComplejoSoja(chicago: MonitorData): ComplejoSojaFila[] {
   }));
 }
 
+/* ---------------- E3 (informe diario v3, N8): bloques por producto ---------------- */
+
+/** Los 3 granos del diario, en el orden fijo SOJA→MAÍZ→TRIGO (N8/§1.1). */
+export const GRANOS_INFO = GRANOS;
+
+/** Chicago del grano (mismo criterio de `nombre` que `buildDesfasaje`/`buildComplejoSoja`). */
+export function chicagoDeGrano(chicago: MonitorData, nombre: string): MonitorRow | null {
+  return chicago.agro.find((r) => r.nombre === nombre) ?? null;
+}
+
 /* ---------------- Escalas de gráfico (aritmética pura, sin dependencias) ---------------- */
 
 /** Redondea un dominio (en % o puntos) al próximo número "prolijo" para los ticks. */

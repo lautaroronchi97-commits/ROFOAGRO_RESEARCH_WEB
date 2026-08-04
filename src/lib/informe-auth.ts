@@ -45,3 +45,10 @@ export function firmaInformeValida(payload: string, recibida: string): boolean {
 export function payloadNota(id: string, n: number): string {
   return `${id}:${n}`;
 }
+
+/** `tipo:fecha` — el payload que firma el link público del informe completo
+ *  (`/informes/diario/[fecha]?t=`, N6/§5.4 de PLAN_INFORMES_V3.md, etapa E3). Sin estado: se
+ *  revoca globalmente rotando `INFORME_SHARE_SECRET`, nunca por fila. */
+export function payloadInformeCompartido(tipo: string, fecha: string): string {
+  return `${tipo}:${fecha}`;
+}

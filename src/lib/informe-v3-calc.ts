@@ -1,4 +1,5 @@
 import { diasEntre } from "./dates";
+import type { MonitorRow } from "./monitor-mercados";
 
 /**
  * informe-v3-calc.ts — cálculos PUROS de los insumos nuevos de informes v3 (E1 de
@@ -151,6 +152,24 @@ export function volumenPorUnderlying(
       nRuedas: ultimasFechas.size,
     };
   });
+}
+
+/* ---------------- Otros mercados relevantes (informe diario, bloque internacional §5.1 E) ---------------- */
+
+/**
+ * "Otros mercados" del bloque internacional del diario: solo entran si superan el umbral de
+ * relevancia — propuesta del plan (§5.3) ≥3% en WTI/oro/plata/DXY/real (los 5 instrumentos "de
+ * commodities/FX" del monitor; SPY/Merval/EWZ/Maní quedan fuera de este condicional, son
+ * referencia de otro tipo). Regla determinística de TEMPLATE (no de la skill): mismo dato, mismo
+ * criterio siempre — a diferencia de los condicionales DJVE/camiones, que sí dependen de
+ * contexto/redacción y por eso los decide la skill.
+ */
+const OTROS_MERCADOS_NOMBRES = ["Petróleo WTI", "Oro", "Plata", "Dólar (DXY)", "Real (USD/BRL)"];
+
+export function otrosMercadosRelevantes(macro: MonitorRow[], umbralPct = 3): MonitorRow[] {
+  return macro.filter(
+    (r) => OTROS_MERCADOS_NOMBRES.includes(r.nombre) && r.deltaPct != null && Math.abs(r.deltaPct) >= umbralPct,
+  );
 }
 
 /* ---------------- Desacople local vs internacional (view, §7.2) ---------------- */

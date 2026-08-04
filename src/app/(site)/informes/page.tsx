@@ -129,7 +129,8 @@ export default async function InformesPage() {
             {destacado && (
               <div style={{ padding: "0 4px 8px" }}>
                 <p className="dim" style={{ margin: "0 0 8px" }}>
-                  {ddmmaaaa(destacado.fecha)} — {destacado.titulo ?? "Mesa de operaciones"}
+                  {ddmmaaaa(destacado.fecha)} — {destacado.titulo ?? "Mesa de operaciones"} ·{" "}
+                  <a href={`/informes/diario/${destacado.fecha}`}>Ver informe completo →</a>
                 </p>
                 {urlDestacado ? (
                   // eslint-disable-next-line @next/next/no-img-element -- placa PNG servida por signed URL, no un asset estático de /public.
@@ -159,7 +160,10 @@ export default async function InformesPage() {
                     {resto.map((f) => (
                       <tr key={f.id}>
                         <td className="num">{ddmmaaaa(f.fecha)}</td>
-                        <td className="l">{f.titulo ?? "Mesa de operaciones"}</td>
+                        <td className="l">
+                          {f.titulo ?? "Mesa de operaciones"} ·{" "}
+                          <a href={`/informes/diario/${f.fecha}`}>Ver completo →</a>
+                        </td>
                         {esAdminUser && (
                           <td className="l">
                             <InformeFeedback id={f.id} actual={f.feedback} actualNota={f.nota} />
