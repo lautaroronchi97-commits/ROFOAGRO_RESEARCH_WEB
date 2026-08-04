@@ -2,14 +2,15 @@
 name: view-mercado
 description: >-
   Procedimiento del research direccional semanal de ROFO AGRO (V1 de
-  docs/PLAN_INFORMES_V2.md, sucesor de MP3 en docs/PLAN_INFORMES.md): pipeline
-  F0-F6 con fan-out de subagentes de solo lectura que produce el VIEW por grano
-  (soja, maíz, trigo) — dirección ALCISTA/BAJISTA/NEUTRAL + confianza +
-  argumentos con números exactos + invalidadores estructurados + relación con
-  la tesis anterior ("la bola de nieve") — y lo guarda en `views_mercado` para
-  que Lautaro lo lea y califique en /granos/view. Usar cuando se pida "generá
-  el view de mercado semanal" o la Routine semanal lo dispare. INTERNO MESA: no
-  se publica a clientes.
+  docs/PLAN_INFORMES_V2.md, sucesor de MP3 en docs/PLAN_INFORMES.md; ampliado a
+  5 estados + insumos más profundos por E5 de docs/PLAN_INFORMES_V3.md §7):
+  pipeline F0-F6 con fan-out de subagentes de solo lectura que produce el VIEW
+  por grano (soja, maíz, trigo) — dirección ALCISTA/LEVEMENTE ALCISTA/NEUTRAL/
+  LEVEMENTE BAJISTA/BAJISTA + confianza + argumentos con números exactos +
+  invalidadores estructurados + relación con la tesis anterior ("la bola de
+  nieve") — y lo guarda en `views_mercado` para que Lautaro lo lea y califique
+  en /granos/view. Usar cuando se pida "generá el view de mercado semanal" o la
+  Routine semanal lo dispare. INTERNO MESA: no se publica a clientes.
 # El view es la pieza de más juicio de las 4 (MP1-4): reconciliar contra la
 # tesis previa, pesar research externo con pasaporte, y redactar con la voz de
 # Lautaro. Esto pisa el modelo de la sesión (y el del selector de la Routine)
@@ -27,6 +28,12 @@ tesis con datos, factores en contra, y qué te haría cambiar de opinión — pe
 diferencia de v1, esta corrida **reconcilia contra la tesis de la semana anterior**
 (la bola de nieve) en vez de escribir cada vez desde cero. Lo lee Lautaro (trader de
 la mesa) — tono de par a par, cero divulgación básica.
+
+**Direcciones (V3, 5 estados)**: `alcista` · `levemente_alcista` · `neutral` ·
+`levemente_bajista` · `bajista`. "Levemente" NO es el default tibio — usalo cuando
+la dirección es clara pero el driver es débil o agotable (ej. un rally que ya
+descontó la mayor parte del recorrido, o una demanda firme pero sin margen para
+apretar más); si no hay una dirección clara, es `neutral`, no "levemente" de nada.
 
 ## Pipeline (una pasada por grano, los 3 en la misma sesión)
 
@@ -54,8 +61,12 @@ Reglas que atraviesan todo el pipeline (no se negocian):
 - **Fan-out solo para recolectar.** Los 4 agentes de F1 devuelven hallazgos
   estructurados; la síntesis y la decisión las hacés VOS, de un solo hilo. Nada de
   "debate hasta consenso".
-- **Salida de tamaño fijo.** El template de F6 no crece con el research — lo que no
-  entra, se cae (criterio: qué quedó afuera, no "agrandar la sección").
+- **Salida de tamaño fijo — salvo `tesis_md` (N10).** El template de F6 no crece con
+  el research — lo que no entra, se cae (criterio: qué quedó afuera, no "agrandar la
+  sección"). La ÚNICA excepción es `tesis_md`: no tiene tope de largo, escribí lo que
+  la tesis necesite (2-4 párrafos sigue siendo la guía, pero no es un techo duro). Los
+  `argumentos` siguen siendo 3-5 (el research sigue compitiendo por slots) y los
+  `invalidadores` siguen inmutables una vez escritos.
 - **Investigá con cabeza de mercado, no con formulario.** Las preguntas de F2 son
   ejemplos para orientar la lectura, no una checklist cerrada — si el precio se
   mueve por algo que las preguntas no listan, ESO es lo que hay que detectar y
@@ -117,6 +128,16 @@ GET {INFORME_BASE_URL}/api/views/insumos
 | `dolarFuturo` | DLR con TNA (contexto macro/cambiario) | `/dolar` |
 | `noticias` | Titulares de la semana por categoría | `/noticias` |
 | `agenda` | Informes de organismos de los próximos 14 días | `/produccion` |
+| `noticiasSemana` | **Nuevo (E1, §7.2)**: TODAS las noticias de los últimos 7 días, sin el cap de `noticias` (útil si un tema puntual necesita más de un titular) | `/noticias` |
+| `camiones` + `camionesPlantas` | **Nuevo (E1)**: series completas Williams (4 zonas nacionales) + Agroentregas (Up River por planta/empresa/grano) — no solo la señal destilada de `senalCamiones` | `/comercio/camiones` |
+| `djveResumen` | **Nuevo (E1)**: DJVE por familia de producto, `ton_7d`/`ton_30d`/`ton_anio` | `/comercio/djve` |
+| `pasZonas` + `pasCondicion` | **Nuevo (E1)**: producción BCBA-PAS por zona agroecológica + condición semanal de cultivos (con Δ vs semana previa) | `/produccion/zonas` · `/produccion/condicion` |
+| `diariosSemana` + `interpretacionesSemana` | **Nuevo (E1)**: prosa de los informes diarios de la semana + interpretaciones publicadas de los últimos 7 días — análisis PROPIOS de la casa, nunca fuente de números (los números siempre del dato crudo) | `/informes` · `/admin/interpretaciones` |
+| `viewsVigentes` | **Nuevo (E1)**: view vigente de los OTROS granos (contexto cruzado — ej. si soja está alcista por crush fuerte, ¿pesa sobre maíz?) | `/granos/view` |
+| `variacionGranos` / `variacionChicago` / `variacionPizarraSemanal` | **Nuevo (E1)**: Δ semanal precomputado de A3/Chicago/pizarra — evita recalcular a mano lo que la web ya tiene | — |
+| `volumenA3Semanal` | **Nuevo (E1)**: volumen A3 acumulado de la semana por grano (suma de las últimas 5 ruedas) | `/granos` |
+| `desacopleLocal` | **Nuevo (E1, §7.2)**: premio/descuento A3 vs CBOT por grano, HOY y hace 1/4 semanas — responde directo "¿local e internacional van de la mano o se desprenden?" | — |
+| `zonaPrecio` | **Nuevo (E1, §7.2)**: percentil histórico 5 años del nivel de precio (pizarra y 1ª posición A3) por grano — responde "¿en qué zona del rango está el precio?" | — |
 
 Cada bloque trae su `meta.status`; si vino `parcial`/vacío, ese insumo se **omite del
 análisis y se dice** ("esta semana sin dato de X") — nunca se rellena de memoria. Si la
@@ -146,6 +167,17 @@ hallazgos con pasaporte firme que 10 flojos — devolver vacío es válido.
    números de producción SIEMPRE de `estimaciones`, esto es solo color/día a día),
    clima Argentina (SMN JSON) y EEUU (NOAA CPC / Drought Monitor), bajante del Paraná
    si aplica esta semana.
+
+   **Calendario de ventanas críticas por cultivo (E5, §7.3)** — subí la prioridad del
+   research de clima si la semana cae dentro de una de estas ventanas (fuera de ellas,
+   el clima es color, no driver):
+
+   | Cultivo | Siembra | Ventana crítica |
+   |---|---|---|
+   | Trigo (AR) | may-jul | Espigazón sep-oct |
+   | Maíz (AR) | sep-nov | Floración dic-ene |
+   | Soja (AR) | oct-dic | Llenado de grano ene-mar |
+   | Maíz/Soja (EEUU) | abr-may | Polinización (maíz) jul |
 3. **Macro AR**: retenciones/política/dólar — Google News RSS + lo que ya está en casa
    (`dolarFuturo`, noticias).
 4. **Expectativas**: `agenda` propia (próximos 14 días) + qué espera el mercado de cada
@@ -185,6 +217,19 @@ detectar):**
   `estimaciones`; la lente 1 de F1 lo completa con pasaporte si no está en casa).
 - **¿Algún correlacionado tiene problemas?** Aceite/harina de soja YA están en
   `chicago` (mirá primero ahí); palma/canola/girasol requieren research externo (F1).
+- **¿En qué zona histórica está el precio?** (E5, §7.3) Usá `zonaPrecio` (percentil
+  5 años de pizarra y 1ª posición A3) — no es lo mismo un alcista que arranca en el
+  percentil 15 que uno que ya está en el 85 (menos recorrido, invalidador más cerca).
+- **¿Local e internacional van de la mano o se desprenden?** (E5, §7.3) Usá
+  `desacopleLocal` (premio/descuento A3 vs CBOT, HOY y hace 1/4 semanas, misma unidad
+  USD/tn) — si el premio local viene ampliándose mientras Chicago cae, el driver es
+  local (físico/retenciones), no internacional, y viceversa.
+- **¿Hay algún patrón en los datos que rompa lo esperado?** (E5, §7.3) Estacionalidad
+  rota (algo que "siempre" pasa en esta época y no está pasando), divergencia
+  precio-físico (el precio sube pero el físico no confirma, o al revés), volumen
+  anómalo (A3 operando mucho más o menos que lo normal para la posición). No es una
+  pregunta con insumo fijo — cruzá lo que ya tenés (temperatura, curva, volumen) con
+  la propia experiencia de mercado.
 
 Escribí dirección + confianza + argumentos **sin mirar el view anterior todavía**.
 
@@ -231,7 +276,13 @@ se deja una cita sin chequear.
 ## F6 — Salida, guardado y scorecard
 
 **Estructura de salida (por grano):**
-- **direccion**: `alcista` | `bajista` | `neutral`.
+- **direccion**: `alcista` | `levemente_alcista` | `neutral` | `levemente_bajista` |
+  `bajista` (V3, N2 — 5 estados, migración ya aplicada). **Guía de uso**: "levemente"
+  es para cuando la dirección es clara pero el driver es débil/agotable (ver la nota
+  al principio de este documento) — NO es el default tibio cuando dudás; si dudás de
+  verdad, es `neutral`. Un CONFIRMA que viene de una tesis plena puede bajar a "leve"
+  sin ser un AJUSTE de dirección (sigue siendo la misma tesis, con menos convicción) —
+  eso SÍ se explica en `tesis_md`, aunque `relacion_previa` siga siendo `confirma`.
 - **confianza**: 1-5 (5 = señales alineadas; 2 = tesis con contras fuertes; 1 no se usa
   salvo caos total).
 - **horizonte**: ej. "próximas 4-8 semanas".
@@ -239,9 +290,13 @@ se deja una cita sin chequear.
   [{"titulo","dato"}…], "accion": "2 líneas en idioma mesa" }` — cada `dato` con
   número exacto y origen, ej. `"gap de cobertura maíz pctl 39 (índice MESA 65 FIRME) —
   /comercio/temperatura"`.
-- **tesis_md**: 2-4 párrafos con la voz de Lautaro (leé la skill `voz-lautaro` +
-  `references/ejemplos.md` — registro "informe largo": voseo, humildad, datos
-  exactos, emojis casi nulos); cierra con la nota humilde.
+- **tesis_md**: con la voz de Lautaro (leé la skill `voz-lautaro` + `references/
+  ejemplos.md` — registro "informe largo": voseo, humildad, datos exactos, emojis casi
+  nulos); cierra con la nota humilde. **Sin tope de largo (N10)**: 2-4 párrafos sigue
+  siendo la guía habitual, pero si la tesis necesita más para explicarse bien (varios
+  drivers, un recorrido de tesis largo, una reconciliación con matices) no se recorta
+  — es la ÚNICA sección del template sin techo (ver la regla "salida de tamaño fijo"
+  al principio). Los `argumentos` siguen 3-5, los `invalidadores` siguen inmutables.
 - **invalidacion**: resumen legible de "qué me haría cambiar de opinión".
 - **invalidadores** (JSON, estructurado): `[{condicion, umbral, dato_ref,
   disparado_en}]` — 2-3 condiciones medibles contra datos que la web computa
@@ -288,6 +343,12 @@ redactar/reconciliar F3 en adelante, no al leer F1/F2):
    Si un feedback contradice un hábito tuyo, el feedback manda. Si detectás un
    aprendizaje nuevo que `aprendizajes.md` no tiene, anotalo en tu resumen final para
    que una sesión de mantenimiento lo incorpore (vos NO pushees `aprendizajes.md`).
+4. **Leé las interpretaciones de la semana** (E5, §7.3 — ya vienen en el JSON de
+   insumos como `interpretacionesSemana`, no hace falta un fetch aparte): son análisis
+   PROPIOS de la casa (qué esperaba el mercado de cada reporte, sorpresa, reacción del
+   precio) — usalos como CONTEXTO de calibración de criterio, igual que el feedback de
+   arriba, **nunca como fuente de un número** (los números siempre salen del dato
+   crudo vía `estimaciones`/`temperatura`/etc., nunca de resumir un resumen).
 
 ## Reglas duras de la mesa (no cambian)
 
@@ -297,6 +358,26 @@ redactar/reconciliar F3 en adelante, no al leer F1/F2):
   `/comercio/temperatura` (DIFERIR / VENDER YA / COMPRAR BARATO). Si tu view contradice
   el semáforo, decilo explícito y explicá por qué.
 - **NI UN NÚMERO INVENTADO.**
+
+## Telemetría (N13)
+
+Al cerrar una corrida real (con creds de escritura — en "Modo de prueba" abajo no hay
+nada que insertar), insertá una fila en `routine_runs`:
+
+```
+POST {SUPABASE_URL}/rest/v1/routine_runs
+headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}, content-type: application/json
+body: [{ "tipo": "view", "fecha": "{hoy Córdoba}",
+         "iniciado_en": "<ISO de cuando arrancaste F0>",
+         "terminado_en": "<ISO de ahora>",
+         "duracion_ms": <diferencia>,
+         "degradaciones": ["<lo que faltó o degradó honesto, ej. 'sin evidencia_externa verificable en trigo'>"],
+         "mail_enviado": false }]
+```
+
+`mail_enviado` es siempre `false` acá — el view no manda mail (se lee en
+`/granos/view`; el informe semanal lo integra). `degradaciones: []` si los 3 granos
+salieron con insumos completos.
 
 ## Cierre
 

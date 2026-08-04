@@ -127,24 +127,36 @@ export function medirVentana(
   return { dias, fechaObjetivo, retorno: fila.settlement / settlementT0 - 1, acierto: null, motivo: "ok" };
 }
 
+/** "levemente_X" = misma dirección que X, menor convicción (V3, N2/§7.1) — cuenta como esa
+ *  misma dirección para el hit-rate; solo la probabilidad de Brier se acota distinto (abajo). */
+function esLeve(direccion: DireccionView): boolean {
+  return direccion === "levemente_alcista" || direccion === "levemente_bajista";
+}
+
 /** ¿La dirección del view acertó ese retorno? null si no hay retorno medido. */
 export function esAcierto(direccion: DireccionView, retorno: number | null): boolean | null {
   if (retorno === null) return null;
-  if (direccion === "alcista") return retorno > 0;
-  if (direccion === "bajista") return retorno < 0;
+  if (direccion === "alcista" || direccion === "levemente_alcista") return retorno > 0;
+  if (direccion === "bajista" || direccion === "levemente_bajista") return retorno < 0;
   return Math.abs(retorno) <= BANDA_NEUTRAL;
 }
 
-/** Confianza 1-5 → probabilidad estimada de acierto (mapeo lineal 1→0.55 … 5→0.95). */
-export function confianzaAProbabilidad(confianza: number): number {
-  return 0.45 + 0.1 * Math.min(5, Math.max(1, confianza));
+/**
+ * Confianza 1-5 → probabilidad estimada de acierto. Direcciones plenas (alcista/bajista/neutral):
+ * mapeo lineal 1→0.55 … 5→0.95 (rango histórico, sin cambios). Direcciones "leves" (V3, N2/§7.1,
+ * menor convicción por diseño): mapeo más chato 1→0.55 … 5→0.75 — provisorio, a calibrar como la
+ * banda neutral (mismo criterio que `BANDA_NEUTRAL` arriba).
+ */
+export function confianzaAProbabilidad(confianza: number, direccion: DireccionView = "alcista"): number {
+  const c = Math.min(5, Math.max(1, confianza));
+  return esLeve(direccion) ? 0.55 + 0.05 * (c - 1) : 0.45 + 0.1 * c;
 }
 
 /** Brier de una ventana: (probabilidad − resultado)². null si la ventana no tiene acierto medido. */
 export function brierDeVentana(direccion: DireccionView, confianza: number, retorno: number | null): number | null {
   const acierto = esAcierto(direccion, retorno);
   if (acierto === null) return null;
-  const p = confianzaAProbabilidad(confianza);
+  const p = confianzaAProbabilidad(confianza, direccion);
   return (p - (acierto ? 1 : 0)) ** 2;
 }
 

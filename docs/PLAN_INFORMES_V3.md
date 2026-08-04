@@ -826,7 +826,7 @@ sesión + PR base `main`.
 | E2 | Skill + Rutina de interpretaciones (calendario, reprogramación, auto-pub) | 🔶 skill+calendario+scorecard hechos y verificados; falta confirmar que la Routine exista (ver `sesiones/2026-08-04-e2-interpretaciones.md`) |
 | E3 | Diario v3 (placa por producto + skill + página web con link) | ✅ hecho — verificado con datos reales y una fila de prueba (ver `sesiones/2026-08-04-e3-informe-diario.md`) |
 | E4 | Semanal v3 (por producto, sin límite, skill) | ✅ hecho — verificado con datos reales y una fila de prueba (ver `sesiones/2026-08-04-e4-informe-semanal.md`) |
-| E5 | View v3 (5 estados + insumos ampliados + skill) | ☐ |
+| E5 | View v3 (5 estados + insumos ampliados + skill) | ✅ hecho — verificado con datos reales y 3 filas de prueba en Playwright (ver `sesiones/2026-08-04-e5-view-mercado-5-estados.md`) |
 | E6 | Routines finales + feedback end-to-end + monitoreo/watchdog + cierre | ☐ |
 
 E3/E4/E5 pueden correr **en paralelo** (3 sesiones Sonnet) una vez mergeadas E1+E2.

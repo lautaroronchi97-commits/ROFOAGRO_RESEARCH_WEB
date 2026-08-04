@@ -17,7 +17,10 @@ import { calcularScorecard, type Scorecard, type FuturoCierreRow } from "./views
  */
 
 export type GranoView = "soja" | "maiz" | "trigo";
-export type DireccionView = "alcista" | "bajista" | "neutral";
+/** 5 estados (V3, N2 — docs/PLAN_INFORMES_V3.md §7.1): "levemente_*" = misma dirección que su
+ *  extremo, menor convicción — NO es el default tibio (guía de uso completa en la skill
+ *  view-mercado). Los views históricos con solo 3 estados siguen siendo valores válidos. */
+export type DireccionView = "alcista" | "levemente_alcista" | "neutral" | "levemente_bajista" | "bajista";
 
 export type ArgumentoView = { titulo: string; dato: string };
 export type ArgumentosView = {
@@ -79,8 +82,10 @@ export const GRANO_VIEW_LABEL: Record<GranoView, string> = {
 };
 export const DIRECCION_VIEW_LABEL: Record<DireccionView, string> = {
   alcista: "ALCISTA",
-  bajista: "BAJISTA",
+  levemente_alcista: "LEVEMENTE ALCISTA",
   neutral: "NEUTRAL",
+  levemente_bajista: "LEVEMENTE BAJISTA",
+  bajista: "BAJISTA",
 };
 
 function argOk(x: unknown): ArgumentoView[] {
