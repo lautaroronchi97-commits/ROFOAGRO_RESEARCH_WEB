@@ -22,7 +22,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
             </span>
           </Link>
           <div className="lp-nav-tools">
-            <Link href="/bienvenida" className="lp-nav-ingresar">
+            <Link href="/" className="lp-nav-ingresar">
               ← Volver a ROFO AGRO
             </Link>
             <ThemeToggle />

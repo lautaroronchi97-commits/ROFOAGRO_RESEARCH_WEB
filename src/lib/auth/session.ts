@@ -19,9 +19,10 @@ import { sessionIdDeToken, deviceDeUA } from "./session-id";
  *   dispositivo tomó la cuenta → 'kicked'; 7 días sin uso → 'expired' → se cierra la
  *   sesión LOCAL (sin revocar la del otro dispositivo) y se manda a /sesion-cerrada.
  * - ENTRADA (05/08/2026): con el flag prendido, un visitante sin sesión que pide la
- *   raíz cae directo en `/ingresar` (ruta protegida genérica, sin caso especial) — la
- *   landing institucional `/bienvenida` queda fuera del flujo de entrada, pero sigue
- *   viva y pública para linkearla aparte (footer, `docs/marca`, etc.).
+ *   raíz cae directo en `/ingresar` (ruta protegida genérica, sin caso especial). La
+ *   landing institucional `/bienvenida` se dio de baja del todo el mismo día (no
+ *   solo del flujo de entrada) — queda de respaldo en `docs/backup/landing-
+ *   bienvenida-2026-08-05/` para reactivarla más adelante.
  *
  * Con `AUTH_ENFORCED` apagado esta función NO se ejecuta para el sitio (el proxy hace
  * passthrough); solo corre en `/admin` para refrescar la sesión del admin.
@@ -97,8 +98,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return NextResponse.redirect(url);
   }
 
-  // Usuario con sesión que cae en las pantallas de ingreso/registro/landing → a la home.
-  if (user && (path === "/ingresar" || path === "/registro" || path === "/bienvenida")) {
+  // Usuario con sesión que cae en las pantallas de ingreso/registro → a la home.
+  if (user && (path === "/ingresar" || path === "/registro")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

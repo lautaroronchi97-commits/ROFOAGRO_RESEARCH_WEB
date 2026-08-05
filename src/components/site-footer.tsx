@@ -10,7 +10,6 @@ export function SiteFooter() {
           <span className="rf">ROFO</span> <span className="agro">AGRO</span>
         </span>
         <span className="fb-sub" aria-hidden="true">Research de granos</span>
-        <Link href="/bienvenida" className="foot-inst">Conocé ROFO AGRO →</Link>
       </div>
       <div className="src">
         <b>ROFO AGRO</b>
