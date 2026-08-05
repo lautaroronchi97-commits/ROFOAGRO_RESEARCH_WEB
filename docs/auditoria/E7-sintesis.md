@@ -228,10 +228,13 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
 - [x] **C1. MP1 — informe diario** — ✅ código hecho 22/07, PR #63 (rama
   `claude/resolver-pendientes-qnts8j`). Falta el paso manual A2 (crear la Routine) para que
   corra sola; el primer disparo real termina de verificar RPC/Storage/mail.
-- [~] **C2. MP2 — informe semanal PDF** — base + gráfico HECHOS 23/07, PR #63 (datos
+- [x] **C2. MP2 — informe semanal PDF** — base + gráfico HECHOS 23/07, PR #63 (datos
   semanales, plantilla A4 de 5 páginas verificada con PDF real, dólar oficial BCRA A3500
-  sumado también a `/dolar` en vivo). **Falta la skill** (a pedido de Lautaro: quiere pensar
-  con calma qué destacar cada semana antes de automatizarlo) + la Routine. Detalle:
+  sumado también a `/dolar` en vivo). Checkbox corregida 05/08 (quedó desactualizada): la skill
+  `informe-semanal` + su Routine (`0 22 * * 5`, luego reprogramada a viernes 20:30 ART por N12) se
+  construyeron ese mismo día 23/07, y el producto entero fue rediseñado por completo (5 páginas
+  sin tope, por producto, view a 5 estados) en **C30** (04-05/08, ver más abajo) — ahí es donde
+  cierra de verdad. Detalle:
   [`sesiones/2026-07-23-informes-mp2-semanal.md`](../sesiones/2026-07-23-informes-mp2-semanal.md).
 - [x] **C3. MP4 — interpretación de informes de organismos** — hecho 23/07 (rama
   `claude/avance-c3-1ra0au`, PR #67): tabla `interpretaciones` + RPCs admin (migración
