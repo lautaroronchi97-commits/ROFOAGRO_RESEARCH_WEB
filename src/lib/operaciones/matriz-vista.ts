@@ -44,3 +44,12 @@ export function matrizAFilas(matriz: Matriz, filtro?: OperacionProducto): ChartT
 export function esFilaTotal(fila: ChartTablaFila): boolean {
   return fila.producto === "TOTAL";
 }
+
+/** Columnas numéricas de una `Matriz` (períodos + total) — para `ChartTabla.columnasSigno`
+ *  (pedido de Lautoro 05/08/2026: verde el neto comprado, rojo el neto vendido). */
+export function columnasSignoDe(matriz: Matriz): string[] {
+  return [...matriz.columnas.map((c) => c.key), "total"];
+}
+
+/** Para `ChartTabla.columnasEstado` (COMPRADOS/VENDIDOS con el mismo color). */
+export const COLUMNA_ESTADO = ["estado"];

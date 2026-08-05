@@ -1,6 +1,6 @@
 import { MESES_ES, vtoDePosicion } from "@/lib/dates";
 import { sumarDiasISO } from "./registro";
-import { PRODUCTOS, type Operacion, type OperacionProducto } from "./tipos";
+import { PRODUCTOS, PRODUCTOS_CON_FUTURO, type Operacion, type OperacionProducto } from "./tipos";
 
 /**
  * Lib PURA de la posición (§5.1-§5.2, docs/PLAN_OPERACIONES_CLIENTES.md): la matriz
@@ -90,19 +90,21 @@ function construirMatriz(
   ops: Operacion[],
   columnas: ColumnaPeriodo[],
   bucketFn: (op: Operacion) => string,
+  productos: readonly OperacionProducto[] = PRODUCTOS,
 ): Matriz {
   const acumulado = new Map<OperacionProducto, Record<string, number>>();
-  for (const p of PRODUCTOS) acumulado.set(p, Object.fromEntries(columnas.map((c) => [c.key, 0])));
+  for (const p of productos) acumulado.set(p, Object.fromEntries(columnas.map((c) => [c.key, 0])));
 
   for (const op of ops) {
+    const rec = acumulado.get(op.producto);
+    if (!rec) continue; // producto fuera de la lista de esta matriz (ej. girasol/sorgo en Futuros — no tienen A3)
     const signo = op.lado === "compra" ? 1 : -1;
     const key = bucketFn(op);
-    const rec = acumulado.get(op.producto)!;
     rec[key] = (rec[key] ?? 0) + signo * op.volumen_tn;
   }
 
   const totalPorColumna: Record<string, number> = Object.fromEntries(columnas.map((c) => [c.key, 0]));
-  const filas: FilaMatriz[] = PRODUCTOS.map((p) => {
+  const filas: FilaMatriz[] = productos.map((p) => {
     const porColumna = acumulado.get(p)!;
     let total = 0;
     for (const c of columnas) {
@@ -122,6 +124,7 @@ function construirMatriz(
 /**
  * Matriz FÍSICA (disponible + forward). Excluye anuladas y fijaciones — las
  * fijaciones NO suman volumen (§1.2/§5.1): son un registro que solo genera precio.
+ * Los 5 productos (girasol/sorgo también operan físico).
  */
 export function construirMatrizFisico(operaciones: Operacion[], hoyISO: string): Matriz {
   const columnas = columnasPeriodo(hoyISO);
@@ -129,20 +132,31 @@ export function construirMatrizFisico(operaciones: Operacion[], hoyISO: string):
   return construirMatriz(vivas, columnas, (op) => bucketFisico(op, hoyISO, columnas));
 }
 
-/** Matriz de FUTUROS A3 — separada del físico (§1.3: calzar físico con futuro es cobertura). */
+/**
+ * Matriz de FUTUROS A3 — separada del físico (§1.3: calzar físico con futuro es cobertura).
+ * Solo `PRODUCTOS_CON_FUTURO` (soja/maíz/trigo): girasol y sorgo no tienen futuro en A3
+ * (pedido de Lautaro, 05/08/2026 — mismo criterio que ya usan `pizarra.ts`/"Negocios de
+ * planta"), así que no tiene sentido mostrarles una fila siempre vacía acá.
+ */
 export function construirMatrizFuturos(operaciones: Operacion[], hoyISO: string): Matriz {
   const columnas = columnasPeriodo(hoyISO);
   const vivas = operaciones.filter((o) => !o.anulada && o.tipo === "futuro_a3" && o.posicion_a3);
-  return construirMatriz(vivas, columnas, (op) => bucketFuturo(op.posicion_a3!, columnas));
+  return construirMatriz(vivas, columnas, (op) => bucketFuturo(op.posicion_a3!, columnas), PRODUCTOS_CON_FUTURO);
 }
 
-/** Matriz TOTAL = físico + futuros, columna a columna (misma forma que las dos anteriores). */
+/**
+ * Matriz TOTAL = físico + futuros, columna a columna (misma forma que las dos anteriores,
+ * siempre los 5 productos porque parte de `fisico`). Empareja por `producto`, NO por índice
+ * — `futuros` puede tener menos filas que `fisico` (girasol/sorgo sin fila de futuros).
+ */
 export function combinarMatrices(fisico: Matriz, futuros: Matriz): Matriz {
-  const filas: FilaMatriz[] = fisico.filas.map((f, i) => {
-    const u = futuros.filas[i]!;
+  const filas: FilaMatriz[] = fisico.filas.map((f) => {
+    const u = futuros.filas.find((x) => x.producto === f.producto);
     const porColumna: Record<string, number> = {};
-    for (const c of fisico.columnas) porColumna[c.key] = redondear((f.porColumna[c.key] ?? 0) + (u.porColumna[c.key] ?? 0));
-    const total = redondear(f.total + u.total);
+    for (const c of fisico.columnas) {
+      porColumna[c.key] = redondear((f.porColumna[c.key] ?? 0) + (u?.porColumna[c.key] ?? 0));
+    }
+    const total = redondear(f.total + (u?.total ?? 0));
     return { producto: f.producto, porColumna, total, estado: estadoDe(total) };
   });
   const totalPorColumna: Record<string, number> = {};
@@ -161,4 +175,53 @@ export function combinarMatrices(fisico: Matriz, futuros: Matriz): Matriz {
  */
 export function construirNetoDelDia(operacionesDelDia: Operacion[], hoyISO: string): Matriz {
   return construirMatrizFisico(operacionesDelDia, hoyISO);
+}
+
+/**
+ * "Posición al [fecha]" (Fase 2, §5.6 item 6 / §5.1): reconstruye un cierre
+ * pasado filtrando `fecha <= fechaCorte` — el resto del cálculo (columnas
+ * relativas a HOY, buckets, matrices) no cambia, es el MISMO pipeline que la
+ * posición de hoy, solo con menos operaciones adentro (un libro mayor no
+ * necesita una fórmula nueva para "cómo estaba tal día", alcanza con no contar
+ * lo que todavía no había pasado).
+ */
+export function filtrarHasta(operaciones: Operacion[], fechaCorte: string): Operacion[] {
+  return operaciones.filter((o) => o.fecha <= fechaCorte);
+}
+
+// ============================================================================
+// Heatmap comprado/vendido (§1.23/§5.6 item 5, Fase 2): calendario producto ×
+// día. Deliberadamente solo FÍSICO (disponible + forward) — mismo alcance que
+// "neto del día" arriba: un futuro_a3 es cobertura, no el patrón de compra/
+// venta que el heatmap quiere mostrar de un vistazo (documentado también en la
+// bitácora de la sesión, tal como pide el prompt de Fase 2).
+// ============================================================================
+
+export type HeatmapFila = { producto: OperacionProducto; porDia: Record<string, number> };
+export type Heatmap = { dias: string[]; filas: HeatmapFila[] };
+
+/**
+ * `ventanaDias` días terminando HOY (incluido), más viejo primero. Cada celda es
+ * el neto físico (compra +, venta −) de las operaciones CONCERTADAS ese día
+ * (`operacion.fecha`, no la entrega) — igual que la hoja diaria de Mauro.
+ */
+export function construirHeatmap(operaciones: Operacion[], hoyISO: string, ventanaDias: number): Heatmap {
+  const dias: string[] = [];
+  for (let i = ventanaDias - 1; i >= 0; i--) dias.push(sumarDiasISO(hoyISO, -i));
+  const diasSet = new Set(dias);
+
+  const acumulado = new Map<OperacionProducto, Record<string, number>>();
+  for (const p of PRODUCTOS) acumulado.set(p, Object.fromEntries(dias.map((d) => [d, 0])));
+
+  const fisicas = operaciones.filter(
+    (o) => !o.anulada && (o.tipo === "disponible" || o.tipo === "forward") && diasSet.has(o.fecha),
+  );
+  for (const op of fisicas) {
+    const signo = op.lado === "compra" ? 1 : -1;
+    const rec = acumulado.get(op.producto)!;
+    rec[op.fecha] = redondear((rec[op.fecha] ?? 0) + signo * op.volumen_tn);
+  }
+
+  const filas: HeatmapFila[] = PRODUCTOS.map((p) => ({ producto: p, porDia: acumulado.get(p)! }));
+  return { dias, filas };
 }

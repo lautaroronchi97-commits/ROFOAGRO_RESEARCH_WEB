@@ -5,7 +5,7 @@ import type { GranoCurva } from "@/lib/curva-types";
 import { PRODUCTO_LABEL, GRANO_PRODUCTO, type Operacion, type OperacionLogEntry } from "@/lib/operaciones/tipos";
 import type { PrecioResuelto } from "@/lib/operaciones/registro";
 import { construirNetoDelDia } from "@/lib/operaciones/posicion";
-import { matrizAColumnas, matrizAFilas, esFilaTotal } from "@/lib/operaciones/matriz-vista";
+import { matrizAColumnas, matrizAFilas, esFilaTotal, columnasSignoDe, COLUMNA_ESTADO } from "@/lib/operaciones/matriz-vista";
 import { ChartTabla } from "@/components/chart-tabla";
 import { FiltroGrano, type GranoFiltroValue } from "@/components/filtro-grano";
 import { RegistroForm } from "./registro-form";
@@ -139,6 +139,8 @@ export function RegistroClient({
         filas={matrizAFilas(neto, productoFiltro)}
         destacada={esFilaTotal}
         exportCsv={`neto-del-dia-${fecha}`}
+        columnasSigno={columnasSignoDe(neto)}
+        columnasEstado={COLUMNA_ESTADO}
       />
     </>
   );

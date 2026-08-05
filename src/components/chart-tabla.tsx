@@ -62,7 +62,26 @@ export type ChartTablaProps = {
   /** Estado controlado (junto con `onToggleAbierta`) para coordinar varias tablas. */
   abierta?: boolean;
   onToggleAbierta?: () => void;
+  /** Opt-in (operaciones, C31): columnas cuyo valor se colorea verde/rojo según el signo del
+   *  string formateado por el caller ("+150,00"→verde, "−70,00"→rojo, "—"/otro→sin color). */
+  columnasSigno?: string[];
+  /** Opt-in: columnas cuyo valor se colorea por texto exacto ("COMPRADOS"→verde,
+   *  "VENDIDOS"→rojo, cualquier otro valor sin color). */
+  columnasEstado?: string[];
 };
+
+function claseSigno(valor: string | number | null | undefined): string | undefined {
+  const s = String(valor ?? "");
+  if (s.startsWith("+")) return "ct-pos";
+  if (s.startsWith("−") || s.startsWith("-")) return "ct-neg";
+  return undefined;
+}
+
+function claseEstado(valor: string | number | null | undefined): string | undefined {
+  if (valor === "COMPRADOS") return "ct-pos";
+  if (valor === "VENDIDOS") return "ct-neg";
+  return undefined;
+}
 
 function descargarCsv(columnas: ChartTablaColumna[], filas: ChartTablaFila[], filename: string) {
   const esc = (v: string | number | null | undefined) => {
@@ -94,6 +113,8 @@ export function ChartTabla({
   colapsable = false,
   abierta,
   onToggleAbierta,
+  columnasSigno,
+  columnasEstado,
 }: ChartTablaProps) {
   const [abiertaInterna, setAbiertaInterna] = React.useState(false);
   const controlada = abierta !== undefined && onToggleAbierta !== undefined;
@@ -154,8 +175,14 @@ export function ChartTabla({
                 <tr key={i} className={destacada?.(fila, i) ? "ct-hoy" : undefined}>
                   {columnas.map((c) => {
                     const v = fila[c.key];
+                    const claseColor = columnasSigno?.includes(c.key)
+                      ? claseSigno(v)
+                      : columnasEstado?.includes(c.key)
+                        ? claseEstado(v)
+                        : undefined;
+                    const clase = [c.align === "left" ? "l" : undefined, claseColor].filter(Boolean).join(" ") || undefined;
                     return (
-                      <td key={c.key} className={c.align === "left" ? "l" : undefined}>
+                      <td key={c.key} className={clase}>
                         {v === null || v === undefined || v === "" ? "—" : v}
                       </td>
                     );
