@@ -9,10 +9,9 @@
 > RLS por `empresa_id` y la primera donde los clientes ESCRIBEN (§4). Prompts de ejecución
 > autocontenidos en **§8** (Fase 1: base + carga + registro diario) y **§9** (Fase 2: posición +
 > heatmap + futuros valorizados). Modelo sugerido: **Sonnet** (regla de PLAN_BACKLOG); el juicio
-> de diseño está tomado acá. Quedan preguntas de segunda ronda en §7, **cada una con un default
-> recomendado que aplica salvo que Lautaro diga lo contrario** — la única que gateaba un build
-> (la fórmula de futuros, §7.5) ya fue **confirmada por Lautaro el 05/08/2026**: ninguna fase
-> tiene condiciones pendientes.
+> de diseño está tomado acá. **Las 7 preguntas de segunda ronda (§7) quedaron TODAS contestadas
+> por Lautaro el mismo 05/08/2026** — incluida la fórmula de futuros (§7.5) confirmada con el
+> ejemplo numérico tal cual: ninguna fase tiene condiciones pendientes.
 
 ## 1. Decisiones cerradas (05/08/2026, las 29 respuestas de Lautaro)
 
@@ -109,7 +108,7 @@ por producto · las columnas de mes rodantes (próximos 8 + "Más adelante"). **
 modelo pasa de "una hoja por día que se suma" a **libro mayor** (§1.11) · la contraparte y el
 N° Ctto son opcionales · la condición es lista cerrada · el precio suma moneda/pizarra/descuento ·
 se agregan tipo de negocio, campaña, futuros A3, anulación con rastro e historial de cambios · el
-"Disponible por 30 días vista" se reemplaza por una regla sin migración silenciosa (§7.2).
+"Disponible por 30 días vista" se CONSERVA tal cual (Lautaro lo eligió explícitamente en §7.2).
 
 ## 3. Lo que ya existe y se reusa (relevado 05/08/2026, con anclas)
 
@@ -173,12 +172,11 @@ create table public.operaciones (
   precio_modo    text not null check (precio_modo in ('manual','pizarra','sin_precio')),
   precio         numeric(14,2) check (precio > 0),  -- solo modo manual (o pizarra ya "pisada" a mano)
   moneda         text check (moneda in ('usd','ars')),
-  descuento_modo text check (descuento_modo in ('pct','monto')),
-  descuento      numeric(14,4) check (descuento >= 0),
+  descuento_pct   numeric(7,4)  check (descuento_pct  >= 0 and descuento_pct <= 100),  -- ej. pizarra −10%
+  descuento_monto numeric(14,2) check (descuento_monto >= 0),  -- monto fijo en la moneda de la op. (ej. −38.000 $ flete)
   entrega_desde  date,                             -- inicio de entrega (forwards)
   entrega_hasta  date,                             -- fin de entrega
   posicion_a3    text,                             -- 'NOV26' — solo tipo futuro_a3
-  operacion_ref  uuid references public.operaciones(id),  -- fijación → su contrato a fijar (opcional)
   contraparte    text,
   nro_contrato   text,
   observaciones  text,
@@ -192,7 +190,6 @@ create table public.operaciones (
   constraint op_manual_completo   check (precio_modo <> 'manual'   or (precio is not null and moneda is not null)),
   constraint op_sin_precio_limpio check (precio_modo <> 'sin_precio' or precio is null),
   constraint op_pizarra_moneda    check (precio_modo <> 'pizarra'  or moneda is not null),
-  constraint op_descuento_par     check ((descuento_modo is null) = (descuento is null)),
   constraint op_futuro_posicion   check (tipo <> 'futuro_a3' or (posicion_a3 is not null and precio_modo = 'manual')),
   constraint op_fijacion_precio   check (tipo <> 'fijacion'  or precio_modo = 'manual'),
   constraint op_forward_entrega   check (tipo <> 'forward'   or entrega_desde is not null),
@@ -209,13 +206,15 @@ Notas de diseño:
 - `precio` guarda el precio en la `moneda` elegida, **sin conversión**: no se inventa un TC. La
   conversión para mostrar equivalentes queda para la fase de valorización (§10), donde la fórmula
   la define Lautaro.
-- El **descuento** (ej. "pizarra −10%") vive en `descuento_modo`/`descuento` y se aplica al
-  precio base al momento de mostrar (§5.4). Se admite también sobre precio manual (inofensivo y
-  a veces pasa: "320 menos 2 USD de comisión").
+- El **descuento** tiene DOS campos independientes y COMBINABLES (decisión §7.4): `descuento_pct`
+  (porcentaje, ej. pizarra −10%) y `descuento_monto` (monto fijo en la MISMA moneda de la
+  operación, ej. −38.000 $ concepto flete). Se aplican al precio base al mostrar (§5.4), primero
+  el % y después el monto. Se admiten también sobre precio manual.
 - `posicion_a3` guarda solo la posición (`NOV26`), no el símbolo completo — el producto ya está en
   `producto` y el símbolo se reconstruye (`SOJ.ROS/NOV26`) con el mapa que ya usa `series-types`.
-- `operacion_ref` deja **vincular la fijación con su contrato a fijar** (default §7.1). Es
-  self-FK opcional: si el contrato no está cargado o es viejo, la fijación vive suelta.
+- **Fijaciones y contratos a fijar NO se vinculan en el sistema** (decisión §7.1: "no hace
+  falta") — son registros independientes; el que carga puede anotar el N° de contrato original en
+  `nro_contrato`/`observaciones` si quiere el rastro.
 
 ### 4.3 Historial de cambios: `operaciones_log` + trigger
 
@@ -312,14 +311,14 @@ Columnas rodantes como en la planilla: `Disponible · [mes actual+1 … mes actu
 adelante`, siempre relativas a hoy.
 
 - `tipo = disponible` → **Disponible**.
-- `tipo = forward` → columna del **mes de `entrega_desde`**; si `entrega_desde <= hoy` (la
-  entrega ya arrancó) → **Disponible**; si cae más allá de 8 meses → **Más adelante**.
+- `tipo = forward` → **la regla de Mauro, elegida por Lautaro en §7.2**: si
+  `entrega_desde <= hoy + 30 días` → **Disponible**; si no → columna del **mes de
+  `entrega_desde`**; más allá de 8 meses → **Más adelante**. Consecuencia asumida y deliberada:
+  la posición **migra sola de columna con el paso de los días** (un forward de octubre aparece
+  como Disponible desde ~principios de septiembre) — es exactamente el comportamiento de la
+  planilla (`D <= TODAY()+30`), y es lo que la mesa quiere leer: "esto ya es entrega inmediata".
 - `tipo = futuro_a3` → columna del mes de la **posición** (`NOV26` → Nov-26), en la sección
   Futuros.
-- **Sin la regla "30 días vista" de la planilla** (default §7.2): un forward de octubre se queda
-  en Oct hasta que octubre llega — la posición no cambia sola de columna de un día para otro sin
-  que nadie haya cargado nada (solo "cae" a Disponible cuando la entrega efectivamente arranca,
-  que es información, no ruido).
 
 ### 5.3 Rango de entrega vs matriz
 
@@ -331,18 +330,23 @@ contrato no dice).
 ### 5.4 Precio pizarra: resolución en lectura (cero proceso manual)
 
 Una operación `precio_modo = 'pizarra'` **no guarda precio**: al mostrar, se resuelve contra
-`pizarra_historico(grano = producto, fecha = fecha de la operación)` en la `moneda` elegida
-(`precio_ars` / `precio_usd`), aplicando el descuento (`pct`: `base × (1 − d/100)` · `monto`:
-`base − d`). Mientras la pizarra de ese día no exista todavía, la fila muestra **"Pizarra
-(pendiente)"** — y cuenta como "con precio" en el pricing del día (§1.8). Apenas el cron la
-ingesta (corre 10:30/10:45/11:05/18:06 ART), el precio aparece solo, sin que nadie complete nada
-— cumple la regla del proyecto "Lautaro no corre procesos a mano", y vale también para los
-clientes. Si la pizarra real difiere de lo pactado, cualquier usuario de la empresa (o un admin)
-**la pisa editando la operación a modo manual** (queda en el historial §4.3). Girasol y sorgo
-también tienen pizarra CAC (`CLASES` de `pizarra.ts:22` ya trae GIR y SOR).
+`pizarra_historico` (Rosario/CAC, único origen ingestado). **La referencia es la pizarra del DÍA
+SIGUIENTE a la fecha de la operación** — decisión de Lautaro (§7.3, textual: "los negocios del
+día 05/08 van con la pizarra del día 06/08, siempre la pizarra refleja el mercado del día
+anterior"). Implementación robusta a fines de semana y feriados: **la primera fila de
+`pizarra_historico` con `fecha > fecha de la operación`** (grano = producto, moneda elegida en
+`precio_ars`/`precio_usd`), con tope de búsqueda de 7 días corridos — más allá de eso sigue
+"pendiente" en vez de agarrar cualquier pizarra lejana. El precio final aplica los descuentos en
+orden: `precio = base × (1 − descuento_pct/100) − descuento_monto`.
 
-> Pregunta §7.3: confirmar que la referencia es la pizarra Rosario (CAC) **del día de la
-> operación**.
+Mientras esa pizarra no exista todavía (el mismo día del negocio nunca existe, por definición),
+la fila muestra **"Pizarra (pendiente)"** — y cuenta como "con precio" en el pricing del día
+(§1.8). Apenas el cron la ingesta al día siguiente (corre 10:30/10:45/11:05/18:06 ART), el precio
+aparece solo, sin que nadie complete nada — cumple la regla del proyecto "Lautaro no corre
+procesos a mano", y vale también para los clientes. Si la pizarra real difiere de lo pactado,
+cualquier usuario de la empresa (o un admin) **la pisa editando la operación a modo manual**
+(queda en el historial §4.3). Girasol y sorgo también tienen pizarra CAC (`CLASES` de
+`pizarra.ts:22` ya trae GIR y SOR).
 
 ### 5.5 Panel "Posición de futuros" valorizada (Fase 2 — ✅ fórmula CONFIRMADA por Lautaro, 05/08/2026)
 
@@ -382,10 +386,10 @@ bloquear) si el volumen no es múltiplo de 100.
 1. Date picker (default hoy) + chips de producto.
 2. **Formulario de carga** (de a UNA operación, §1.24): lado (compra/venta) · producto · tipo ·
    condición · campaña · volumen (toggle tn/kg) · precio (modo: manual $/USD · pizarra ·
-   sin precio) · descuento opcional (% o monto) · entrega desde/hasta (calendario) · posición A3
-   (con `CurvaPicker` y precio de ajuste sugerido cuando tipo = futuro) · para fijaciones:
-   selector opcional del contrato a fijar abierto (§7.1) · contraparte / N° ctto / observaciones.
-   La fecha de concertación es editable (retroactiva ok, §1.14).
+   sin precio) · descuentos opcionales y combinables (% y/o monto fijo en la moneda de la
+   operación, §7.4) · entrega desde/hasta (calendario) · posición A3 (con `CurvaPicker` y precio
+   de ajuste sugerido cuando tipo = futuro) · contraparte / N° ctto / observaciones. La fecha de
+   concertación es editable (retroactiva ok, §1.14).
 3. **Compras y Ventas del día en listados separados** (como Mauro), con las anuladas tachadas y
    togglables ("mostrar anuladas").
 4. **Neto del día** producto × período al pie (la 3ª matriz de la hoja diaria de Mauro).
@@ -400,29 +404,28 @@ alertas (§1.28) · sin umbral de calzado (§1.29) · sin conversión de moneda 
 multi-fila ni import de Excel · sin mezcla físico+futuros en un solo neto · sin vista para el
 scoring de clientes (aunque estos datos son su insumo futuro — `negocio/03`).
 
-## 7. Preguntas de segunda ronda (con default que aplica si no decís lo contrario)
+## 7. Preguntas de segunda ronda — ✅ LAS 7 CONTESTADAS por Lautaro (05/08/2026)
 
-1. **Vínculo fijación ↔ contrato a fijar.** Default: **opcional** — al cargar una fijación se
-   puede elegir de una lista de contratos a-fijar abiertos de la misma empresa y producto (para
-   después leer "fijaste 100 de las 300"), o dejarla suelta. No se valida que la suma de
-   fijaciones no supere el contrato (v1 informativo, no contable).
-2. **Regla del bucket "Disponible".** Default: tipo disponible siempre; forward → cae a
-   Disponible recién cuando `entrega_desde <= hoy` (§5.2). Se abandona el "próximos 30 días
-   vista" del Excel de Mauro para que la posición no migre sola de columna sin carga de por
-   medio. ¿Ok?
-3. **Pizarra de referencia.** Default: pizarra **Rosario (CAC)** — la única que ingesta la web —
-   del **día de la fecha de la operación**, en la moneda elegida. ¿Confirmás día y cámara?
-4. **Descuento.** Default: dos modos — `%` (pizarra −10%) o `monto` en la moneda de la operación
-   (pizarra −10 USD) — y disponible también sobre precio manual.
-5. **✅ Fórmula de valorización de futuros (§5.5) — CONFIRMADA (05/08/2026).** Era la única
-   pregunta que gateaba un build; Lautaro confirmó el ejemplo numérico de §5.5 tal cual → el
-   panel de futuros entra completo en la Fase 2, sin condiciones.
-6. **Export "Excel".** Default v1: **CSV con BOM** (doble click y Excel lo abre con acentos bien,
-   patrón ya existente en el sitio). Un `.xlsx` real de verdad (con formato, varias hojas) es
-   construible pero es un módulo nuevo de escritura — lo dejo en backlog derivado (§10) salvo que
-   lo quieras ya.
-7. **Campañas del selector.** Default: se ofrecen las 3 vigentes alrededor de hoy (24/25 · 25/26 ·
-   26/27, calculadas, rotan solas) + campo libre validado `AA/AA` por si hace falta otra.
+1. **Vínculo fijación ↔ contrato a fijar → SIN VÍNCULO** ("no hace falta"). Fijaciones y
+   contratos a fijar son registros independientes; no hay self-FK ni selector. El rastro, si se
+   quiere, va a mano en `nro_contrato`/`observaciones`.
+2. **Regla del bucket "Disponible" → LA DE MAURO (30 días vista)**: forward con
+   `entrega_desde <= hoy + 30 días` figura Disponible; la posición migra sola de columna con el
+   paso de los días, como en la planilla (§5.2). Lautaro eligió (b) explícitamente sobre la
+   alternativa sin migración.
+3. **Pizarra de referencia → la del DÍA SIGUIENTE a la operación** (textual: "los negocios del
+   día 05/08 van con la pizarra del día 06/08, siempre la pizarra refleja el mercado del día
+   anterior"). Rosario (CAC). Implementación: primera pizarra con fecha posterior, tope 7 días
+   (§5.4).
+4. **Descuento → % y monto fijo COMBINABLES** en la misma operación (ej. "pizarra −10% y además
+   −38.000 $ concepto flete"), monto en la moneda de la operación ($ o USD). Orden de
+   aplicación: primero %, después monto (§4.2/§5.4).
+5. **Fórmula de valorización de futuros (§5.5) → CONFIRMADA** con el ejemplo numérico tal cual
+   ("correcto lo que me decís en el punto 5") → el panel de futuros entra completo en la Fase 2.
+6. **Export "Excel" → (a) CSV con BOM en v1** (Excel lo abre nativo); el `.xlsx` real queda en
+   backlog derivado (§10).
+7. **Campañas del selector → (a)** las 3 vigentes alrededor de hoy (calculadas, rotan solas) +
+   campo libre validado `AA/AA`.
 
 ## 8. PROMPT DE EJECUCIÓN — FASE 1 (base + carga + registro diario)
 
@@ -453,10 +456,12 @@ la skill `ui-ux-pro-max` antes de tocar UI.
    `src/lib/operaciones/registro.ts` (lib PURA testeada: normalización kg→tn a 2 decimales,
    validación de una operación — los mismos checks de §4.2 en TS para errores amigables antes de
    pegar a la base, campañas del selector §7.7, resolución de precio §5.4 dado un precio de
-   pizarra — la parte de datos va aparte) · `src/lib/operaciones/datos.ts` (`server-only`:
-   lecturas con `createSupabaseServerClient()` — NUNCA `sbSelect`/service key, acá la RLS ES el
-   producto — trayendo operaciones por empresa+rango de fechas, y pizarras de
-   `pizarra_historico` para las fechas visibles).
+   pizarra — incluye elegir la pizarra correcta: la primera con fecha POSTERIOR a la fecha de la
+   operación, tope 7 días, y aplicar `base × (1 − pct/100) − monto`) ·
+   `src/lib/operaciones/datos.ts` (`server-only`: lecturas con `createSupabaseServerClient()` —
+   NUNCA `sbSelect`/service key, acá la RLS ES el producto — trayendo operaciones por
+   empresa+rango de fechas, y las pizarras de `pizarra_historico` necesarias para resolver las
+   operaciones a pizarra visibles).
 4. **Server actions** `src/app/(site)/operaciones/actions.ts` (patrón `completarPerfil`,
    `src/app/auth/actions.ts:127`): `crearOperacion` · `editarOperacion` · `anularOperacion` ·
    `restaurarOperacion`. Para clientes, `empresa_id` sale de `getPerfil()` en el server (JAMÁS
@@ -464,8 +469,8 @@ la skill `ui-ux-pro-max` antes de tocar UI.
    `requireSeccion("operaciones")` en páginas + chequeo de acceso en cada action.
    `revalidatePath` de las 2 páginas.
 5. **Página `/operaciones/registro`** completa según §5.6 (formulario de a una operación con
-   todos los campos, incl. `CurvaPicker` + ajuste sugerido para futuros y selector opcional de
-   contrato a fijar para fijaciones; listados Compras/Ventas del día; anuladas tachadas; neto del
+   todos los campos, incl. `CurvaPicker` + ajuste sugerido para futuros — las fijaciones van
+   SUELTAS, sin vínculo a su contrato, §7.1; listados Compras/Ventas del día; anuladas tachadas; neto del
    día producto × período usando §5.1-5.2; date picker de día; historial por operación; export
    CSV patrón `chart-tabla.tsx:67`; chips con `filtro-grano.tsx` extendido a girasol/sorgo SOLO
    acá — no toques sus otros consumidores; selector de empresa solo-admin §5.6.8).
@@ -476,7 +481,8 @@ la skill `ui-ux-pro-max` antes de tocar UI.
    lo que corresponda en `E7-sintesis.md` §4 (C31).
 
 **Verificación obligatoria** (además de lint/tsc/vitest/build): tests de la lib pura con casos de
-§5.1-5.2 (fijación no suma volumen · anulada excluida · kg→tn · buckets con entrega pasada/8+
+§5.1-5.2 (fijación no suma volumen · anulada excluida · kg→tn · buckets con la regla 30 días —
+borde exacto hoy+30 —, entrega pasada y 8+
 meses · retroactiva) · **RLS probada por SQL en los dos sentidos** en cuanto la migración esté
 aplicada — 2 empresas sintéticas + 1 usuario de cada una: A no SELECTea ni UPDATEa filas de B, el
 INSERT con `empresa_id` ajeno rebota, DELETE rebota por falta de grant, el log registra

@@ -40,8 +40,8 @@
   fecha de concertación; registro del día, neto del día, posición acumulada y posición-a-fecha
   son vistas calculadas. El "arrancar con el saldo de ayer" sale gratis.
 - **Fijación = registro nuevo que genera precio y NO suma volumen** (Lautaro, textual: "una cosa
-  es el negocio a fijar y otra la fijación") — evita el doble conteo; vínculo opcional al
-  contrato a fijar vía self-FK (`operacion_ref`, default §7.1).
+  es el negocio a fijar y otra la fijación") — evita el doble conteo. En la 2ª ronda eligió
+  **SIN vínculo** al contrato a fijar ("no hace falta"): registros independientes, sin self-FK.
 - **Futuros A3 separados del físico** (físico / futuros / total) + tabla propia valorizada vs
   precio de ejecución (§1.27). La fórmula quedó escrita con ejemplo numérico y **gateada a su
   confirmación explícita** (regla dura de fórmulas) — es la única pregunta abierta que bloquea
@@ -55,9 +55,10 @@
   grant de DELETE a `authenticated` — borrar es imposible incluso pegando directo a PostgREST.
 - **Historial de cambios por TRIGGER** (no por la app): registra cualquier camino de escritura
   (cliente, admin en nombre del cliente, service_role) sin depender de cada server action.
-- **Sin la regla "Disponible = próximos 30 días" del Excel** (default §7.2): un forward cae a
-  Disponible recién cuando su entrega arranca — la posición no migra de columna sola de un día
-  para otro sin carga de por medio.
+- **La regla "Disponible = próximos 30 días" del Excel se CONSERVA** — se le propuso a Lautaro
+  la alternativa sin migración silenciosa (forward cae a Disponible recién cuando arranca la
+  entrega) y **eligió explícitamente la de Mauro** en la 2ª ronda (§7.2): la posición migra sola
+  de columna con el paso de los días, y eso es lo que la mesa quiere leer.
 - **Admin ve/edita todo desde la MISMA página** con selector de empresa (nada duplicado en
   `/admin`); para clientes el `empresa_id` sale SIEMPRE de `getPerfil()` server-side, jamás del
   form (y la RLS rebota cualquier forja igual).
@@ -70,9 +71,12 @@
   openpyxl), no sobre una vista previa.
 
 ## Quedó pendiente / en vuelo
-- **§7.5 (fórmula de futuros) CONFIRMADA por Lautaro en la misma sesión** ("correcto lo que me
-  decís en el punto 5", contra el ejemplo numérico de §5.5 tal cual) — era la única pregunta que
-  gateaba un build. Las otras 6 de §7 corren con su default salvo que diga lo contrario.
+- **Las 7 preguntas de la 2ª ronda quedaron CONTESTADAS en la misma sesión** (§7 del plan):
+  1) fijación SIN vínculo al contrato · 2) bucket Disponible = regla de Mauro (hoy+30, migra
+  sola) · 3) **pizarra del DÍA SIGUIENTE a la operación** ("la pizarra refleja el mercado del
+  día anterior") · 4) descuentos % y monto fijo COMBINABLES (pizarra −10% y −38.000 $ flete) ·
+  5) fórmula de futuros confirmada con el ejemplo numérico tal cual · 6) export CSV v1 ·
+  7) campañas rotativas + campo libre. **No queda ninguna decisión pendiente.**
 - **Ejecutar Fase 1** (prompt §8) → merge → **Fase 2** (prompt §9, completa, panel de futuros
   incluido).
 - La migración de Fase 1 se versiona SIN aplicar; la aplica el orquestador por MCP con OK de

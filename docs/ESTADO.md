@@ -39,11 +39,12 @@ planilla transcripta (§2) · **modelo de datos + RLS completos hasta el DDL** (
 tabla del sistema con RLS por `empresa_id` y la primera donde los clientes ESCRIBEN; helper
 `mi_empresa_id()`, molde `completarPerfil` para las server actions, capas de seguridad
 explícitas) · pantallas (§5: `/operaciones` posición + `/operaciones/registro` carga diaria +
-heatmap comprado/vendido) · **7 preguntas de 2ª ronda con default que aplica solo** (§7 — la
-única que gateaba un build era la fórmula de valorización de futuros, §7.5, y **Lautaro la
-CONFIRMÓ en la misma sesión** con el ejemplo numérico tal cual: ya no queda ninguna condición
-pendiente) · **2 prompts autocontenidos para Sonnet** (§8 Fase 1 · §9 Fase 2). Registrado como
-**C31** en el backlog maestro.
+heatmap comprado/vendido) · **7 preguntas de 2ª ronda — LAS 7 CONTESTADAS por Lautaro en la
+misma sesión** (§7: fijación SIN vínculo · bucket Disponible = regla de Mauro hoy+30 · pizarra
+del DÍA SIGUIENTE a la operación · descuentos % y monto COMBINABLES · fórmula de futuros
+confirmada con el ejemplo numérico tal cual · export CSV v1 · campañas rotativas — no queda
+NINGUNA decisión pendiente) · **2 prompts autocontenidos para Sonnet** (§8 Fase 1 · §9 Fase 2).
+Registrado como **C31** en el backlog maestro.
 
 **Hallazgo clave del relevamiento**: no existe hoy NINGUNA tabla con RLS por empresa (solo
 `profiles`/`access_log` acotadas a `auth.uid()`) — el patrón se estrena acá, y `sbSelect`/
@@ -53,8 +54,7 @@ pendiente) · **2 prompts autocontenidos para Sonnet** (§8 Fase 1 · §9 Fase 2
 **Verificado**: lint/tsc/**484 tests**/build ✅ (diff solo docs). **Próximo paso**: mergear el
 PR #141 → **ejecutar Fase 1** (prompt §8: migración SIN aplicar + sección + carga + registro
 diario + posición mínima) → merge → **Fase 2** (prompt §9: posición completa + heatmap + panel
-de futuros valorizado, fórmula ya confirmada). Las otras 6 preguntas de §7 corren con su default
-salvo que Lautaro diga lo contrario antes de cada build. Detalle:
+de futuros valorizado, fórmula ya confirmada). Detalle:
 [`sesiones/2026-08-05-plan-operaciones-clientes.md`](sesiones/2026-08-05-plan-operaciones-clientes.md).
 ## Anterior (05/08/2026 — 🏁 E6 de PLAN INFORMES V3 CERRADO: E1→E6 completo, las 4 Routines renombradas/corregidas + la de interpretaciones creada)
 

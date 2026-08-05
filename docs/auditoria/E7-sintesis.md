@@ -543,7 +543,9 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   admins ven/editan todo · sección de permisos nueva `operaciones`). Plan:
   **[`PLAN_OPERACIONES_CLIENTES.md`](../PLAN_OPERACIONES_CLIENTES.md)** — DDL+RLS completos,
   2 prompts autocontenidos (§8 Fase 1 base+carga+registro · §9 Fase 2 posición+heatmap+futuros)
-  y 7 preguntas de 2ª ronda con default (§7; solo §7.5 —fórmula de futuros— gatea un build).
+  y las 7 preguntas de 2ª ronda **contestadas en la misma sesión** (§7, incl. fórmula de
+  futuros confirmada con ejemplo · pizarra del día siguiente · regla 30 días de Mauro ·
+  descuentos combinables): sin decisiones pendientes.
   Detalle:
   [`sesiones/2026-08-05-plan-operaciones-clientes.md`](../sesiones/2026-08-05-plan-operaciones-clientes.md).
 
