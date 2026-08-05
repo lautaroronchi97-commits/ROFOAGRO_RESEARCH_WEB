@@ -70,10 +70,11 @@
   openpyxl), no sobre una vista previa.
 
 ## Quedó pendiente / en vuelo
-- **Lautaro contesta las 7 preguntas de §7** (todas con default que aplica solo; la única que
-  gatea un build es §7.5, la fórmula de futuros → sin ella la Fase 2 se construye igual salvo ese
-  panel).
-- **Ejecutar Fase 1** (prompt §8) → merge → **Fase 2** (prompt §9).
+- **§7.5 (fórmula de futuros) CONFIRMADA por Lautaro en la misma sesión** ("correcto lo que me
+  decís en el punto 5", contra el ejemplo numérico de §5.5 tal cual) — era la única pregunta que
+  gateaba un build. Las otras 6 de §7 corren con su default salvo que diga lo contrario.
+- **Ejecutar Fase 1** (prompt §8) → merge → **Fase 2** (prompt §9, completa, panel de futuros
+  incluido).
 - La migración de Fase 1 se versiona SIN aplicar; la aplica el orquestador por MCP con OK de
   Lautaro (protocolo de siempre).
 

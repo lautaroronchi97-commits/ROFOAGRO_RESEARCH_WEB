@@ -40,19 +40,21 @@ tabla del sistema con RLS por `empresa_id` y la primera donde los clientes ESCRI
 `mi_empresa_id()`, molde `completarPerfil` para las server actions, capas de seguridad
 explícitas) · pantallas (§5: `/operaciones` posición + `/operaciones/registro` carga diaria +
 heatmap comprado/vendido) · **7 preguntas de 2ª ronda con default que aplica solo** (§7 — la
-única que gatea un build es la fórmula de valorización de futuros, §7.5, con ejemplo numérico
-esperando su confirmación) · **2 prompts autocontenidos para Sonnet** (§8 Fase 1 · §9 Fase 2).
-Registrado como **C31** en el backlog maestro.
+única que gateaba un build era la fórmula de valorización de futuros, §7.5, y **Lautaro la
+CONFIRMÓ en la misma sesión** con el ejemplo numérico tal cual: ya no queda ninguna condición
+pendiente) · **2 prompts autocontenidos para Sonnet** (§8 Fase 1 · §9 Fase 2). Registrado como
+**C31** en el backlog maestro.
 
 **Hallazgo clave del relevamiento**: no existe hoy NINGUNA tabla con RLS por empresa (solo
 `profiles`/`access_log` acotadas a `auth.uid()`) — el patrón se estrena acá, y `sbSelect`/
 `sbSelectAll` usan la service key (bypasean RLS) → las lecturas de esta sección van SIEMPRE con
 `createSupabaseServerClient()` (sesión del usuario), remarcado en los prompts.
 
-**Verificado**: lint/tsc/**484 tests**/build ✅ (diff solo docs). **Próximo paso**: Lautaro
-contesta (o deja pasar) las 7 preguntas de §7 → **ejecutar Fase 1** (prompt §8: migración SIN
-aplicar + sección + carga + registro diario + posición mínima) → merge → **Fase 2** (prompt §9:
-posición completa + heatmap + panel de futuros valorizado). Detalle:
+**Verificado**: lint/tsc/**484 tests**/build ✅ (diff solo docs). **Próximo paso**: mergear el
+PR #141 → **ejecutar Fase 1** (prompt §8: migración SIN aplicar + sección + carga + registro
+diario + posición mínima) → merge → **Fase 2** (prompt §9: posición completa + heatmap + panel
+de futuros valorizado, fórmula ya confirmada). Las otras 6 preguntas de §7 corren con su default
+salvo que Lautaro diga lo contrario antes de cada build. Detalle:
 [`sesiones/2026-08-05-plan-operaciones-clientes.md`](sesiones/2026-08-05-plan-operaciones-clientes.md).
 
 ## Anterior (04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)

@@ -9,9 +9,10 @@
 > RLS por `empresa_id` y la primera donde los clientes ESCRIBEN (§4). Prompts de ejecución
 > autocontenidos en **§8** (Fase 1: base + carga + registro diario) y **§9** (Fase 2: posición +
 > heatmap + futuros valorizados). Modelo sugerido: **Sonnet** (regla de PLAN_BACKLOG); el juicio
-> de diseño está tomado acá. Quedan 7 preguntas de segunda ronda en §7, **cada una con un default
-> recomendado que aplica salvo que Lautaro diga lo contrario** — ninguna bloquea la Fase 1 excepto
-> la fórmula de futuros (§7.5), que gatea SOLO el panel de futuros de la Fase 2.
+> de diseño está tomado acá. Quedan preguntas de segunda ronda en §7, **cada una con un default
+> recomendado que aplica salvo que Lautaro diga lo contrario** — la única que gateaba un build
+> (la fórmula de futuros, §7.5) ya fue **confirmada por Lautaro el 05/08/2026**: ninguna fase
+> tiene condiciones pendientes.
 
 ## 1. Decisiones cerradas (05/08/2026, las 29 respuestas de Lautaro)
 
@@ -343,12 +344,12 @@ también tienen pizarra CAC (`CLASES` de `pizarra.ts:22` ya trae GIR y SOR).
 > Pregunta §7.3: confirmar que la referencia es la pizarra Rosario (CAC) **del día de la
 > operación**.
 
-### 5.5 Panel "Posición de futuros" valorizada (Fase 2 — fórmula a confirmar)
+### 5.5 Panel "Posición de futuros" valorizada (Fase 2 — ✅ fórmula CONFIRMADA por Lautaro, 05/08/2026)
 
 Tabla con las operaciones `futuro_a3` vivas (no anuladas): posición · lado · tn · precio de
 ejecución · **ajuste de hoy** (vista `futuros_cierres_ultimo`, mismo origen que Arbitrajes) ·
-resultado. Fórmula propuesta, **que Lautaro debe confirmar con este ejemplo antes de que se
-escriba una línea** (regla dura de fórmulas):
+resultado. Fórmula **confirmada por Lautaro el 05/08/2026 contra el ejemplo numérico de abajo**
+("correcto lo que me decís en el punto 5" — chat de la sesión de plan):
 
 ```
 resultado_usd = (ajuste_hoy − precio_ejecucion) × volumen_tn × signo   (signo: compra +1, venta −1)
@@ -413,9 +414,9 @@ scoring de clientes (aunque estos datos son su insumo futuro — `negocio/03`).
    del **día de la fecha de la operación**, en la moneda elegida. ¿Confirmás día y cámara?
 4. **Descuento.** Default: dos modos — `%` (pizarra −10%) o `monto` en la moneda de la operación
    (pizarra −10 USD) — y disponible también sobre precio manual.
-5. **⚠️ Fórmula de valorización de futuros (§5.5).** ÚNICA pregunta que gatea un build (el panel
-   de futuros de la Fase 2; el resto de la Fase 2 no depende). Confirmá el ejemplo numérico de
-   §5.5 o pasá el tuyo.
+5. **✅ Fórmula de valorización de futuros (§5.5) — CONFIRMADA (05/08/2026).** Era la única
+   pregunta que gateaba un build; Lautaro confirmó el ejemplo numérico de §5.5 tal cual → el
+   panel de futuros entra completo en la Fase 2, sin condiciones.
 6. **Export "Excel".** Default v1: **CSV con BOM** (doble click y Excel lo abre con acentos bien,
    patrón ya existente en el sitio). Un `.xlsx` real de verdad (con formato, varias hojas) es
    construible pero es un módulo nuevo de escritura — lo dejo en backlog derivado (§10) salvo que
@@ -488,8 +489,8 @@ deben responder 200 degradando honesto (sin 500) — probalo.
 
 ## 9. PROMPT DE EJECUCIÓN — FASE 2 (posición completa + heatmap + futuros valorizados)
 
-> Requiere Fase 1 mergeada Y las respuestas de §7 (en particular §7.5 — si la fórmula de futuros
-> sigue sin confirmar, construí todo salvo el panel valorizado y dejalo anotado).
+> Requiere Fase 1 mergeada. La fórmula de futuros (§5.5/§7.5) ya está confirmada por Lautaro
+> (05/08/2026) — el panel valorizado se construye completo, sin condiciones.
 
 ---
 
@@ -504,8 +505,8 @@ sobre la sección `/operaciones` ya construida por Fase 1. Mismas reglas duras q
    ese día; reusá tokens `--pos`/`--neg` y el motor ECharts `RfChart` si aplica, o celdas HTML si
    queda más legible — decisión tuya, documentala) · Estado por producto (COMPRADOS/VENDIDOS/
    NEUTRO).
-2. **Panel "Posición de futuros" valorizado** (§5.5, SOLO si Lautaro confirmó la fórmula en §7.5;
-   registrá la confirmación en la bitácora): ajuste de hoy vía `getCierresGranos()`
+2. **Panel "Posición de futuros" valorizado** (§5.5, fórmula ya confirmada por Lautaro el
+   05/08/2026): ajuste de hoy vía `getCierresGranos()`
    (`futuros.ts:68`), degradación honesta si la posición ya no está viva, totales por producto,
    aviso suave si tn no es múltiplo de 100.
 3. **Resolución de pizarra en todas las vistas** (§5.4): las filas modo pizarra muestran el precio
