@@ -19,8 +19,44 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 05/08/2026 — 🏁 E6 de PLAN INFORMES V3 CERRADO: PLAN_INFORMES_V3
-completo E1→E6, las 4 Routines renombradas/corregidas + la de interpretaciones creada)
+## Ahora (última actualización: 05/08/2026 — 📒 PLAN C31: operaciones diarias de clientes, CERRADO)
+
+**📒 C31 — OPERACIONES DIARIAS DE CLIENTES (posición comprado/vendido por empresa) — PLAN
+CERRADO, SOLO DOCS — rama `claude/daily-operations-client-table-rff7u6`, PR #_.** Lautaro trajo
+una planilla de Mauro ("Posición Agroleaginosa") y pidió pensar juntos, sin construir: una tabla
+donde **cada empresa cliente carga sus compras/ventas del día** (soja/maíz/trigo/girasol/sorgo) y
+ve su **posición neta por producto × período de entrega** para saber si está calzada, con
+historia por día — y "que cada uno vea SOLO lo suyo" como requisito número uno. Sesión de craneo:
+la planilla se leyó a fondo (fórmulas incluidas; estructura transcripta al plan, **xlsx NO
+versionado** por traer nombre de cliente real), **29 preguntas en una primera ronda — Lautaro
+contestó las 29** — y relevamiento con agente de las anclas reales del repo. **Entregable:
+[`PLAN_OPERACIONES_CLIENTES.md`](PLAN_OPERACIONES_CLIENTES.md)** — decisiones (§1: libro mayor ·
+fijación = registro nuevo que genera precio y NO suma volumen · futuros A3 separados del físico y
+valorizados vs precio de ejecución · pizarra resuelta en lectura contra `pizarra_historico` sin
+proceso manual · anulación tachada sin DELETE ni grant · historial de cambios por trigger ·
+admins ven/editan todo con selector de empresa · sección de permisos nueva `operaciones`) ·
+planilla transcripta (§2) · **modelo de datos + RLS completos hasta el DDL** (§4 — la PRIMERA
+tabla del sistema con RLS por `empresa_id` y la primera donde los clientes ESCRIBEN; helper
+`mi_empresa_id()`, molde `completarPerfil` para las server actions, capas de seguridad
+explícitas) · pantallas (§5: `/operaciones` posición + `/operaciones/registro` carga diaria +
+heatmap comprado/vendido) · **7 preguntas de 2ª ronda — LAS 7 CONTESTADAS por Lautaro en la
+misma sesión** (§7: fijación SIN vínculo · bucket Disponible = regla de Mauro hoy+30 · pizarra
+del DÍA SIGUIENTE a la operación · descuentos % y monto COMBINABLES · fórmula de futuros
+confirmada con el ejemplo numérico tal cual · export CSV v1 · campañas rotativas — no queda
+NINGUNA decisión pendiente) · **2 prompts autocontenidos para Sonnet** (§8 Fase 1 · §9 Fase 2).
+Registrado como **C31** en el backlog maestro.
+
+**Hallazgo clave del relevamiento**: no existe hoy NINGUNA tabla con RLS por empresa (solo
+`profiles`/`access_log` acotadas a `auth.uid()`) — el patrón se estrena acá, y `sbSelect`/
+`sbSelectAll` usan la service key (bypasean RLS) → las lecturas de esta sección van SIEMPRE con
+`createSupabaseServerClient()` (sesión del usuario), remarcado en los prompts.
+
+**Verificado**: lint/tsc/**484 tests**/build ✅ (diff solo docs). **Próximo paso**: mergear el
+PR #141 → **ejecutar Fase 1** (prompt §8: migración SIN aplicar + sección + carga + registro
+diario + posición mínima) → merge → **Fase 2** (prompt §9: posición completa + heatmap + panel
+de futuros valorizado, fórmula ya confirmada). Detalle:
+[`sesiones/2026-08-05-plan-operaciones-clientes.md`](sesiones/2026-08-05-plan-operaciones-clientes.md).
+## Anterior (05/08/2026 — 🏁 E6 de PLAN INFORMES V3 CERRADO: E1→E6 completo, las 4 Routines renombradas/corregidas + la de interpretaciones creada)
 
 **🏁 E6 — ÚLTIMA ETAPA DE PLAN INFORMES V3 — HECHA DE PUNTA A PUNTA, cierra el plan completo
 (C30) — rama `claude/hito-e6-plan-informe-3svmrm`, PR #139.** Ejecuta el PROMPT E6 de
