@@ -21,10 +21,9 @@ export default function PrivacidadPage() {
       <p className="lp-p">Última actualización: 1 de agosto de 2026.</p>
 
       <p className="lp-p">
-        ROFO AGRO es una consultora de agronegocios. Esta web (el &ldquo;Sitio&rdquo;) es la
-        herramienta de research y seguimiento de mercado que usamos con nuestros clientes.
-        Esta política explica qué datos personales recopilamos cuando creás una cuenta o usás
-        el Sitio, para qué los usamos y qué derechos tenés sobre ellos.
+        Esta web (el &ldquo;Sitio&rdquo;) es la herramienta de research que ROFO AGRO usa con
+        sus clientes. Esta política explica qué datos personales recopilamos cuando creás una
+        cuenta o usás el Sitio, para qué los usamos y qué derechos tenés sobre ellos.
       </p>
 
       <h2 className="lp-h2">1. Qué datos recopilamos</h2>
@@ -77,9 +76,8 @@ export default function PrivacidadPage() {
         Como titular de tus datos personales (Ley 25.326), en cualquier momento podés pedirnos
         <strong> acceder</strong> a tus datos, <strong>rectificarlos</strong> si están mal,
         <strong> cancelarlos</strong> (eliminarlos) u <strong>oponerte</strong> a un uso puntual
-        que no te parezca correcto, además de dar de baja tu cuenta. Escribinos por el
-        formulario de contacto del{" "}
-        <a href="/bienvenida#contacto">sitio institucional</a> y lo resolvemos.
+        que no te parezca correcto, además de dar de baja tu cuenta. Escribinos y lo
+        resolvemos.
       </p>
 
       <h2 className="lp-h2">6. Seguridad</h2>
@@ -106,8 +104,7 @@ export default function PrivacidadPage() {
 
       <h2 className="lp-h2">9. Contacto</h2>
       <p className="lp-p">
-        Ante cualquier duda sobre tus datos, escribinos por el formulario de contacto de{" "}
-        <a href="/bienvenida#contacto">rofoagro</a>.
+        Ante cualquier duda sobre tus datos, escribinos.
       </p>
     </article>
   );

@@ -1361,6 +1361,7 @@ a.estim-inf:hover { color:var(--gold-text); }
 .auth-title { font-family:var(--font-display); font-size:26px; font-weight:600; letter-spacing:-.01em;
   color:var(--ink); margin:0; }
 .auth-sub { font-size:var(--fs-base); color:var(--ink-2); line-height:1.5; margin:8px 0 20px; }
+.auth-title--solo { margin-bottom:20px; }
 
 .auth-form { display:flex; flex-direction:column; gap:14px; }
 .auth-field { display:flex; flex-direction:column; gap:6px; }

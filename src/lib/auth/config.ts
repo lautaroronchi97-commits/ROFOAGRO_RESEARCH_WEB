@@ -59,12 +59,18 @@ export function seccionDeRuta(pathname: string): SeccionKey | null {
 
 /**
  * Prefijos de ruta que NUNCA exigen login (aunque el flag esté prendido): las
- * propias pantallas de auth, el callback de OAuth, la landing pública mínima
- * (`/bienvenida`), la pantalla de "sesión cerrada en otro dispositivo" y las
- * páginas legales (`/privacidad`, `/terminos` — Google exige que el link de
- * política de privacidad de la marca OAuth sea accesible sin login). La raíz
- * `/` NO va acá: con el flag prendido, un visitante sin sesión se redirige a la
- * landing (ver `session.ts`); con sesión, `/` es el tablero.
+ * propias pantallas de auth, el callback de OAuth, la pantalla de "sesión cerrada
+ * en otro dispositivo" y las páginas legales (`/privacidad`, `/terminos` — Google
+ * exige que el link de política de privacidad de la marca OAuth sea accesible sin
+ * login). La raíz `/` NO va acá: con el flag prendido, un visitante sin sesión cae
+ * en el caso genérico de ruta protegida → `/ingresar`; con sesión, `/` es el
+ * tablero.
+ *
+ * `/bienvenida` (la landing institucional) SE SACÓ de esta lista el 05/08/2026:
+ * Lautaro pidió bajarla de producción del todo, no solo del flujo de entrada — la
+ * ruta ya no existe (`src/app/bienvenida/` se movió a `docs/backup/landing-
+ * bienvenida-2026-08-05/`), así que con el flag prendido un visitante que la pida
+ * cae en el mismo caso genérico que cualquier otra ruta protegida.
  */
 export const RUTAS_PUBLICAS = [
   "/ingresar",
@@ -73,7 +79,6 @@ export const RUTAS_PUBLICAS = [
   "/recuperar",
   "/completar",
   "/auth",
-  "/bienvenida",
   "/sesion-cerrada",
   "/privacidad",
   "/terminos",

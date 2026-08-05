@@ -21,18 +21,16 @@ export default function TerminosPage() {
 
       <h2 className="lp-h2">1. Qué es el Sitio</h2>
       <p className="lp-p">
-        El Sitio reúne información de mercado de granos (precios, futuros, dólar, producción,
-        comercio exterior) y herramientas de cálculo para clientes de ROFO AGRO. Es un servicio
-        de research e información: <strong>no es</strong> una plataforma de trading, no ejecuta
-        operaciones y no reemplaza el asesoramiento de tu corredor.
+        El Sitio es un servicio de research de mercado de granos para clientes de ROFO AGRO.{" "}
+        <strong>No es</strong> una plataforma de trading, no ejecuta operaciones y no reemplaza
+        el asesoramiento de tu corredor.
       </p>
 
       <h2 className="lp-h2">2. Naturaleza informativa — sin asesoramiento de inversión</h2>
       <p className="lp-p">
-        Toda la información del Sitio (precios, gráficos, calculadoras, informes, views de
-        mercado) tiene fines informativos. <strong>No constituye recomendación ni
-        asesoramiento de inversión.</strong> Las decisiones que tomes con esa información, y
-        sus resultados, son responsabilidad tuya.
+        Todo el research que provee el Sitio tiene fines informativos. <strong>No constituye
+        recomendación ni asesoramiento de inversión.</strong> Las decisiones que tomes con esa
+        información, y sus resultados, son responsabilidad tuya.
       </p>
 
       <h2 className="lp-h2">3. Exactitud de los datos</h2>
@@ -77,8 +75,7 @@ export default function TerminosPage() {
 
       <h2 className="lp-h2">9. Contacto</h2>
       <p className="lp-p">
-        Cualquier consulta sobre estas condiciones, escribinos por el formulario de contacto
-        de <a href="/bienvenida#contacto">rofoagro</a>. Ver también nuestra{" "}
+        Cualquier consulta sobre estas condiciones, escribinos. Ver también nuestra{" "}
         <a href="/privacidad">política de privacidad</a>.
       </p>
     </article>
