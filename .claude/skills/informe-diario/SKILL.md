@@ -377,7 +377,7 @@ visible que lo confirme:
 ```
 POST {SUPABASE_URL}/rest/v1/routine_runs
 headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}, content-type: application/json
-body: [{ "tipo": "informe_diario", "fecha": "YYYY-MM-DD",
+body: [{ "tipo": "diario", "fecha": "YYYY-MM-DD",
          "iniciado_en": "<ISO de cuando arrancó el Paso 1>",
          "terminado_en": "<ISO de ahora>",
          "degradaciones": { "color": <bool: sin cargar>, "resend": <bool: sin key>, ... },

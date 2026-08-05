@@ -522,8 +522,14 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   Chicago BCR, expectativas DTN, clima SMN, suscripción directa). **Ejecutar E1→E6 con Sonnet**
   (prompts autocontenidos en §10 del plan): E1 datos/migraciones → E2 interpretaciones → E3
   diario (+página web con link) → E4 semanal → E5 view (E3/E4/E5 paralelizables) → E6
-  Routines/cierre. Detalle:
-  [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md).
+  Routines/cierre. **E1-E5 hechas y mergeadas (04/08); E6 parcial (04/08)**: monitoreo N13
+  (`routine_runs` cableado a `/admin/checklist`/`/admin/conexiones` + watchdog del diario en el
+  healthcheck) y feedback end-to-end de los 4 productos verificados contra datos reales — el
+  rename/fix de prompts/cadencia de las 3 Routines existentes + confirmar la de interpretaciones
+  quedó bloqueado por un MCP sin destrabar en la sesión (especificación exacta para la próxima
+  vez en la bitácora). Detalle:
+  [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md) ·
+  [`sesiones/2026-08-04-e6-routines-cierre.md`](../sesiones/2026-08-04-e6-routines-cierre.md).
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN

@@ -19,7 +19,65 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)
+## Ahora (última actualización: 04/08/2026 — 🏁 E6 de PLAN INFORMES V3: monitoreo/watchdog/feedback
+hechos y verificados — Routines bloqueadas por un MCP sin destrabar)
+
+**🏁 E6 — ÚLTIMA ETAPA DE PLAN INFORMES V3 — PARCIAL, código+DB verificado, Routines
+BLOQUEADAS — rama `claude/hito-e6-plan-informe-3svmrm`, PR #_.** Ejecuta el PROMPT E6 de
+`PLAN_INFORMES_V3.md` §10 (requiere E1→E5, las 5 ya mergeadas). Cierra 3 de los 4 ítems del
+prompt de punta a punta; el 4º (Routines por MCP) quedó bloqueado por un error de aprobación del
+MCP que no se resolvió en toda la sesión — ver "Quedó pendiente" abajo con la especificación
+exacta para aplicarlo apenas destrabe.
+
+**Monitoreo N13 — `routine_runs` cableado al catálogo único.** `src/lib/monitoreo/catalogo.ts`
+suma un 4º `RoutineDef` (`interpretaciones`) + actualiza el texto de `informe-semanal` a "viernes
+20:30" (N12). `routines-logica.ts` suma una función nueva, `evaluarPorTelemetria` — a diferencia
+de diario/semanal/view (detectables por lo que ESCRIBEN, con un output fijo esperado), un día sin
+ningún reporte de organismo es un día LEGÍTIMO con cero interpretaciones nuevas, así que esa
+Routine se detecta por telemetría pura (¿hay ≥1 fila de `routine_runs` hoy?), no por filas
+producidas. `routines.ts` suma el fetch + el case nuevo — `/admin/checklist` (balde 🟣) y
+`/admin/conexiones` heredan el 4º ítem gratis (ya iteraban genérico). **Bug real encontrado**: las
+skills documentaban `tipo: "informe_diario"`/`"informe_semanal"` para su fila de telemetría, pero
+la ÚNICA fila real en producción (el informe diario de HOY) usa `"diario"` — corregidos los 2
+`SKILL.md` para que digan lo que la Routine real ya escribe.
+
+**Watchdog del informe diario (N13)**: chequeo nuevo en `scripts/healthcheck-frescura.mjs` — si
+hoy es hábil y a las 20:45 ART (cuando corre este cron) no hay un informe diario `enviado` de
+hoy, cuenta como falla real (dispara el mail de alerta ya existente, sin cron/lógica de mail
+nuevos). **Corrido contra producción real**: `✓ watchdog informe diario: 2026-08-04: enviado`
+(coincide con el informe real de hoy).
+
+**Feedback end-to-end, verificado contra producción real con reversión inmediata en cada caso**
+(los 4 productos): informe diario/semanal (`admin_feedback_informe`, contra el informe real de
+hoy, revertido) · view de mercado (`admin_feedback_view`, contra un view real del 31/07,
+revertido) · nota 1-tap (`/api/informes/nota` contra `rofoagro.com.ar` real: firma inválida →
+400 honesto, como se esperaba sin `INFORME_SHARE_SECRET` cargado; el PATCH subyacente probado por
+SQL y revertido) · interpretaciones (feedback por diff): **no hizo falta simular nada** — hay un
+caso real (la interpretación del DEA del 27/07, que Lautaro editó de verdad) que confirma que el
+`SELECT` del Paso 0 de la skill trae los dos textos completos, listo para el diff.
+
+**Verificado**: lint/tsc/**488 tests** (4 nuevos)/build ✅ · healthcheck corrido en vivo contra
+producción (credenciales reales del entorno) · feedback de los 4 productos probado contra datos
+reales de producción y revertido sin dejar residuo (confirmado por SQL en cada caso).
+
+**Bloqueado — Routines por MCP (ítem 1 del prompt E6)**: el MCP de Routines
+(`claude-code-remote`) devolvió `MCP error -32003: MCP tool call requires approval` en los 3
+intentos (lectura y escritura), sin resolver — sospecha: sesión `remote_mobile`, la aprobación
+puede necesitar un tap en el teléfono que no llegó a completarse. Se alcanzó a leer el estado
+real de las 3 Routines existentes antes de que el bloqueo empezara — **especificación exacta de
+los 4 cambios pendientes (rename + fix de repo viejo `RFAGRO_RESEARCH_WEB`→`ROFOAGRO_RESEARCH_WEB`
++ cláusula de mail en la del view + cron semanal 19:00→20:30 ART/N12 + confirmar/crear la Routine
+de interpretaciones) en la tabla de
+[`sesiones/2026-08-04-e6-routines-cierre.md`](sesiones/2026-08-04-e6-routines-cierre.md)** — para
+la próxima sesión con el MCP destrabado, o Lautaro a mano desde "Rutinas" en la app.
+
+**Pendiente (no nuevo, ya documentado)**: `INFORME_SHARE_SECRET` real sigue sin confirmarse en
+Vercel/Routines (mismo pendiente de E1). **Con esto PLAN_INFORMES_V3.md queda con E1-E5 cerrados
+y E6 parcial** — el plan completo (C30 del backlog maestro) cierra en cuanto se aplique el
+pendiente de Routines. Detalle:
+[`sesiones/2026-08-04-e6-routines-cierre.md`](sesiones/2026-08-04-e6-routines-cierre.md).
+
+## Anterior (04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)
 
 **🎯 E5 — VIEW V3 (5 ESTADOS) — HECHO Y VERIFICADO — rama `claude/plan-informe-e5-owgf06`,
 PR #_.** Ejecuta el PROMPT E5 de `PLAN_INFORMES_V3.md` §10 (requiere E1, ya mergeada, con la
