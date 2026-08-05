@@ -1975,6 +1975,8 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .ct-vacio { padding:14px 12px; font-size:var(--fs-xs); color:var(--ink-3); text-align:center;
   font-family:var(--font-ui); }
 .ct-nota { margin:7px 2px 0; font-size:var(--fs-2xs); color:var(--ink-3); }
+.ct-pos { color:var(--pos); font-weight:700; }
+.ct-neg { color:var(--neg); font-weight:700; }
 
 /* Comercio exterior · Negociado por producto (SIO Granos) --------------------- */
 .ng-activa { display:inline-block; margin-left:8px; padding:1px 7px; border-radius:99px;

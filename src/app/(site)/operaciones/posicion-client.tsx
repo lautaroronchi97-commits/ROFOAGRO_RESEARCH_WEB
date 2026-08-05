@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChartTabla } from "@/components/chart-tabla";
 import { FiltroGrano, type GranoFiltroValue } from "@/components/filtro-grano";
 import type { Heatmap, Matriz } from "@/lib/operaciones/posicion";
-import { matrizAColumnas, matrizAFilas, esFilaTotal } from "@/lib/operaciones/matriz-vista";
+import { matrizAColumnas, matrizAFilas, esFilaTotal, columnasSignoDe, COLUMNA_ESTADO } from "@/lib/operaciones/matriz-vista";
 import type { FuturoValorizado } from "@/lib/operaciones/futuros-valorizados";
 import { GRANO_PRODUCTO } from "@/lib/operaciones/tipos";
 import { EmpresaSelector } from "./empresa-selector";
@@ -68,6 +68,8 @@ export function PosicionClient({
         filas={matrizAFilas(total, productoFiltro)}
         destacada={esFilaTotal}
         exportCsv="mi-posicion-total"
+        columnasSigno={columnasSignoDe(total)}
+        columnasEstado={COLUMNA_ESTADO}
       />
 
       <h3 className="op-matriz-tit">Físico (disponible + forward)</h3>
@@ -76,6 +78,8 @@ export function PosicionClient({
         filas={matrizAFilas(fisico, productoFiltro)}
         destacada={esFilaTotal}
         exportCsv="mi-posicion-fisico"
+        columnasSigno={columnasSignoDe(fisico)}
+        columnasEstado={COLUMNA_ESTADO}
       />
 
       <h3 className="op-matriz-tit">Futuros A3</h3>
@@ -84,6 +88,8 @@ export function PosicionClient({
         filas={matrizAFilas(futuros, productoFiltro)}
         destacada={esFilaTotal}
         exportCsv="mi-posicion-futuros"
+        columnasSigno={columnasSignoDe(futuros)}
+        columnasEstado={COLUMNA_ESTADO}
       />
 
       <h3 className="op-matriz-tit">Heatmap comprado/vendido</h3>
