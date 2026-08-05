@@ -19,7 +19,47 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 05/08/2026 — 📒 PLAN C31: operaciones diarias de clientes, CERRADO)
+## Ahora (última actualización: 05/08/2026 — 🧱 C31 FASE 1: base + carga + registro diario de operaciones de clientes, HECHO)
+
+**🧱 C31 — FASE 1 (base + carga + registro diario) — HECHO, migración SIN aplicar — rama
+`claude/c31-fase1-operaciones`, PR #_.** Ejecuta el PROMPT §8 de
+[`PLAN_OPERACIONES_CLIENTES.md`](PLAN_OPERACIONES_CLIENTES.md) (plan cerrado el mismo día, ver
+«Anterior» abajo). **Migración** `20260805130000_c31_operaciones_clientes.sql` (SIN aplicar,
+protocolo de siempre): helper `mi_empresa_id()` + tabla `operaciones` (7 constraints de
+coherencia) + `operaciones_log` con trigger de auditoría (SECURITY DEFINER, fija
+`actualizado_en`/`actualizado_por`, detecta crear/editar/anular/restaurar) + **RLS completa por
+`empresa_id`** (revoke total + policies con subselect, **sin grant de DELETE**) — la primera
+tabla del sistema con este patrón. **Sección nueva `operaciones`** en `SECCIONES_META` +
+biblioteca (Posición + Registro diario) · **`FiltroGrano` extendido a girasol/sorgo** sin tocar
+sus 4 consumidores existentes · **libs puras con tests** (`tipos.ts`/`registro.ts`/`posicion.ts`/
+`matriz-vista.ts`: validación espejo del DDL, kg→tn, campañas rotativas, resolución de precio
+pizarra §5.4, matriz producto×período con la regla de Mauro hoy+30) · `datos.ts` (`server-only`,
+SIEMPRE con `createSupabaseServerClient()`, nunca service key — acá la RLS es el producto) ·
+**server actions** crear/editar/anular/restaurar (empresa_id de `getAcceso()` para clientes,
+nunca del form) · **`/operaciones/registro`** completa (formulario con los 5 productos/4 tipos/4
+condiciones/campaña/volumen tn-kg/precio manual-pizarra-sin precio/descuentos combinables/
+entrega/futuro A3 con `CurvaPicker`, listas compras-ventas, anular/restaurar, historial, neto del
+día, CSV) · **`/operaciones`** mínima (matrices Físico/Futuros/Total).
+
+**Bug real encontrado y arreglado en la propia verificación** (Playwright, no a ojo): las
+etiquetas "UNIDAD" y "PRECIO" del formulario se superponían — un grid CSS anidado dejaba que dos
+`<input>`/`<select>` nativos desbordaran su contenedor por no tener `min-width:0`/`width:100%`.
+Medido con `bounding_box()` antes y después del fix.
+
+**Verificado**: lint/tsc/**536 tests** (48 nuevos)/build ✅ · sin sesión real: `/operaciones` y
+`/operaciones/registro` responden **307→/ingresar** (nunca 500) · con sesión (bypass temporal de
+verificación con datos sintéticos que cubren cada borde — forward que migra a Disponible, forward
+más allá de 8 meses, fijación excluida del neto, futuro A3 separado, anulada excluida, pizarra
+resuelta): Playwright real claro/oscuro/desktop/mobile, cero errores de consola propios, cero
+overflow, las 3 matrices calculan bien (cruzado a mano). **Bypass revertido en su totalidad**
+(confirmado con `diff` contra backup), `git status` limpio.
+
+**Pendiente**: **aplicar la migración por MCP** con OK de Lautoro → verificar RLS por SQL en los
+dos sentidos (2 empresas sintéticas, sin dejar residuo) → **Fase 2** (prompt §9: posición
+completa + heatmap + panel de futuros valorizado, fórmula ya confirmada). Detalle:
+[`sesiones/2026-08-05-c31-fase1-operaciones.md`](sesiones/2026-08-05-c31-fase1-operaciones.md).
+
+## Anterior (05/08/2026 — 📒 PLAN C31: operaciones diarias de clientes, CERRADO)
 
 **📒 C31 — OPERACIONES DIARIAS DE CLIENTES (posición comprado/vendido por empresa) — PLAN
 CERRADO, SOLO DOCS — rama `claude/daily-operations-client-table-rff7u6`, PR #_.** Lautaro trajo

@@ -21,7 +21,8 @@ export const ADMIN_SEED_EMAILS = ["lautaroronchi97@gmail.com"];
 /**
  * Las secciones del sitio con su clave canónica, etiqueta y ruta. Fuente única
  * para la nav, el filtro de permisos y los checkboxes del panel admin (Etapa 2).
- * ("informes" sumada en MP1 de PLAN_INFORMES.md, 22/07/2026.)
+ * ("informes" sumada en MP1 de PLAN_INFORMES.md, 22/07/2026 · "operaciones" sumada
+ * en C31, 05/08/2026 — docs/PLAN_OPERACIONES_CLIENTES.md §4.5.)
  */
 export const SECCIONES_META = [
   { key: "granos", label: "Granos", href: "/granos" },
@@ -32,6 +33,7 @@ export const SECCIONES_META = [
   { key: "produccion", label: "Producción", href: "/produccion" },
   { key: "noticias", label: "Noticias", href: "/noticias" },
   { key: "informes", label: "Informes", href: "/informes" },
+  { key: "operaciones", label: "Mis operaciones", href: "/operaciones" },
 ] as const;
 
 /** Clave canónica de una sección (derivada de la metadata). */
