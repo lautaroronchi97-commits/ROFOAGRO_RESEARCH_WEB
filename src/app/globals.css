@@ -2120,3 +2120,46 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .plc-disclaimer { font-size:11px; color:var(--ink-3); margin-top:8px; }
 .plc-sello { font-family:var(--font-mono); font-size:11px; color:var(--ink-3);
   text-align:right; margin-top:6px; }
+
+/* ============================================================
+   OPERACIONES DIARIAS DE CLIENTES (C31, docs/PLAN_OPERACIONES_CLIENTES.md).
+   Reusa .admin-*/.fg-*/.tbl/.dim del resto del sitio a propósito — clases
+   nuevas solo para lo que no tenía ya un patrón (matriz/form/lista/historial).
+   ============================================================ */
+.op-controles { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:10px; }
+.op-fecha-nav { display:flex; align-items:center; gap:8px; }
+.op-empresa-sel { display:flex; align-items:center; gap:8px; font-size:var(--fs-xs); color:var(--ink-2); }
+.op-empresa-sel span { font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:var(--fs-2xs); }
+
+.op-matriz-tit { font-size:var(--fs-sm); font-weight:800; color:var(--ink); margin:22px 0 8px; }
+.op-matriz-tit:first-of-type { margin-top:6px; }
+
+.op-form { background:var(--panel-2); border:1px solid var(--line); border-radius:var(--r-panel);
+  padding:16px; margin:14px 0; }
+.op-form-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
+  gap:16px 12px; align-items:start; }
+.op-obs { grid-column:1 / -1; }
+.op-lado { display:flex; align-items:flex-end; gap:14px; border:0; padding:0; margin:0; }
+.op-lado label { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--ink-2); cursor:pointer; }
+.op-vol { display:grid; grid-template-columns:1fr 1fr; gap:8px; min-width:0; }
+.op-vol .admin-field { min-width:0; }
+.op-vol .admin-field input, .op-vol .admin-field select { width:100%; box-sizing:border-box; min-width:0; }
+.op-futuro { display:flex; flex-direction:column; gap:8px; grid-column:1 / -1; }
+.op-form-foot { display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
+.op-form-ok { color:var(--pos); font-size:var(--fs-sm); }
+.op-form-err { color:var(--neg); font-size:var(--fs-sm); }
+
+.op-listas-hd { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 4px; }
+.op-check { display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); color:var(--ink-2); cursor:pointer; }
+.op-listas { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width:720px) { .op-listas { grid-template-columns:1fr; } }
+.op-lista { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.op-lista-vacia { padding:10px 0; }
+.op-fila { background:var(--panel); border:1px solid var(--line); border-radius:var(--r-ctl); padding:10px 12px; }
+.op-fila.op-anulada { opacity:.55; }
+.op-fila.op-anulada .op-fila-vol { text-decoration:line-through; }
+.op-fila-datos { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:baseline; font-size:var(--fs-sm); }
+.op-fila-vol { font-family:var(--font-mono); font-weight:800; color:var(--ink); }
+.op-fila-acciones { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.op-historial { list-style:none; margin:8px 0 0; padding:8px 0 0; border-top:1px dashed var(--line);
+  display:flex; flex-direction:column; gap:4px; font-size:var(--fs-xs); color:var(--ink-2); }

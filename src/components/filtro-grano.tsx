@@ -5,15 +5,22 @@
  * hoy listan los 3 granos mezclados (Arbitrajes, Pases, Monitor, Temperatura).
  * No cambia el dato: solo acota qué filas/tarjetas se muestran, client-side.
  * Si `presentes` trae 1 grano o menos, no vale la pena filtrar y no renderiza nada.
+ *
+ * `GranoKey` se extendió a GIR/SOR (C31, docs/PLAN_OPERACIONES_CLIENTES.md §8, la
+ * única pantalla que carga los 5 productos) — es aditivo y no toca a los 4
+ * consumidores existentes: su `presentes` nunca incluye GIR/SOR, así que esos chips
+ * no aparecen ahí (el filtro de `OPCIONES` por `presentes` los excluye solo).
  */
 
-export type GranoKey = "SOJ" | "MAI" | "TRI";
+export type GranoKey = "SOJ" | "MAI" | "TRI" | "GIR" | "SOR";
 export type GranoFiltroValue = GranoKey | "todos";
 
 const OPCIONES: { key: GranoKey; label: string }[] = [
   { key: "SOJ", label: "Soja" },
   { key: "MAI", label: "Maíz" },
   { key: "TRI", label: "Trigo" },
+  { key: "GIR", label: "Girasol" },
+  { key: "SOR", label: "Sorgo" },
 ];
 
 export function FiltroGrano({

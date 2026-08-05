@@ -4,7 +4,7 @@ import { SECCIONES_META, type SeccionKey } from "@/lib/auth/config";
 /**
  * Registro único del árbol de la biblioteca (C25, docs/PLAN_SIDEBAR.md §3-4). Fuente
  * de verdad para la sidebar, los índices de grupo (hub-grid) y los breadcrumbs — nada
- * de esto se duplica a mano en cada componente. Los grupos son 1:1 con las 8 claves de
+ * de esto se duplica a mano en cada componente. Los grupos son 1:1 con las claves de
  * `SECCIONES_META` (que sigue siendo la fuente de permisos, acá NO se toca ni se
  * reordena): reagrupar tendría costo real en el modelo de permisos por sección.
  *
@@ -87,6 +87,13 @@ const INFORMES: BibItem[] = [
   { href: "/informes#lectura-mesa", label: "Lecturas de la mesa", desc: "Interpretación de los informes de organismos." },
 ];
 
+// C31 (docs/PLAN_OPERACIONES_CLIENTES.md §4.5): sección nueva de clientes, sin
+// `soloMesa` — se habilita empresa por empresa desde /admin/empresas.
+const OPERACIONES: BibItem[] = [
+  { href: "/operaciones", label: "Mi posición", desc: "Posición neta comprado/vendido por producto y período de entrega." },
+  { href: "/operaciones/registro", label: "Registro diario", desc: "Cargá tus compras y ventas del día." },
+];
+
 const ITEMS_POR_SECCION: Record<SeccionKey, BibItem[]> = {
   granos: GRANOS,
   dolar: DOLAR,
@@ -96,9 +103,10 @@ const ITEMS_POR_SECCION: Record<SeccionKey, BibItem[]> = {
   produccion: PRODUCCION,
   noticias: [],
   informes: INFORMES,
+  operaciones: OPERACIONES,
 };
 
-/** Los 8 grupos de la biblioteca, en el orden de `SECCIONES_META` (fuente de permisos). */
+/** Los 9 grupos de la biblioteca, en el orden de `SECCIONES_META` (fuente de permisos). */
 export const BIBLIOTECA: BibGrupo[] = SECCIONES_META.map((s) => ({
   key: s.key,
   label: s.label,

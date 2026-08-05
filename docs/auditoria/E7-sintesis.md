@@ -530,24 +530,30 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md) ·
   [`sesiones/2026-08-04-e6-routines-cierre.md`](../sesiones/2026-08-04-e6-routines-cierre.md).
 
-- [ ] **C31. Operaciones diarias de clientes — posición comprado/vendido por empresa
-  (05/08/2026 — PLAN CERRADO, builds pendientes).** Pedido de Lautaro sobre una planilla de
-  Mauro ("Posición Agroleaginosa", transcripta en el plan, xlsx NO versionado por traer nombre
-  de cliente real): cada empresa cliente carga sus compras/ventas del día (5 granos, tipos
-  disponible/forward/fijación/futuro A3, precio $/USD/pizarra/sin precio + descuento, rango de
-  entrega, campaña) y ve su posición neta producto × período + registro diario + heatmap
-  comprado/vendido, con **RLS por `empresa_id`** (la PRIMERA tabla por-empresa del sistema y la
-  primera donde los clientes escriben) — "que cada uno vea lo suyo es lo más importante".
-  29 preguntas contestadas por Lautaro en la sesión (libro mayor · fijación no suma volumen ·
-  futuros separados y valorizados vs ajuste · anulación tachada · historial por trigger ·
-  admins ven/editan todo · sección de permisos nueva `operaciones`). Plan:
-  **[`PLAN_OPERACIONES_CLIENTES.md`](../PLAN_OPERACIONES_CLIENTES.md)** — DDL+RLS completos,
-  2 prompts autocontenidos (§8 Fase 1 base+carga+registro · §9 Fase 2 posición+heatmap+futuros)
-  y las 7 preguntas de 2ª ronda **contestadas en la misma sesión** (§7, incl. fórmula de
-  futuros confirmada con ejemplo · pizarra del día siguiente · regla 30 días de Mauro ·
-  descuentos combinables): sin decisiones pendientes.
-  Detalle:
-  [`sesiones/2026-08-05-plan-operaciones-clientes.md`](../sesiones/2026-08-05-plan-operaciones-clientes.md).
+- [~] **C31. Operaciones diarias de clientes — posición comprado/vendido por empresa
+  (05/08/2026 — PLAN CERRADO + FASE 1 HECHA, Fase 2 pendiente).** Pedido de Lautaro sobre una
+  planilla de Mauro ("Posición Agroleaginosa", transcripta en el plan, xlsx NO versionado por
+  traer nombre de cliente real): cada empresa cliente carga sus compras/ventas del día (5
+  granos, tipos disponible/forward/fijación/futuro A3, precio $/USD/pizarra/sin precio +
+  descuento, rango de entrega, campaña) y ve su posición neta producto × período + registro
+  diario + heatmap comprado/vendido, con **RLS por `empresa_id`** (la PRIMERA tabla por-empresa
+  del sistema y la primera donde los clientes escriben) — "que cada uno vea lo suyo es lo más
+  importante". 29 preguntas + 7 de 2ª ronda contestadas por Lautaro en la sesión de plan (libro
+  mayor · fijación no suma volumen · futuros separados y valorizados vs ajuste · anulación
+  tachada · historial por trigger · admins ven/editan todo · sección de permisos nueva
+  `operaciones`). Plan: **[`PLAN_OPERACIONES_CLIENTES.md`](../PLAN_OPERACIONES_CLIENTES.md)**
+  — sin decisiones pendientes, DDL+RLS completos, 2 prompts autocontenidos.
+  **Fase 1 (§8) HECHA el mismo día** (rama `claude/c31-fase1-operaciones`): migración
+  `20260805130000` (SIN aplicar) + sección de permisos + libs puras testeadas + server actions +
+  `/operaciones/registro` (carga completa) + `/operaciones` (matrices mínimas). Verificado
+  lint/tsc/**536 tests**/build, Playwright con bypass temporal (revertido) cubriendo cada borde
+  de la regla de buckets. **Falta**: aplicar la migración por MCP + verificar RLS por SQL en los
+  dos sentidos → **Fase 2** (§9: posición completa + heatmap + panel de futuros valorizado, ya
+  con la fórmula confirmada). Detalle:
+  [`sesiones/2026-08-05-plan-operaciones-clientes.md`](../sesiones/2026-08-05-plan-operaciones-clientes.md)
+  (plan) ·
+  [`sesiones/2026-08-05-c31-fase1-operaciones.md`](../sesiones/2026-08-05-c31-fase1-operaciones.md)
+  (Fase 1).
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN
