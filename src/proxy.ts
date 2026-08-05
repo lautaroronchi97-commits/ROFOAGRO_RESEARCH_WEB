@@ -24,16 +24,14 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // se lleva el HTML de /ingresar en vez de la placa (27/07/2026).
   // `/api/health` (01/08/2026) es del mismo tipo: pensado para que un monitor externo
   // (UptimeRobot/similar) lo pegue sin sesión — mismo bug si queda atrás del gate.
-  // `/informes/diario/` (E3 de PLAN_INFORMES_V3.md §5.4, N6) valida SU PROPIA puerta
-  // adentro de la página (link firmado `?t=` HMAC O `requireSeccion` con sesión) —
-  // mismo motivo que `/informes/plantilla/`: si el gate optimista de acá redirige
-  // primero a /ingresar, un visitante sin sesión con el link firmado nunca llega a la
-  // página que lo validaría.
+  // `/informes/diario/` (E3 de PLAN_INFORMES_V3.md §5.4, N6) tenía una puerta pública
+  // propia (link firmado `?t=`) y por eso saltaba este gate — decisión revocada el
+  // 05/08/2026 ("no dejamos ningún informe en link online"): la página ahora exige
+  // sesión real vía `requireSeccion`, así que sigue el gate normal del resto del sitio.
   if (
     path.startsWith("/api/views/") ||
     path.startsWith("/api/informes/") ||
     path.startsWith("/informes/plantilla/") ||
-    path.startsWith("/informes/diario/") ||
     path === "/api/health"
   ) {
     return NextResponse.next();

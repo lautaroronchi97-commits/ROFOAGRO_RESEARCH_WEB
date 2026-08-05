@@ -156,3 +156,26 @@ no rota.
   necesariamente coincide con lo que la Routine real terminó escribiendo (ver el bug de
   `informe_diario` vs `diario` arriba) — antes de construir lógica que filtra por ese campo, vale
   la pena chequear con SQL qué hay REALMENTE en la tabla, no solo lo que dice el `SKILL.md`.
+
+## Follow-up (mismo PR, mismo día): se saca la puerta pública del informe diario
+
+Lautaro, tras ver que `INFORME_SHARE_SECRET` seguía sin cargar, aclaró la decisión de fondo: **"No
+va a hacer falta el link solo nos quedamos con el pdf o png"**. Precisado con `AskUserQuestion` en
+dos partes — (1) es específicamente el **link público sin login** del informe diario en la web
+(`/informes/diario/[fecha]?t=`), los 3 links de nota 1-tap del mail (👍/😐/👎) NO forman parte del
+pedido (no exponen el informe, solo graban una calificación) y siguen vigentes; (2) la página web
+en sí **queda**, pero solo para gente logueada — se saca únicamente la puerta pública firmada.
+
+**Build**: `/informes/diario/[fecha]` pasa de "dos puertas" (link firmado `?t=` HMAC O
+`requireSeccion`) a **una sola** (`requireSeccion("informes")` siempre) — se sacan el chequeo de
+firma, el banner de admin que mostraba el link para copiar, y el cálculo de `linkPublico`.
+`src/lib/informe-auth.ts` pierde `payloadInformeCompartido` (0 callers restantes); `firmarInforme`
+queda (la usa `firmaInformeValida` internamente, que sigue sirviendo a la nota 1-tap). `src/
+proxy.ts` saca `/informes/diario/` de la lista de rutas que saltean el gate optimista de sesión —
+ya no tiene una puerta propia sin cookies que proteger, así que sigue el gate normal del resto del
+sitio como cualquier página de sección. Docs actualizadas: `PLAN_INFORMES_V3.md` §3 (N6) y §5.4
+(la puerta pública queda marcada "revocada 05/08"), `SKILL.md` de `informe-diario` (la explicación
+del secret de nota 1-tap ya no menciona el link que dejó de existir).
+
+**Verificado**: lint/tsc/**488 tests**/build ✅ (sin tests nuevos — es solo remover un camino, sin
+lógica nueva que testear).

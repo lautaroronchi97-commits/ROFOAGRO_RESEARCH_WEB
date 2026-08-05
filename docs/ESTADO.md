@@ -73,7 +73,17 @@ L-V, no existía — confirmado paginando el historial completo de Routines de l
 ninguna coincidencia previa). Las 4 verificadas por `list_triggers` tras el cambio: nombres,
 crons y `next_run_at` correctos.
 
-**Pendiente (no nuevo, ya documentado)**: `INFORME_SHARE_SECRET` real sigue sin confirmarse en
+**Follow-up mismo día/PR: se saca la puerta pública del informe diario.** Lautaro: *"No va a hacer
+falta el link solo nos quedamos con el pdf o png"* — precisado con `AskUserQuestion`: es el link
+público sin login de `/informes/diario/[fecha]` (no los 3 links de nota 1-tap del mail, que no
+exponen el informe y siguen vigentes); la página web queda, pero solo para gente logueada.
+`/informes/diario/[fecha]` pasa de "dos puertas" a **una sola** (`requireSeccion("informes")`
+siempre) — se saca el chequeo de firma + el banner de admin con el link + `payloadInformeCompartido`
+(0 callers) de `informe-auth.ts` · `src/proxy.ts` saca esa ruta de las que saltean el gate
+optimista (ya no tiene puerta propia sin cookies). lint/tsc/**488 tests**/build ✅.
+
+**Pendiente (no nuevo, ya documentado)**: `INFORME_SHARE_SECRET` sigue sirviendo solo para la
+nota 1-tap (no para ningún link de contenido) y real sigue sin confirmarse en
 Vercel/Routines (mismo pendiente de E1) · la Routine de interpretaciones quedó creada sin
 conectores MCP adjuntos (aviso del propio `create_trigger`: la sesión que la creó no tenía
 conectores propios para heredar) — no debería importarle, la skill usa `fetch`/`git`/`curl` con
