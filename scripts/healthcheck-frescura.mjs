@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { canonShipper } from "../src/lib/lineup/shippers.ts";
+import { hoyCordoba, parseYmd, esHabil } from "../src/lib/habiles.ts";
 import {
   CHECKS,
   FUTURO,
@@ -50,6 +51,22 @@ async function ultimaFecha(tabla, col, filtro) {
   if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 120)}`);
   const j = await res.json();
   return j[0]?.[col] ?? null;
+}
+
+/**
+ * Watchdog del informe diario (N13, E6 de PLAN_INFORMES_V3.md §10): este healthcheck ya corre a
+ * las 20:45 ART, después de las 18:30 de la Routine — así que "no está enviado a esta hora, en
+ * un día hábil" es una señal real de que no salió, no de que todavía no le tocaba. Reusa
+ * `hoyCordoba()`/`esHabil()` (mismo criterio que `/admin/checklist`), sin duplicar el cálculo.
+ */
+async function informeDiarioDeHoy() {
+  const hoy = hoyCordoba();
+  if (!esHabil(parseYmd(hoy))) return { hoy, habil: false, enviado: null };
+  const url = `${SUPABASE_URL}/rest/v1/informes_generados?select=estado&tipo=eq.diario&fecha=eq.${hoy}&estado=eq.enviado&limit=1`;
+  const res = await fetch(url, { headers: { apikey: KEY, authorization: `Bearer ${KEY}` } });
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 120)}`);
+  const j = await res.json();
+  return { hoy, habil: true, enviado: j.length > 0 };
 }
 
 // CHECKS/FUTURO/MATVIEWS/ULTIMO_SEED_CALENDARIO/ROSTER_UMBRAL_OTROS_PCT viven en
@@ -188,6 +205,28 @@ async function main() {
     console.log(`${marca}  roster de exportadores (shippers.ts): ${msg}`);
     if (erosionado) console.log(`::warning::Roster de shippers erosionado — OTROS ${r.pctOtros.toFixed(1)}% (umbral ${ROSTER_UMBRAL_OTROS_PCT}%). Revisar src/lib/lineup/shippers.ts.`);
     detalle.push({ nombre: "roster de exportadores", ...r, atrasado: erosionado, error });
+  }
+
+  // Watchdog del informe diario (N13/E6): corre a las 20:45 ART, 2h15 después de la ventana
+  // (18:30 + 45min de margen) — si hoy es hábil y no está `enviado`, es una falla real.
+  {
+    let info = { hoy: null, habil: false, enviado: null };
+    let error = null;
+    try {
+      info = await informeDiarioDeHoy();
+    } catch (e) {
+      error = e.message;
+    }
+    const falto = error == null && info.habil && info.enviado === false;
+    if (falto) fallas++;
+    const marca = error ? "✗ ERROR" : !info.habil ? "· NO HÁBIL" : falto ? "✗ NO SALIÓ" : "✓";
+    const msg = error
+      ? error
+      : !info.habil
+        ? `${info.hoy} no es día hábil`
+        : `${info.hoy}: ${info.enviado ? "enviado" : "sin enviar a esta hora"}`;
+    console.log(`${marca}  watchdog informe diario: ${msg}`);
+    detalle.push({ nombre: "watchdog informe diario", ...info, atrasado: falto, error });
   }
 
   if (JSON_OUT) console.log("\n" + JSON.stringify(detalle, null, 2));

@@ -183,7 +183,7 @@ export const CARGAS_MANUALES: CargaManual[] = [
 /* -------------------------------------------------------------------------------------------- */
 
 export type RoutineDef = {
-  id: "informe-diario" | "informe-semanal" | "view-mercado";
+  id: "informe-diario" | "informe-semanal" | "view-mercado" | "interpretaciones";
   nombre: string;
   horarioArt: string;
   /** Día de semana que dispara (0=domingo…6=sábado) — para hallar "la última ventana esperada". */
@@ -192,6 +192,13 @@ export type RoutineDef = {
 
 export const ROUTINES: RoutineDef[] = [
   { id: "informe-diario", nombre: "Informe diario", horarioArt: "18:30 (L-V)", diasSemana: [1, 2, 3, 4, 5] },
-  { id: "informe-semanal", nombre: "Informe semanal", horarioArt: "viernes 19:00", diasSemana: [5] },
+  // N12 (04/08/2026): pasa de vie 19:00 a vie 20:30 ART — a las 19:00 los cierres A3/CBOT del
+  // viernes todavía no estaban en la base (ingest-cierres 20:08 · ingest-cbot 19:11).
+  { id: "informe-semanal", nombre: "Informe semanal", horarioArt: "viernes 20:30", diasSemana: [5] },
   { id: "view-mercado", nombre: "View de mercado", horarioArt: "viernes 09:00", diasSemana: [5] },
+  // E2/E6 (04/08/2026): rutina propia con calendario y reprogramación horaria (§8.2 de
+  // PLAN_INFORMES_V3.md) — corre varias veces al día, pero SIEMPRE tiene un pase de cierre a las
+  // 18:20 ART (auto-publicación + última detección). Esa es la ventana "le tocaba haber corrido"
+  // que usa el checklist — no hay una única corrida esperada como en los otros 3.
+  { id: "interpretaciones", nombre: "Interpretaciones", horarioArt: "9:00 + cierre 18:20 (L-V)", diasSemana: [1, 2, 3, 4, 5] },
 ];

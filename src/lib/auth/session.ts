@@ -18,8 +18,11 @@ import { sessionIdDeToken, deviceDeUA } from "./session-id";
  *   `session_id` del cookie contra la sesión vigente (`tocar_sesion`). Si otro
  *   dispositivo tomó la cuenta → 'kicked'; 7 días sin uso → 'expired' → se cierra la
  *   sesión LOCAL (sin revocar la del otro dispositivo) y se manda a /sesion-cerrada.
- * - LANDING (Etapa 3): con el flag prendido, un visitante sin sesión que pide la raíz
- *   se redirige a la landing pública mínima `/bienvenida`.
+ * - ENTRADA (05/08/2026): con el flag prendido, un visitante sin sesión que pide la
+ *   raíz cae directo en `/ingresar` (ruta protegida genérica, sin caso especial). La
+ *   landing institucional `/bienvenida` se dio de baja del todo el mismo día (no
+ *   solo del flujo de entrada) — queda de respaldo en `docs/backup/landing-
+ *   bienvenida-2026-08-05/` para reactivarla más adelante.
  *
  * Con `AUTH_ENFORCED` apagado esta función NO se ejecuta para el sitio (el proxy hace
  * passthrough); solo corre en `/admin` para refrescar la sesión del admin.
@@ -73,14 +76,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   if (!AUTH_ENFORCED) return response;
 
-  // Visitante sin sesión en la raíz → landing pública mínima (decisión 7 del plan).
-  if (!user && path === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/bienvenida";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   // Sesión única + timeout de 7 días: solo cuando hay usuario logueado.
   if (user) {
     const kick = await chequearSesionUnica(request, supabase, user.id);
@@ -103,8 +98,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return NextResponse.redirect(url);
   }
 
-  // Usuario con sesión que cae en las pantallas de ingreso/registro/landing → a la home.
-  if (user && (path === "/ingresar" || path === "/registro" || path === "/bienvenida")) {
+  // Usuario con sesión que cae en las pantallas de ingreso/registro → a la home.
+  if (user && (path === "/ingresar" || path === "/registro")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

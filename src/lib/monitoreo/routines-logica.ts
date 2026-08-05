@@ -14,8 +14,12 @@ export type EstadoRoutine = "ok" | "pendiente" | "atrasado";
  *  número para comparar contra la hora actual. */
 export const HORA_MIN: Record<RoutineDef["id"], number> = {
   "informe-diario": 18 * 60 + 30,
-  "informe-semanal": 19 * 60,
+  // N12 (04/08/2026): vie 19:00 → vie 20:30 ART (ver catalogo.ts).
+  "informe-semanal": 20 * 60 + 30,
   "view-mercado": 9 * 60,
+  // El pase de cierre (18:20 ART, §8.2 del plan) es la ventana más tardía garantizada —
+  // los pases anteriores del día son mejor esfuerzo (dependen de send_later).
+  interpretaciones: 18 * 60 + 20,
 };
 
 /** Margen tras el horario programado antes de considerar la ventana "vencida" — una Routine
@@ -61,5 +65,17 @@ export function evaluarInforme(fila: InformeRow | undefined, vencio: boolean): {
 export function evaluarView(nFilas: number, vencio: boolean): { estado: EstadoRoutine; detalle: string } {
   if (nFilas >= 3) return { estado: "ok", detalle: "Los 3 granos generados." };
   if (nFilas > 0) return { estado: vencio ? "atrasado" : "pendiente", detalle: `Corrida parcial: ${nFilas}/3 granos.` };
+  return vencio ? { estado: "atrasado", detalle: "No corrió." } : { estado: "pendiente", detalle: "Todavía no le toca correr hoy." };
+}
+
+/**
+ * Evalúa `interpretaciones` por telemetría (N13, `routine_runs`) en vez de por filas producidas:
+ * a diferencia del diario/semanal/view, un día sin ningún reporte de organismo es un día
+ * LEGÍTIMO con cero interpretaciones nuevas — "cero filas" no distingue "no corrió" de "corrió y
+ * no había nada que interpretar". `nCorridas` cuenta las filas de `routine_runs` de HOY con
+ * `tipo='interpretaciones'` (cualquier pase del día, no solo el de cierre).
+ */
+export function evaluarPorTelemetria(nCorridas: number, vencio: boolean): { estado: EstadoRoutine; detalle: string } {
+  if (nCorridas > 0) return { estado: "ok", detalle: `Corrió (${nCorridas} pase${nCorridas === 1 ? "" : "s"} hoy).` };
   return vencio ? { estado: "atrasado", detalle: "No corrió." } : { estado: "pendiente", detalle: "Todavía no le toca correr hoy." };
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { requireSeccion, getAcceso } from "@/lib/auth/dal";
+import { requireSeccion } from "@/lib/auth/dal";
 import { datosDiario, getBorrador } from "@/lib/informe-diario-datos";
 import {
   buildDesfasaje,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/informe-research";
 import { otrosMercadosRelevantes } from "@/lib/informe-v3-calc";
 import { DesfasajeChart, TnaChart } from "@/components/informe-research-charts";
-import { esFechaValida, firmarInforme, firmaInformeValida, payloadInformeCompartido } from "@/lib/informe-auth";
+import { esFechaValida } from "@/lib/informe-auth";
 import { nfmt, pfmt } from "@/lib/format";
 import { PageHead } from "@/components/page-head";
 import { Panel, PanelHead } from "@/components/panel";
@@ -54,39 +54,24 @@ export async function generateMetadata({
 }
 
 /**
- * Informe diario COMPLETO como página web (N6/§5.4 de PLAN_INFORMES_V3.md, etapa E3 —
- * "que entren los clientes o el público con un link, indaguémoslo"). Misma data que la placa
- * PNG (`datosDiario()`, la MISMA función que usa el route de token) — acá se ve TODO,
- * incluido lo que la placa haya recortado por el objetivo de 1-2 páginas (N17). Dos puertas,
- * las dos construidas: gate de sección `informes` (clientes con permiso + admins, con
- * `AUTH_ENFORCED` prendido) Y link público firmado `?t=` (HMAC sin estado,
- * `INFORME_SHARE_SECRET`, para compartir a no-clientes puntuales sin abrir toda la web).
+ * Informe diario COMPLETO como página web (N6/§5.4 de PLAN_INFORMES_V3.md, etapa E3). Misma
+ * data que la placa PNG (`datosDiario()`, la MISMA función que usa el route de token) — acá se
+ * ve TODO, incluido lo que la placa haya recortado por el objetivo de 1-2 páginas (N17). **Sin
+ * puerta pública** (decisión de Lautaro, 05/08/2026: "no dejamos ningún informe en link
+ * online") — gate normal de la sección `informes` únicamente (sesión + permiso, o admin); si no
+ * abre, `requireSeccion` redirige, mismo comportamiento que el resto del sitio.
  */
 export default async function InformeDiarioPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ fecha: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { fecha } = await params;
   if (!esFechaValida(fecha)) notFound();
 
-  const sp = await searchParams;
-  const t = typeof sp.t === "string" ? sp.t : "";
-  const linkFirmadoValido = firmaInformeValida(payloadInformeCompartido("diario", fecha), t);
-  if (!linkFirmadoValido) {
-    // Segunda puerta: gate normal de la sección (sesión + permiso, o admin). Si ninguna de
-    // las dos abre, `requireSeccion` redirige — mismo comportamiento que el resto del sitio.
-    await requireSeccion("informes");
-  }
+  await requireSeccion("informes");
 
-  const [datos, borrador, acceso] = await Promise.all([
-    datosDiario(fecha),
-    getBorrador(fecha),
-    getAcceso(),
-  ]);
-  const esAdminUser = acceso?.esAdmin ?? false;
+  const [datos, borrador] = await Promise.all([datosDiario(fecha), getBorrador(fecha)]);
 
   const {
     cierres,
@@ -111,7 +96,6 @@ export default async function InformeDiarioPage({
   const complejoSoja = buildComplejoSoja(chicago);
   const otrosMercados = otrosMercadosRelevantes(chicago.macro);
   const volumenMaeUsd = volumenCambiario.cats.reduce((s, c) => s + c.volumenUsd, 0);
-  const linkPublico = `/informes/diario/${fecha}?t=${firmarInforme(payloadInformeCompartido("diario", fecha))}`;
 
   return (
     <main className="wrap">
@@ -121,13 +105,6 @@ export default async function InformeDiarioPage({
           title={copy?.tesisTitulo ?? "Informe diario"}
           lede={copy?.tesisParrafo ?? "Todavía no se redactó la prosa de este día."}
         />
-
-        {esAdminUser && (
-          <p className="dim" style={{ fontSize: 12 }}>
-            Link público firmado (compartible sin login):{" "}
-            <code style={{ userSelect: "all" }}>{linkPublico}</code>
-          </p>
-        )}
 
         <Panel>
           <PanelHead title="Local — por producto" sub="pizarra CAC · pizarra estimada de la mesa · top 3 A3 · TNA implícita" />

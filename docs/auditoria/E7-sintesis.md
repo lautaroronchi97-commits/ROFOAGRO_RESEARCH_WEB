@@ -501,8 +501,8 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   pendiente. **Con esto `PRELAUNCH_CHECKLIST.md` no tiene ningún ítem real abierto.** Detalle:
   [`sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md`](../sesiones/2026-08-03-c29-cierre-fases-0-1-2-5.md).
 
-- [ ] **C30. Informes V3 — el Word de Lautaro sobre los 4 productos de research (04/08/2026 —
-  PLAN CERRADO, builds pendientes).** Lautaro entregó el Word "INFORMES" con los requisitos de
+- [x] **C30. Informes V3 — el Word de Lautaro sobre los 4 productos de research (04/08/2026 —
+  PLAN CERRADO, E1→E6 hechas, 05/08).** Lautaro entregó el Word "INFORMES" con los requisitos de
   los 4 productos y las reglas transversales (un skill + una Routine por producto, todos con
   `voz-lautaro`, feedback donde se pueda, datos explícitos, sin repetir entre informes). Plan
   cerrado con relevamiento profundo (7 agentes) + 4 decisiones contestadas en la sesión
@@ -522,8 +522,13 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   Chicago BCR, expectativas DTN, clima SMN, suscripción directa). **Ejecutar E1→E6 con Sonnet**
   (prompts autocontenidos en §10 del plan): E1 datos/migraciones → E2 interpretaciones → E3
   diario (+página web con link) → E4 semanal → E5 view (E3/E4/E5 paralelizables) → E6
-  Routines/cierre. Detalle:
-  [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md).
+  Routines/cierre. **E1→E6 hechas y mergeadas (04-05/08) — PLAN COMPLETO, C30 CIERRA.** E6:
+  monitoreo N13 (`routine_runs` cableado a `/admin/checklist`/`/admin/conexiones` + watchdog del
+  diario en el healthcheck), feedback end-to-end de los 4 productos verificado contra datos
+  reales, y las 4 Routines de Claude Code renombradas a "ROFO AGRO" con repo/cron/mail
+  corregidos (la de interpretaciones no existía, se creó). Detalle:
+  [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md) ·
+  [`sesiones/2026-08-04-e6-routines-cierre.md`](../sesiones/2026-08-04-e6-routines-cierre.md).
 
 - [ ] **C31. Operaciones diarias de clientes — posición comprado/vendido por empresa
   (05/08/2026 — PLAN CERRADO, builds pendientes).** Pedido de Lautaro sobre una planilla de

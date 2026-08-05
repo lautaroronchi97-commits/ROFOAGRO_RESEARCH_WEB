@@ -14,8 +14,7 @@ export default async function IngresarPage({
 
   return (
     <div className="auth-card">
-      <h1 className="auth-title">Ingresar</h1>
-      <p className="auth-sub">Accedé al research de mercado de ROFO AGRO.</p>
+      <h1 className="auth-title auth-title--solo">Ingresar</h1>
 
       {error === "oauth" && (
         <p className="auth-error" role="alert">No se pudo iniciar sesión con Google. Probá de nuevo.</p>

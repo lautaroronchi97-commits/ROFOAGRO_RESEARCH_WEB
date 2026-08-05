@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { fechaEsperadaMasReciente, ventanaEsperada, evaluarInforme, evaluarView } from "./routines-logica";
+import { fechaEsperadaMasReciente, ventanaEsperada, evaluarInforme, evaluarView, evaluarPorTelemetria } from "./routines-logica";
 import type { RoutineDef } from "./catalogo";
 
 const INFORME_DIARIO: RoutineDef = { id: "informe-diario", nombre: "Informe diario", horarioArt: "18:30 (L-V)", diasSemana: [1, 2, 3, 4, 5] };
 const VIEW_MERCADO: RoutineDef = { id: "view-mercado", nombre: "View de mercado", horarioArt: "viernes 09:00", diasSemana: [5] };
+const INTERPRETACIONES: RoutineDef = { id: "interpretaciones", nombre: "Interpretaciones", horarioArt: "9:00 + cierre 18:20 (L-V)", diasSemana: [1, 2, 3, 4, 5] };
 
 describe("routines-logica.ts — fechaEsperadaMasReciente", () => {
   it("si hoy matchea un día programado, devuelve hoy", () => {
@@ -95,5 +96,27 @@ describe("routines-logica.ts — evaluarView", () => {
 
   it("0 filas y sin vencer → pendiente, todavía no le toca", () => {
     expect(evaluarView(0, false)).toEqual({ estado: "pendiente", detalle: "Todavía no le toca correr hoy." });
+  });
+});
+
+describe("routines-logica.ts — evaluarPorTelemetria (interpretaciones, N13)", () => {
+  it("≥1 corrida → ok, sin importar si venció (un día sin reportes es un día legítimo sin filas)", () => {
+    expect(evaluarPorTelemetria(1, true).estado).toBe("ok");
+    expect(evaluarPorTelemetria(3, false).estado).toBe("ok");
+  });
+
+  it("0 corridas y vencida (después del cierre) → atrasado, no corrió", () => {
+    expect(evaluarPorTelemetria(0, true)).toEqual({ estado: "atrasado", detalle: "No corrió." });
+  });
+
+  it("0 corridas y sin vencer (antes del cierre) → pendiente, todavía no le toca", () => {
+    expect(evaluarPorTelemetria(0, false)).toEqual({ estado: "pendiente", detalle: "Todavía no le toca correr hoy." });
+  });
+
+  it("ventanaEsperada de interpretaciones vence recién después de las 18:20+45", () => {
+    // 2026-07-29 es miércoles (hábil); a las 17:00 el cierre (18:20) todavía no pasó.
+    expect(ventanaEsperada(INTERPRETACIONES, "2026-07-29", 17 * 60)).toEqual({ fechaEsperada: "2026-07-29", vencio: false });
+    // A las 19:10 ya pasó el cierre + margen (18:20+45=19:05).
+    expect(ventanaEsperada(INTERPRETACIONES, "2026-07-29", 19 * 60 + 10)).toEqual({ fechaEsperada: "2026-07-29", vencio: true });
   });
 });
