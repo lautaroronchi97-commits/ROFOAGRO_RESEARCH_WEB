@@ -4,7 +4,7 @@ import WebSocket from "ws";
 import { a3Configured, getA3Token, invalidateA3Token, getA3InstrumentsBySegment } from "./a3";
 import { getPases } from "./pases-cierres";
 import { getCierresGranos } from "./futuros";
-import { ruedaAgroAbierta } from "./rueda";
+import { ruedaAgroAbierta, feedLiveNecesario } from "./rueda";
 import type { Meta } from "./market";
 import { elegirTop3PorVolumen, type FilaVolumen, type Top3Grano } from "./informe-v3-calc";
 
@@ -50,6 +50,16 @@ const WS_URL = (process.env.A3_API_BASE ?? "https://api.cocos.xoms.com.ar").repl
 const SIN_CONFIG: LiveResult = {
   puntas: new Map(),
   estado: "sin-config",
+  pedidos: 0,
+  respondidos: 0,
+  updatedAt: null,
+};
+
+// Mismo shape que un WS que abrió y no encontró nada — es indistinguible en los
+// datos (fuera de rueda A3 tampoco tiene puntas), solo evita abrir la conexión.
+const FUERA_DE_HORARIO: LiveResult = {
+  puntas: new Map(),
+  estado: "caido",
   pedidos: 0,
   respondidos: 0,
   updatedAt: null,
@@ -202,9 +212,12 @@ async function fetchPuntas(symbols: string[]): Promise<LiveResult> {
 
 /* ---------------- entradas públicas ---------------- */
 
-/** Puntas de los instrumentos de PASE que muestra el panel Pases. */
+/** Puntas de los instrumentos de PASE que muestra el panel Pases. Gateado a
+ *  horario de mercado (`feedLiveNecesario`, 10:00–17:30 hábil): fuera de esa
+ *  ventana no tiene sentido abrir el WS, así que ni se intenta. */
 export const getPasesLive = cache(async (): Promise<LiveResult> => {
   if (!a3Configured()) return SIN_CONFIG;
+  if (!feedLiveNecesario()) return FUERA_DE_HORARIO;
   const [{ granos }, instrumentos] = await Promise.all([getPases(), getA3InstrumentsBySegment("DDA")]);
   const candidatos = granos.flatMap((g) => g.spreads.map((s) => s.spreadSymbol));
   // Sólo pedimos instrumentos de pase que A3 realmente lista; si la lista falló
@@ -217,8 +230,9 @@ export const getPasesLive = cache(async (): Promise<LiveResult> => {
   return fetchPuntas(symbols);
 });
 
-/** Puntas de los FUTUROS outright que muestra el panel Arbitrajes. */
-export const getFuturosLive = cache(async (): Promise<LiveResult> => {
+/** Puntas de los FUTUROS outright — símbolos candidatos filtrados contra lo
+ *  que A3 realmente lista, sin gate horario (la usan las dos variantes de abajo). */
+async function futurosLivePuntas(): Promise<LiveResult> {
   if (!a3Configured()) return SIN_CONFIG;
   const [{ granos }, instrumentos] = await Promise.all([
     getCierresGranos(),
@@ -239,7 +253,26 @@ export const getFuturosLive = cache(async (): Promise<LiveResult> => {
     symbols = candidatos.filter((s) => set.has(s));
   }
   return fetchPuntas(symbols);
+}
+
+/** Puntas de los FUTUROS outright que muestra el panel Arbitrajes (y "El
+ *  mercado hoy"/calculadoras). Gateado a horario de mercado — fuera de la
+ *  ventana 10:00–17:30 hábil ni se intenta abrir el WS: de noche o el fin de
+ *  semana A3 no tiene nada nuevo que dar, así que antes se pagaba una conexión
+ *  + timeout de 6s por cada regeneración ISR sin ganar nada. El informe diario
+ *  (18:30 ART) necesita el último operado incluso después de este corte →
+ *  usa `getFuturosLiveSinHorario`, más abajo. */
+export const getFuturosLive = cache(async (): Promise<LiveResult> => {
+  if (!feedLiveNecesario()) return FUERA_DE_HORARIO;
+  return futurosLivePuntas();
 });
+
+/** Igual que `getFuturosLive`, sin el gate horario. Único caller:
+ *  `top3PorVolumenDelDia` (informe diario, Routine 18:30 ART) — ver su
+ *  docstring: a esa hora la rueda ya cerró pero el último operado del WS
+ *  sigue siendo el cierre real del día, así que necesita poder conectar
+ *  aunque ya haya pasado el corte de las páginas públicas. */
+export const getFuturosLiveSinHorario = cache(futurosLivePuntas);
 
 /** Resultado de un ping barato al WS de A3 — para el panel `/admin/conexiones`, que solo
  *  necesita saber "¿está trayendo datos?", no la grilla completa de puntas. */
@@ -272,7 +305,7 @@ export type A3PingResult = {
  * respondió. Solo posiciones con vencimiento real (excluye "disponible"/DISPO).
  */
 export async function top3PorVolumenDelDia(): Promise<Top3Grano[]> {
-  const [{ granos }, live] = await Promise.all([getCierresGranos(), getFuturosLive()]);
+  const [{ granos }, live] = await Promise.all([getCierresGranos(), getFuturosLiveSinHorario()]);
   const hayVivo = live.estado === "ok" || live.estado === "parcial";
 
   const filas: (FilaVolumen & { underlying: string })[] = [];
