@@ -19,7 +19,59 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 05/08/2026 — 🧱 C31 FASE 1: base + carga + registro diario de operaciones de clientes, HECHO)
+## Ahora (última actualización: 05/08/2026 — 🧱 C31 FASE 2: migración aplicada + RLS verificada + posición completa (heatmap + futuros valorizados), HECHO — C31 CIERRA COMPLETO)
+
+**🧱 C31 — FASE 2 (posición completa + heatmap + panel de futuros valorizado) — HECHA, migración
+APLICADA y RLS verificada — misma rama `claude/migracion-operaciones-clientes-tfstym`, PR #144.**
+Ejecuta el PROMPT §9 de [`PLAN_OPERACIONES_CLIENTES.md`](PLAN_OPERACIONES_CLIENTES.md), sobre la
+Fase 1 de abajo (ver «Anterior»). Con el OK explícito de Lautoro se aplicó por MCP
+`20260805130000_c31_operaciones_clientes.sql` y se verificó RLS por SQL con 2 empresas sintéticas
+en los dos sentidos: `anon` → `permission denied` directo · empresa A no puede insertar en
+empresa B (RLS rechaza el `with check`) · empresa B ve 0 filas de A · admin ve todo cruzando
+empresas · trigger de auditoría escribe `crear`/`anular` con `usuario_id` correcto · nadie
+escribe `operaciones_log` a mano.
+
+**Hallazgo real de la propia verificación**: `authenticated` tenía DELETE/TRUNCATE de más sobre
+`operaciones`/`operaciones_log` — no por el `grant` de la migración (solo daba SELECT/INSERT/
+UPDATE), sino por los *default privileges* del esquema `public` de Supabase (dan ALL a
+`authenticated`/`service_role` en toda tabla nueva; el `revoke all from public, anon` nunca tocó
+`authenticated`) — mismo patrón ya visto el 04/08 en `routine_runs`, pero ahí aceptado porque
+nadie externo escribe esa tabla. Acá sí escriben clientes, y el gap incluía **TRUNCATE, que RLS
+no puede frenar** (a diferencia del DELETE, que sí quedaba en 0 filas). Migración de refuerzo
+`20260805140000_c31_operaciones_revoke_default_privileges.sql` (revoke total + re-grant exacto
+de `authenticated`) aplicada y verificada: los dos comandos ahora fallan con `permission denied`
+directo, antes de que RLS tenga que hacer nada. Sin residuo de prueba (`count=0`).
+
+**`/operaciones` completa**: **selector "Posición al [fecha]"** (`filtrarHasta`, reusa el mismo
+pipeline de matrices filtrando `fecha <= corte`, columnas siempre relativas a HOY, sin bucket
+nuevo) · **heatmap comprado/vendido** (`construirHeatmap`, producto × día, ventana 14/30/60
+recortada client-side de un cálculo único de 60 días, solo físico — mismo criterio que "neto del
+día" —, celdas HTML/CSS con intensidad por opacidad y click→registro de ese día; decisión
+documentada de no usar ECharts, es una grilla chica con links de navegación reales) · **panel
+"Posición de futuros" valorizado** (`futuros-valorizados.ts`, fórmula confirmada por Lautoro
+`(ajuste_hoy − precio_ejecución) × tn × signo`, degradación honesta sin ajuste vigente o con
+moneda≠USD, aviso si el volumen no es múltiplo de 100 — el panel queda siempre relativo a HOY, no
+respeta "Posición al [fecha]": no hay mark-to-market pasado sin guardar historial de ajustes).
+
+**Bug real preexistente encontrado y arreglado** (ya estaba en la Fase 1, no introducido esta
+sesión): un comentario de `globals.css` (`.admin-*/.fg-*/.tbl/...`) tenía la secuencia `*/`
+literal que cerraba el comentario CSS antes de tiempo — rompía `npm run dev` (Turbopack) con 500
+en TODAS las páginas (mismo patrón exacto ya documentado el 23/07 con `.evo-*/.vb-*`); `npm run
+build` lo toleraba, por eso nunca se vio. Arreglado con comas en vez de barras.
+
+**Verificado**: lint/tsc/**554 tests** (21 nuevos)/build ✅ · bypass temporal completo (DAL +
+cliente Supabase) con datos sintéticos reales por SQL cubriendo cada borde (3 buckets físicos,
+fijación sin volumen, 4 futuros con los 3 estados de valorización, anulada, heatmap multi-día) —
+**números cotejados a mano contra la fórmula, exactos** (futuro NOV26 compra 300tn@320 con
+ajuste real 347,40 → +8.220,00 USD, idéntico al ejemplo del plan; TOTAL del panel +7.530,00) ·
+Playwright real claro/oscuro/mobile, vista cliente y admin (selector de empresa), interacción
+real (cambiar fecha, click en heatmap navega al registro), cero errores de consola propios, cero
+overflow. **Bypass revertido en su totalidad** (`git diff` vacío en los 2 archivos tocados) ·
+sin sesión real: `/operaciones` y `/operaciones/registro` siguen en 307→`/ingresar`. **Con esto
+C31 (Fases 1+2) queda completo — sin pendientes.** Detalle:
+[`sesiones/2026-08-05-c31-fase2-operaciones.md`](sesiones/2026-08-05-c31-fase2-operaciones.md).
+
+## Anterior (05/08/2026 — 🧱 C31 FASE 1: base + carga + registro diario de operaciones de clientes, HECHO)
 
 **🧱 C31 — FASE 1 (base + carga + registro diario) — HECHO, migración SIN aplicar — rama
 `claude/c31-fase1-operaciones`, PR #_.** Ejecuta el PROMPT §8 de

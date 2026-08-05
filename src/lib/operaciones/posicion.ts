@@ -162,3 +162,52 @@ export function combinarMatrices(fisico: Matriz, futuros: Matriz): Matriz {
 export function construirNetoDelDia(operacionesDelDia: Operacion[], hoyISO: string): Matriz {
   return construirMatrizFisico(operacionesDelDia, hoyISO);
 }
+
+/**
+ * "Posición al [fecha]" (Fase 2, §5.6 item 6 / §5.1): reconstruye un cierre
+ * pasado filtrando `fecha <= fechaCorte` — el resto del cálculo (columnas
+ * relativas a HOY, buckets, matrices) no cambia, es el MISMO pipeline que la
+ * posición de hoy, solo con menos operaciones adentro (un libro mayor no
+ * necesita una fórmula nueva para "cómo estaba tal día", alcanza con no contar
+ * lo que todavía no había pasado).
+ */
+export function filtrarHasta(operaciones: Operacion[], fechaCorte: string): Operacion[] {
+  return operaciones.filter((o) => o.fecha <= fechaCorte);
+}
+
+// ============================================================================
+// Heatmap comprado/vendido (§1.23/§5.6 item 5, Fase 2): calendario producto ×
+// día. Deliberadamente solo FÍSICO (disponible + forward) — mismo alcance que
+// "neto del día" arriba: un futuro_a3 es cobertura, no el patrón de compra/
+// venta que el heatmap quiere mostrar de un vistazo (documentado también en la
+// bitácora de la sesión, tal como pide el prompt de Fase 2).
+// ============================================================================
+
+export type HeatmapFila = { producto: OperacionProducto; porDia: Record<string, number> };
+export type Heatmap = { dias: string[]; filas: HeatmapFila[] };
+
+/**
+ * `ventanaDias` días terminando HOY (incluido), más viejo primero. Cada celda es
+ * el neto físico (compra +, venta −) de las operaciones CONCERTADAS ese día
+ * (`operacion.fecha`, no la entrega) — igual que la hoja diaria de Mauro.
+ */
+export function construirHeatmap(operaciones: Operacion[], hoyISO: string, ventanaDias: number): Heatmap {
+  const dias: string[] = [];
+  for (let i = ventanaDias - 1; i >= 0; i--) dias.push(sumarDiasISO(hoyISO, -i));
+  const diasSet = new Set(dias);
+
+  const acumulado = new Map<OperacionProducto, Record<string, number>>();
+  for (const p of PRODUCTOS) acumulado.set(p, Object.fromEntries(dias.map((d) => [d, 0])));
+
+  const fisicas = operaciones.filter(
+    (o) => !o.anulada && (o.tipo === "disponible" || o.tipo === "forward") && diasSet.has(o.fecha),
+  );
+  for (const op of fisicas) {
+    const signo = op.lado === "compra" ? 1 : -1;
+    const rec = acumulado.get(op.producto)!;
+    rec[op.fecha] = redondear((rec[op.fecha] ?? 0) + signo * op.volumen_tn);
+  }
+
+  const filas: HeatmapFila[] = PRODUCTOS.map((p) => ({ producto: p, porDia: acumulado.get(p)! }));
+  return { dias, filas };
+}

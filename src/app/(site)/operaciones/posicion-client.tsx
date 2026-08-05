@@ -3,40 +3,61 @@
 import { useState } from "react";
 import { ChartTabla } from "@/components/chart-tabla";
 import { FiltroGrano, type GranoFiltroValue } from "@/components/filtro-grano";
-import type { Matriz } from "@/lib/operaciones/posicion";
+import type { Heatmap, Matriz } from "@/lib/operaciones/posicion";
 import { matrizAColumnas, matrizAFilas, esFilaTotal } from "@/lib/operaciones/matriz-vista";
+import type { FuturoValorizado } from "@/lib/operaciones/futuros-valorizados";
 import { GRANO_PRODUCTO } from "@/lib/operaciones/tipos";
 import { EmpresaSelector } from "./empresa-selector";
+import { PosicionFecha } from "./posicion-fecha";
+import { PosicionHeatmap } from "./heatmap";
+import { FuturosValorizadosPanel } from "./futuros-panel";
 
 /**
- * "Mi posición" — Fase 1 mínima (docs/PLAN_OPERACIONES_CLIENTES.md §8 item 6):
- * las 3 matrices producto × período (Físico, Futuros, Total). El heatmap, la
- * posición-a-fecha y el panel de futuros valorizado quedan para la Fase 2.
+ * "Mi posición" — Fase 2 completa (docs/PLAN_OPERACIONES_CLIENTES.md §5.6):
+ * las 3 matrices producto × período (Físico, Futuros, Total) con selector
+ * "Posición al [fecha]", el heatmap comprado/vendido y el panel de futuros
+ * valorizado.
  */
 export function PosicionClient({
   empresaId,
   empresas,
+  hoy,
+  fechaCorte,
   fisico,
   futuros,
   total,
+  heatmap,
+  futurosValorizados,
+  esAdmin,
 }: {
   empresaId: string;
   empresas: { id: string; nombre: string }[] | null;
+  hoy: string;
+  fechaCorte: string | null;
   fisico: Matriz;
   futuros: Matriz;
   total: Matriz;
+  heatmap: Heatmap;
+  futurosValorizados: FuturoValorizado[];
+  esAdmin: boolean;
 }) {
   const [filtro, setFiltro] = useState<GranoFiltroValue>("todos");
   const productoFiltro = filtro === "todos" ? undefined : GRANO_PRODUCTO[filtro];
 
   return (
     <>
-      {empresas && (
-        <div className="op-controles">
-          <EmpresaSelector empresas={empresas} empresaId={empresaId} />
-        </div>
-      )}
+      <div className="op-controles">
+        {empresas && <EmpresaSelector empresas={empresas} empresaId={empresaId} />}
+        <PosicionFecha fecha={fechaCorte} hoy={hoy} empresaId={esAdmin ? empresaId : undefined} />
+      </div>
       <FiltroGrano value={filtro} onChange={setFiltro} />
+
+      {fechaCorte && (
+        <p className="dim" role="status">
+          Mostrando la posición reconstruida al {fechaCorte.split("-").reverse().join("/")} — el heatmap y los
+          futuros valorizados siguen relativos a hoy.
+        </p>
+      )}
 
       <h3 className="op-matriz-tit">Físico (disponible + forward)</h3>
       <ChartTabla
@@ -61,6 +82,12 @@ export function PosicionClient({
         destacada={esFilaTotal}
         exportCsv="mi-posicion-total"
       />
+
+      <h3 className="op-matriz-tit">Heatmap comprado/vendido</h3>
+      <PosicionHeatmap heatmap={heatmap} productoFiltro={productoFiltro} empresaId={empresaId} esAdmin={esAdmin} />
+
+      <h3 className="op-matriz-tit">Posición de futuros valorizada</h3>
+      <FuturosValorizadosPanel filas={futurosValorizados} productoFiltro={productoFiltro} />
     </>
   );
 }

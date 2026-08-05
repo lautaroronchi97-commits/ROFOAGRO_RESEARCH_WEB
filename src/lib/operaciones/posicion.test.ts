@@ -7,6 +7,8 @@ import {
   construirMatrizFuturos,
   combinarMatrices,
   construirNetoDelDia,
+  filtrarHasta,
+  construirHeatmap,
 } from "./posicion";
 import type { Operacion } from "./tipos";
 
@@ -163,5 +165,78 @@ describe("construirNetoDelDia", () => {
     const delDia = [op({ lado: "compra", volumen_tn: 150, tipo: "disponible" })];
     const m = construirNetoDelDia(delDia, HOY);
     expect(m.filas.find((f) => f.producto === "soja")!.total).toBe(150);
+  });
+});
+
+describe("filtrarHasta — 'Posición al [fecha]' (Fase 2, §5.1)", () => {
+  it("incluye operaciones con fecha <= corte, excluye las posteriores", () => {
+    const ops = [
+      op({ fecha: "2026-07-01" }),
+      op({ fecha: "2026-08-05" }),
+      op({ fecha: "2026-08-06" }),
+    ];
+    const hasta = filtrarHasta(ops, "2026-08-05");
+    expect(hasta.map((o) => o.fecha)).toEqual(["2026-07-01", "2026-08-05"]);
+  });
+
+  it("el borde exacto (fecha === corte) queda incluido", () => {
+    const ops = [op({ fecha: "2026-08-05" })];
+    expect(filtrarHasta(ops, "2026-08-05")).toHaveLength(1);
+  });
+
+  it("componiendo con construirMatrizFisico reproduce un cierre pasado", () => {
+    const ops = [
+      op({ fecha: "2026-07-01", lado: "compra", volumen_tn: 100 }),
+      op({ fecha: "2026-08-05", lado: "venta", volumen_tn: 40 }),
+    ];
+    const alCorte = construirMatrizFisico(filtrarHasta(ops, "2026-07-15"), HOY);
+    expect(alCorte.filas.find((f) => f.producto === "soja")!.total).toBe(100);
+  });
+});
+
+describe("construirHeatmap — calendario producto × día (§1.23/§5.6, Fase 2)", () => {
+  it("ventana de N días terminando HOY, más viejo primero", () => {
+    const hm = construirHeatmap([], HOY, 5);
+    expect(hm.dias).toEqual(["2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05"]);
+    expect(hm.filas).toHaveLength(5); // los 5 productos, incluso sin operaciones
+  });
+
+  it("compra suma verde (+), venta resta (rojo -), por día y producto", () => {
+    const ops = [
+      op({ fecha: "2026-08-04", lado: "compra", producto: "soja", volumen_tn: 100 }),
+      op({ fecha: "2026-08-04", lado: "venta", producto: "soja", volumen_tn: 30 }),
+      op({ fecha: "2026-08-05", lado: "venta", producto: "maiz", volumen_tn: 50 }),
+    ];
+    const hm = construirHeatmap(ops, HOY, 7);
+    const soja = hm.filas.find((f) => f.producto === "soja")!;
+    const maiz = hm.filas.find((f) => f.producto === "maiz")!;
+    expect(soja.porDia["2026-08-04"]).toBe(70);
+    expect(maiz.porDia["2026-08-05"]).toBe(-50);
+  });
+
+  it("fuera de la ventana no cuenta", () => {
+    const ops = [op({ fecha: "2026-07-01", volumen_tn: 999 })];
+    const hm = construirHeatmap(ops, HOY, 5);
+    const soja = hm.filas.find((f) => f.producto === "soja")!;
+    expect(Object.values(soja.porDia).every((v) => v === 0)).toBe(true);
+  });
+
+  it("anuladas y fijaciones no cuentan (solo físico, mismo criterio que neto del día)", () => {
+    const ops = [
+      op({ fecha: HOY, volumen_tn: 200, anulada: true }),
+      op({ fecha: HOY, volumen_tn: 500, tipo: "fijacion", precio_modo: "manual", precio: 320, moneda: "usd" }),
+      op({ fecha: HOY, volumen_tn: 300, tipo: "futuro_a3", posicion_a3: "NOV26", precio_modo: "manual", precio: 320, moneda: "usd" }),
+    ];
+    const hm = construirHeatmap(ops, HOY, 3);
+    const soja = hm.filas.find((f) => f.producto === "soja")!;
+    expect(soja.porDia[HOY]).toBe(0);
+  });
+
+  it("cruza fin/inicio de mes correctamente", () => {
+    const ops = [op({ fecha: "2026-07-31", lado: "compra", volumen_tn: 80 })];
+    const hm = construirHeatmap(ops, "2026-08-02", 3);
+    expect(hm.dias).toEqual(["2026-07-31", "2026-08-01", "2026-08-02"]);
+    const soja = hm.filas.find((f) => f.producto === "soja")!;
+    expect(soja.porDia["2026-07-31"]).toBe(80);
   });
 });

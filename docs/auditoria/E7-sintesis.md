@@ -530,8 +530,9 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md) ·
   [`sesiones/2026-08-04-e6-routines-cierre.md`](../sesiones/2026-08-04-e6-routines-cierre.md).
 
-- [~] **C31. Operaciones diarias de clientes — posición comprado/vendido por empresa
-  (05/08/2026 — PLAN CERRADO + FASE 1 HECHA, Fase 2 pendiente).** Pedido de Lautaro sobre una
+- [x] **C31. Operaciones diarias de clientes — posición comprado/vendido por empresa
+  (05/08/2026 — PLAN CERRADO + FASE 1 + FASE 2 HECHAS, migración APLICADA y RLS verificada).**
+  Pedido de Lautaro sobre una
   planilla de Mauro ("Posición Agroleaginosa", transcripta en el plan, xlsx NO versionado por
   traer nombre de cliente real): cada empresa cliente carga sus compras/ventas del día (5
   granos, tipos disponible/forward/fijación/futuro A3, precio $/USD/pizarra/sin precio +
@@ -547,13 +548,42 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   `20260805130000` (SIN aplicar) + sección de permisos + libs puras testeadas + server actions +
   `/operaciones/registro` (carga completa) + `/operaciones` (matrices mínimas). Verificado
   lint/tsc/**536 tests**/build, Playwright con bypass temporal (revertido) cubriendo cada borde
-  de la regla de buckets. **Falta**: aplicar la migración por MCP + verificar RLS por SQL en los
-  dos sentidos → **Fase 2** (§9: posición completa + heatmap + panel de futuros valorizado, ya
-  con la fórmula confirmada). Detalle:
+  de la regla de buckets.
+  **Migración APLICADA (05/08/2026, misma sesión de continuación) + RLS verificada por SQL con
+  2 empresas sintéticas en los dos sentidos**: `anon` → `permission denied` directo (revoke
+  total) · empresa A no puede insertar en empresa B (RLS rechaza) · empresa B no ve las filas de
+  A (0 filas) · admin ve todo cruzando empresas · trigger de auditoría OK (`crear`/`anular` con
+  `usuario_id` correcto) · nadie escribe `operaciones_log` a mano. **Hallazgo real de la propia
+  verificación**: `authenticated` tenía DELETE/TRUNCATE de más sobre `operaciones`/
+  `operaciones_log` (default privileges del esquema `public`, mismo patrón ya visto en
+  `routine_runs` el 04/08) — TRUNCATE ignora RLS por completo (a diferencia de DELETE, que sí
+  quedaba bloqueado en 0 filas) → migración de refuerzo `20260805140000` (revoke total +
+  re-grant exacto SELECT/INSERT/UPDATE en `operaciones`, SELECT en `operaciones_log`), aplicada
+  y verificada (`permission denied` directo en los dos comandos). Sin residuo de prueba
+  (`count=0` confirmado).
+  **Fase 2 (§9) HECHA**: `/operaciones` completa — **selector "Posición al [fecha]"**
+  (`filtrarHasta`, reusa el mismo pipeline de matrices filtrando `fecha <= corte`, sin bucket
+  nuevo) · **heatmap comprado/vendido** (`construirHeatmap`, producto × día, solo físico —
+  mismo criterio que "neto del día" — celdas HTML/CSS con click→registro de ese día, decisión
+  documentada en el código sobre no usar ECharts para una grilla chica con links reales) ·
+  **panel "Posición de futuros" valorizado** (`futuros-valorizados.ts`, fórmula confirmada
+  `(ajuste_hoy − precio_ejecución) × tn × signo`, degradación honesta sin ajuste vigente o con
+  moneda≠USD, aviso si el volumen no es múltiplo de 100) · el panel de futuros y el heatmap
+  quedan siempre relativos a HOY (no respetan "Posición al [fecha]": no hay mark-to-market
+  pasado sin guardar historial de ajustes, documentado). **Verificado**: lint/tsc/**554
+  tests**/build ✅ · Playwright real con datos sintéticos que cruzan cada borde (bypass temporal
+  de sesión + del cliente Supabase, revertido en su totalidad — `git diff` limpio en los 2
+  archivos tocados) en claro/oscuro/mobile, cliente y admin (selector de empresa), interacción
+  real (cambiar fecha, click en heatmap navega al registro) — **matrices y valorización
+  cotejadas a mano, exactas** (ej. total físico+futuros soja +340,00, futuros valorizados TOTAL
+  +7.530,00). Sin sesión: `/operaciones` y `/operaciones/registro` responden 307→`/ingresar`
+  (nunca 500). **Con esto C31 queda completo, Fases 1+2.** Detalle:
   [`sesiones/2026-08-05-plan-operaciones-clientes.md`](../sesiones/2026-08-05-plan-operaciones-clientes.md)
   (plan) ·
   [`sesiones/2026-08-05-c31-fase1-operaciones.md`](../sesiones/2026-08-05-c31-fase1-operaciones.md)
-  (Fase 1).
+  (Fase 1) ·
+  [`sesiones/2026-08-05-c31-fase2-operaciones.md`](../sesiones/2026-08-05-c31-fase2-operaciones.md)
+  (Fase 2, migración y RLS).
 
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN
