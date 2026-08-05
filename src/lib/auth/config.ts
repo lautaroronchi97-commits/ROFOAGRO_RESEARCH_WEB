@@ -63,8 +63,10 @@ export function seccionDeRuta(pathname: string): SeccionKey | null {
  * (`/bienvenida`), la pantalla de "sesión cerrada en otro dispositivo" y las
  * páginas legales (`/privacidad`, `/terminos` — Google exige que el link de
  * política de privacidad de la marca OAuth sea accesible sin login). La raíz
- * `/` NO va acá: con el flag prendido, un visitante sin sesión se redirige a la
- * landing (ver `session.ts`); con sesión, `/` es el tablero.
+ * `/` NO va acá: con el flag prendido, un visitante sin sesión cae en el caso
+ * genérico de ruta protegida → `/ingresar` (05/08/2026: la landing `/bienvenida`
+ * dejó de ser el destino de entrada, ver `session.ts`); con sesión, `/` es el
+ * tablero.
  */
 export const RUTAS_PUBLICAS = [
   "/ingresar",
