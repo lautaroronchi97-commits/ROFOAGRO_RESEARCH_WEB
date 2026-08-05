@@ -158,7 +158,7 @@ Contestadas por Lautaro en el chat de esta sesión:
 | N3 | **Interpretaciones = rutina y skill PROPIOS**, con verificación diaria, calendario y reprogramación horaria | El Paso 9 del diario SE MUDA a la skill nueva. El diario pasa a solo LEER interpretaciones. |
 | N4 | **Interpretaciones se AUTO-PUBLICAN** si Lautaro no las tocó "tras unas horas" | Revoca parcialmente "su firma nunca sale sin su OK" (V2 R7) **solo para interpretaciones**. Propuesta concreta: cierre **18:20 ART** del día en que se generó el borrador (después de los despertadores de la tarde, antes del diario de 18:30 — reglas finas en §8.1); el mail de aviso al generarse sigue, y se marca `auto_publicado` para distinguirlas. El view sigue interno-mesa; diario y semanal siguen saliendo sin gate como siempre. |
 | N5 | **La carga diaria sigue TEXTO LIBRE** (sin form estructurado): la pizarra estimada y el volumen del físico entran a mano dentro del color del día; la variación de la pizarra estimada se calcula **contra el último valor que trae el cron** (`pizarra_historico`); **si falta el dato del cron actualizado o no se cargó la pizarra estimada, NO se calcula la variación** (degradación honesta, nunca se inventa). | Mantiene `mesa_color` texto libre. La extracción del número la hace la skill al leer el color. |
-| N6 | **Diario: PNG sigue + versión WEB con link** ("que entren los clientes o el público con un link, indaguémoslo") | Etapa E3: página web del informe diario por fecha; el acceso (permiso de sección vs link público firmado) se resuelve en esa etapa con recomendación (§5.4). |
+| N6 | **Diario: PNG sigue + versión WEB con link** ("que entren los clientes o el público con un link, indaguémoslo") | Etapa E3: página web del informe diario por fecha; el acceso (permiso de sección vs link público firmado) se resuelve en esa etapa con recomendación (§5.4). **Revocado parcialmente en E6 (05/08)**: la puerta pública firmada se saca — "no dejamos ningún informe en link online" — la página queda, pero solo con sesión. |
 | N7 | **Alcance de interpretaciones ampliado**: los 5 organismos de estimaciones + **PAS zonas/condición** + **CFTC COT** + **USDA Export Sales** | COT y Export Sales entran por **fetch-en-vivo dentro de la rutina** (con pasaporte), SIN ingesta/cron/tabla nueva — coherente con la decisión vigente "fetch-en-vivo, no ingesta nueva". |
 
 | N11 | **Futuros locales del día (diario): la fuente es el WEBSOCKET de A3** (`a3-live`), que trae volúmenes y ajuste por posición — no `futuros_cierres` (04/08, revisión post-plan) | Motivo verificado: `ingest-cierres` corre 20:08 ART y el diario 18:30 → la tabla tiene la rueda de AYER a esa hora (el "desfasaje" actual cruza Δ local de ayer con Chicago de hoy, y el top-3 "del día" mostraría volúmenes viejos). El WS es la fuente de HOY; CEM queda como histórico. Verificación secundaria en la build: chequear si CEM ya publica el ajuste del día ~18:15 (Lautaro cree que no) y confirmar que el snapshot del WS post-rueda trae el ajuste (entrada SE) además de último/volumen. El SEMANAL sigue sobre `futuros_cierres` (histórico) — su fix es de horario (N12: pasa a vie 20:30 ART). |
@@ -347,19 +347,20 @@ decir una línea. `[E: campo; N: regla]`
   feedback manda.
 - Documentar el par PNG + página web (§5.4) en los pasos de entrega.
 
-### 5.4 Versión web con link (N6 — "indaguémoslo", etapa E3)
+### 5.4 Versión web con link (N6 — "indaguémoslo", etapa E3; puerta pública revocada en E6)
 
 - Página nueva `/informes/diario/[fecha]`: renderiza el **informe COMPLETO** como página web
   responsive (misma data, componentes reusados; incluye lo que la placa haya recortado por el
   objetivo de 1 página — N17), para `estado=enviado`.
-- **Acceso — recomendación**: gateada como la sección Informes (con `AUTH_ENFORCED` prendido, la
-  ven los clientes con permiso `informes`; los admins siempre). Además, **link público firmado
-  opcional** por informe (`?t=<token>`, generable desde `/admin`) para compartir a no clientes
-  puntuales sin abrir toda la web. **Diseño del token: HMAC sin estado** (HMAC-SHA256 de
-  `tipo+fecha` con un secret propio `INFORME_SHARE_SECRET`) — cero migración, comparación
-  timing-safe, y se revoca globalmente rotando el secret. La build E3 presenta ambas puertas
-  funcionando y Lautaro decide cuál activa (o las dos).
-- El PNG sigue siendo el vehículo de WhatsApp; la página es el mismo informe con link.
+- **Acceso**: gateada como la sección Informes (con `AUTH_ENFORCED` prendido, la ven los clientes
+  con permiso `informes`; los admins siempre). La build E3 había presentado también un **link
+  público firmado opcional** (`?t=<token>`, HMAC-SHA256 sin estado con `INFORME_SHARE_SECRET`)
+  para compartir a no-clientes sin login — **revocado por Lautaro el 05/08/2026** ("no dejamos
+  ningún informe en link online"; la página queda, pero solo detrás de sesión). El endpoint de
+  nota 1-tap (§9/N15) usa el mismo secret pero para otra cosa (grabar una calificación, no
+  exponer contenido) y sigue vigente sin cambios.
+- El PNG sigue siendo el vehículo de WhatsApp; la página web (solo con sesión) es el mismo
+  informe completo, para uso interno de la mesa.
 
 ---
 
@@ -827,7 +828,7 @@ sesión + PR base `main`.
 | E3 | Diario v3 (placa por producto + skill + página web con link) | ✅ hecho — verificado con datos reales y una fila de prueba (ver `sesiones/2026-08-04-e3-informe-diario.md`) |
 | E4 | Semanal v3 (por producto, sin límite, skill) | ✅ hecho — verificado con datos reales y una fila de prueba (ver `sesiones/2026-08-04-e4-informe-semanal.md`) |
 | E5 | View v3 (5 estados + insumos ampliados + skill) | ✅ hecho — verificado con datos reales y 3 filas de prueba en Playwright (ver `sesiones/2026-08-04-e5-view-mercado-5-estados.md`) |
-| E6 | Routines finales + feedback end-to-end + monitoreo/watchdog + cierre | ☐ |
+| E6 | Routines finales + feedback end-to-end + monitoreo/watchdog + cierre | ✅ hecho — las 4 Routines renombradas a "ROFO AGRO", repo/cron/mail corregidos, la de interpretaciones creada (no existía) · feedback end-to-end verificado (los 4 productos, con datos reales revertidos) · monitoreo N13 (`routine_runs` cableado a `/admin/checklist`/`/admin/conexiones`) + watchdog del diario en el healthcheck (ver `sesiones/2026-08-04-e6-routines-cierre.md`) |
 
 E3/E4/E5 pueden correr **en paralelo** (3 sesiones Sonnet) una vez mergeadas E1+E2.
 

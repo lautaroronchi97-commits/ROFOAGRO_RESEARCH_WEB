@@ -340,11 +340,11 @@ a la versión web completa** (`{INFORME_BASE_URL}/informes/diario/{fecha}`);
 GET {INFORME_BASE_URL}/api/informes/nota?id={id}&n={1|3|5}&t={firma}
 ```
 
-`{firma}` = HMAC-SHA256 hex de `"{id}:{n}"` con el secret
-`INFORME_SHARE_SECRET` (mismo mecanismo del link público de la placa — Paso
-4 no lo necesita, pero acá sí). Si no tenés forma de calcular HMAC-SHA256 en
-el entorno de la Routine, generá los 3 links igual (Node trae `crypto`
-built-in — `createHmac("sha256", secret).update(payload).digest("hex")`).
+`{firma}` = HMAC-SHA256 hex de `"{id}:{n}"` con el secret `INFORME_SHARE_SECRET`. Si no tenés
+forma de calcular HMAC-SHA256 en el entorno de la Routine, generá los 3 links igual (Node trae
+`crypto` built-in — `createHmac("sha256", secret).update(payload).digest("hex")`). El link a
+`/informes/diario/{fecha}` del mail de abajo NO lleva firma — la página exige sesión (mail solo
+va a `ADMIN_EMAILS`, que están logueados; §5.4/N6 del plan, revocado el 05/08/2026).
 
 ```
 POST https://api.resend.com/emails
@@ -377,7 +377,7 @@ visible que lo confirme:
 ```
 POST {SUPABASE_URL}/rest/v1/routine_runs
 headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}, content-type: application/json
-body: [{ "tipo": "informe_diario", "fecha": "YYYY-MM-DD",
+body: [{ "tipo": "diario", "fecha": "YYYY-MM-DD",
          "iniciado_en": "<ISO de cuando arrancó el Paso 1>",
          "terminado_en": "<ISO de ahora>",
          "degradaciones": { "color": <bool: sin cargar>, "resend": <bool: sin key>, ... },

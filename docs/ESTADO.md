@@ -19,7 +19,79 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)
+## Ahora (última actualización: 05/08/2026 — 🏁 E6 de PLAN INFORMES V3 CERRADO: PLAN_INFORMES_V3
+completo E1→E6, las 4 Routines renombradas/corregidas + la de interpretaciones creada)
+
+**🏁 E6 — ÚLTIMA ETAPA DE PLAN INFORMES V3 — HECHA DE PUNTA A PUNTA, cierra el plan completo
+(C30) — rama `claude/hito-e6-plan-informe-3svmrm`, PR #139.** Ejecuta el PROMPT E6 de
+`PLAN_INFORMES_V3.md` §10 (requiere E1→E5, las 5 ya mergeadas). Los 4 ítems del prompt cerrados
+de punta a punta. El MCP de Routines devolvió `requires approval` sin resolver al principio de la
+sesión (3 intentos) — se avanzó con el resto del prompt mientras tanto y, al reintentarlo más
+tarde en la misma sesión (a pedido explícito de Lautaro: "proba para volver a modificar las
+rutinas o crearlas"), **el canal ya estaba destrabado** y se aplicaron los 4 cambios sin
+problema.
+
+**Monitoreo N13 — `routine_runs` cableado al catálogo único.** `src/lib/monitoreo/catalogo.ts`
+suma un 4º `RoutineDef` (`interpretaciones`) + actualiza el texto de `informe-semanal` a "viernes
+20:30" (N12). `routines-logica.ts` suma una función nueva, `evaluarPorTelemetria` — a diferencia
+de diario/semanal/view (detectables por lo que ESCRIBEN, con un output fijo esperado), un día sin
+ningún reporte de organismo es un día LEGÍTIMO con cero interpretaciones nuevas, así que esa
+Routine se detecta por telemetría pura (¿hay ≥1 fila de `routine_runs` hoy?), no por filas
+producidas. `routines.ts` suma el fetch + el case nuevo — `/admin/checklist` (balde 🟣) y
+`/admin/conexiones` heredan el 4º ítem gratis (ya iteraban genérico). **Bug real encontrado**: las
+skills documentaban `tipo: "informe_diario"`/`"informe_semanal"` para su fila de telemetría, pero
+la ÚNICA fila real en producción (el informe diario de HOY) usa `"diario"` — corregidos los 2
+`SKILL.md` para que digan lo que la Routine real ya escribe.
+
+**Watchdog del informe diario (N13)**: chequeo nuevo en `scripts/healthcheck-frescura.mjs` — si
+hoy es hábil y a las 20:45 ART (cuando corre este cron) no hay un informe diario `enviado` de
+hoy, cuenta como falla real (dispara el mail de alerta ya existente, sin cron/lógica de mail
+nuevos). **Corrido contra producción real**: `✓ watchdog informe diario: 2026-08-04: enviado`
+(coincide con el informe real de hoy).
+
+**Feedback end-to-end, verificado contra producción real con reversión inmediata en cada caso**
+(los 4 productos): informe diario/semanal (`admin_feedback_informe`, contra el informe real de
+hoy, revertido) · view de mercado (`admin_feedback_view`, contra un view real del 31/07,
+revertido) · nota 1-tap (`/api/informes/nota` contra `rofoagro.com.ar` real: firma inválida →
+400 honesto, como se esperaba sin `INFORME_SHARE_SECRET` cargado; el PATCH subyacente probado por
+SQL y revertido) · interpretaciones (feedback por diff): **no hizo falta simular nada** — hay un
+caso real (la interpretación del DEA del 27/07, que Lautaro editó de verdad) que confirma que el
+`SELECT` del Paso 0 de la skill trae los dos textos completos, listo para el diff.
+
+**Verificado**: lint/tsc/**488 tests** (4 nuevos)/build ✅ · healthcheck corrido en vivo contra
+producción (credenciales reales del entorno) · feedback de los 4 productos probado contra datos
+reales de producción y revertido sin dejar residuo (confirmado por SQL en cada caso).
+
+**Routines por MCP (ítem 1 del prompt E6) — RESUELTO en la misma sesión.** Las 3 Routines
+existentes renombradas de "RF AGRO" a "**ROFO AGRO**" + fix del repo viejo
+`RFAGRO_RESEARCH_WEB`→`ROFOAGRO_RESEARCH_WEB` en sus 3 prompts: **Informe diario (MP1)** (sin
+cambio de cron, 18:30 ART L-V, ya tenía la cláusula de mail) · **Informe semanal (MP2)** (cron
+`0 22 * * 5`→`30 23 * * 5`, **19:00→20:30 ART/N12**, ya tenía la cláusula de mail) · **View de
+mercado (MP3)** (sin cambio de cron, 9:00 ART viernes, **sumada la cláusula de aviso por mail que
+le faltaba**). **Routine nueva creada**: "ROFO AGRO — Interpretaciones" (`0 12 * * 1-5` = 9:00 ART
+L-V, no existía — confirmado paginando el historial completo de Routines de la cuenta, sin
+ninguna coincidencia previa). Las 4 verificadas por `list_triggers` tras el cambio: nombres,
+crons y `next_run_at` correctos.
+
+**Follow-up mismo día/PR: se saca la puerta pública del informe diario.** Lautaro: *"No va a hacer
+falta el link solo nos quedamos con el pdf o png"* — precisado con `AskUserQuestion`: es el link
+público sin login de `/informes/diario/[fecha]` (no los 3 links de nota 1-tap del mail, que no
+exponen el informe y siguen vigentes); la página web queda, pero solo para gente logueada.
+`/informes/diario/[fecha]` pasa de "dos puertas" a **una sola** (`requireSeccion("informes")`
+siempre) — se saca el chequeo de firma + el banner de admin con el link + `payloadInformeCompartido`
+(0 callers) de `informe-auth.ts` · `src/proxy.ts` saca esa ruta de las que saltean el gate
+optimista (ya no tiene puerta propia sin cookies). lint/tsc/**488 tests**/build ✅.
+
+**Pendiente (no nuevo, ya documentado)**: `INFORME_SHARE_SECRET` sigue sirviendo solo para la
+nota 1-tap (no para ningún link de contenido) y real sigue sin confirmarse en
+Vercel/Routines (mismo pendiente de E1) · la Routine de interpretaciones quedó creada sin
+conectores MCP adjuntos (aviso del propio `create_trigger`: la sesión que la creó no tenía
+conectores propios para heredar) — no debería importarle, la skill usa `fetch`/`git`/`curl` con
+env vars, nunca tools `mcp__*`; confirmar en su primera corrida real. **Con esto
+`PLAN_INFORMES_V3.md` queda con E1→E6 completos — el plan (C30 del backlog maestro) cierra.**
+Detalle: [`sesiones/2026-08-04-e6-routines-cierre.md`](sesiones/2026-08-04-e6-routines-cierre.md).
+
+## Anterior (04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)
 
 **🎯 E5 — VIEW V3 (5 ESTADOS) — HECHO Y VERIFICADO — rama `claude/plan-informe-e5-owgf06`,
 PR #_.** Ejecuta el PROMPT E5 de `PLAN_INFORMES_V3.md` §10 (requiere E1, ya mergeada, con la

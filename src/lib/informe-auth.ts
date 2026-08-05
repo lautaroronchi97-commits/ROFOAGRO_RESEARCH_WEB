@@ -22,8 +22,7 @@ export function esFechaValida(s: string): boolean {
  * Firma HMAC-SHA256 (hex) para los links "1-tap" de nota por mail (N15, E1 de
  * PLAN_INFORMES_V3.md §10 item 7) — `INFORME_SHARE_SECRET` es un secret PROPIO, distinto de
  * `INFORME_TOKEN` (ese autentica a las Routines/sesiones de research contra los endpoints de
- * insumos; este autentica un click sin sesión desde un mail). Reusado por E3/E4 más adelante
- * para el link público firmado del informe diario (§5.4 del plan) con la misma mecánica.
+ * insumos; este autentica un click sin sesión desde un mail).
  */
 export function firmarInforme(payload: string): string {
   const secret = process.env.INFORME_SHARE_SECRET ?? "";
@@ -44,11 +43,4 @@ export function firmaInformeValida(payload: string, recibida: string): boolean {
 /** `id:n` — el payload que firma el link de nota 1-tap (`/api/informes/nota`). */
 export function payloadNota(id: string, n: number): string {
   return `${id}:${n}`;
-}
-
-/** `tipo:fecha` — el payload que firma el link público del informe completo
- *  (`/informes/diario/[fecha]?t=`, N6/§5.4 de PLAN_INFORMES_V3.md, etapa E3). Sin estado: se
- *  revoca globalmente rotando `INFORME_SHARE_SECRET`, nunca por fila. */
-export function payloadInformeCompartido(tipo: string, fecha: string): string {
-  return `${tipo}:${fecha}`;
 }

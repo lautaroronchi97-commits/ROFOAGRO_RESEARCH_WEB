@@ -374,7 +374,7 @@ Recién ahí la fila aparece en `/informes` (RLS: anon solo ve
 ```
 POST {SUPABASE_URL}/rest/v1/routine_runs
 headers: apikey + authorization Bearer {SUPABASE_SERVICE_KEY}, content-type: application/json
-body: [{ "tipo": "informe_semanal", "fecha": "YYYY-MM-DD",
+body: [{ "tipo": "semanal", "fecha": "YYYY-MM-DD",
          "iniciado_en": "<ISO de cuando arrancó el Paso 1>",
          "terminado_en": "<ISO de ahora>",
          "degradaciones": { "mundo_bullets": <bool: vacío>, "pizarra_estimada": <bool: sin cargar>, "resend": <bool: sin key>, ... },
