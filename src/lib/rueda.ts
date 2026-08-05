@@ -62,3 +62,22 @@ export function ruedaCorrioHoy(r: Rueda, ahora: { min: number; dow: number } = a
 export function ruedaAgroCorrioHoy(d?: Date): boolean {
   return ruedaCorrioHoy(RUEDA_AGRO, ahoraCordoba(d));
 }
+
+const FEED_DESDE_MIN = 10 * 60; // 10:00, apertura de la 1ª rueda (Dólar)
+const FEED_HASTA_MIN = 17 * 60 + 30; // 17:30 — media hora de margen tras el cierre de Agro (17:00)
+
+/**
+ * ¿Tiene sentido abrir el WS de A3 en vivo ahora? Ventana un poco más amplia
+ * que "alguna rueda abierta" (10:00–17:30 hábil vs. 10:00–17:00 real): cubre
+ * el rato post-cierre en el que puede tardar en salir el ajuste, pero evita
+ * conectar de madrugada/fin de semana cuando el mercado no tiene nada nuevo
+ * que dar (antes se conectaba igual y el WS agotaba el timeout sin datos).
+ * Gatea `getFuturosLive`/`getPasesLive` (páginas públicas, ISR); el informe
+ * diario (Routine 18:30 ART) necesita el último operado incluso después de
+ * este corte y usa `getFuturosLiveSinHorario`, que no pasa por acá.
+ */
+export function feedLiveNecesario(d?: Date): boolean {
+  const ahora = ahoraCordoba(d);
+  const habil = ahora.dow >= 1 && ahora.dow <= 5;
+  return habil && ahora.min >= FEED_DESDE_MIN && ahora.min < FEED_HASTA_MIN;
+}
