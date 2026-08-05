@@ -14,9 +14,12 @@ import { FuturosValorizadosPanel } from "./futuros-panel";
 
 /**
  * "Mi posición" — Fase 2 completa (docs/PLAN_OPERACIONES_CLIENTES.md §5.6):
- * las 3 matrices producto × período (Físico, Futuros, Total) con selector
- * "Posición al [fecha]", el heatmap comprado/vendido y el panel de futuros
- * valorizado.
+ * las 3 matrices producto × período — **Total primero, después Físico y
+ * Futuros A3** (pedido de Lautaro, 05/08/2026: la lectura rápida es el total,
+ * el desglose viene después) — con selector "Posición al [fecha]", el heatmap
+ * comprado/vendido y el panel de futuros valorizado. La matriz de Futuros A3
+ * solo lista `PRODUCTOS_CON_FUTURO` (soja/maíz/trigo): girasol y sorgo no
+ * cotizan futuro en A3, así que no tiene sentido mostrarles una fila vacía.
  */
 export function PosicionClient({
   empresaId,
@@ -59,6 +62,14 @@ export function PosicionClient({
         </p>
       )}
 
+      <h3 className="op-matriz-tit">Total (físico + futuros)</h3>
+      <ChartTabla
+        columnas={matrizAColumnas(total)}
+        filas={matrizAFilas(total, productoFiltro)}
+        destacada={esFilaTotal}
+        exportCsv="mi-posicion-total"
+      />
+
       <h3 className="op-matriz-tit">Físico (disponible + forward)</h3>
       <ChartTabla
         columnas={matrizAColumnas(fisico)}
@@ -73,14 +84,6 @@ export function PosicionClient({
         filas={matrizAFilas(futuros, productoFiltro)}
         destacada={esFilaTotal}
         exportCsv="mi-posicion-futuros"
-      />
-
-      <h3 className="op-matriz-tit">Total (físico + futuros)</h3>
-      <ChartTabla
-        columnas={matrizAColumnas(total)}
-        filas={matrizAFilas(total, productoFiltro)}
-        destacada={esFilaTotal}
-        exportCsv="mi-posicion-total"
       />
 
       <h3 className="op-matriz-tit">Heatmap comprado/vendido</h3>

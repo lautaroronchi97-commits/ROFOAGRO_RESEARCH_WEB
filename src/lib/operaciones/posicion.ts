@@ -1,6 +1,6 @@
 import { MESES_ES, vtoDePosicion } from "@/lib/dates";
 import { sumarDiasISO } from "./registro";
-import { PRODUCTOS, type Operacion, type OperacionProducto } from "./tipos";
+import { PRODUCTOS, PRODUCTOS_CON_FUTURO, type Operacion, type OperacionProducto } from "./tipos";
 
 /**
  * Lib PURA de la posición (§5.1-§5.2, docs/PLAN_OPERACIONES_CLIENTES.md): la matriz
@@ -90,19 +90,21 @@ function construirMatriz(
   ops: Operacion[],
   columnas: ColumnaPeriodo[],
   bucketFn: (op: Operacion) => string,
+  productos: readonly OperacionProducto[] = PRODUCTOS,
 ): Matriz {
   const acumulado = new Map<OperacionProducto, Record<string, number>>();
-  for (const p of PRODUCTOS) acumulado.set(p, Object.fromEntries(columnas.map((c) => [c.key, 0])));
+  for (const p of productos) acumulado.set(p, Object.fromEntries(columnas.map((c) => [c.key, 0])));
 
   for (const op of ops) {
+    const rec = acumulado.get(op.producto);
+    if (!rec) continue; // producto fuera de la lista de esta matriz (ej. girasol/sorgo en Futuros — no tienen A3)
     const signo = op.lado === "compra" ? 1 : -1;
     const key = bucketFn(op);
-    const rec = acumulado.get(op.producto)!;
     rec[key] = (rec[key] ?? 0) + signo * op.volumen_tn;
   }
 
   const totalPorColumna: Record<string, number> = Object.fromEntries(columnas.map((c) => [c.key, 0]));
-  const filas: FilaMatriz[] = PRODUCTOS.map((p) => {
+  const filas: FilaMatriz[] = productos.map((p) => {
     const porColumna = acumulado.get(p)!;
     let total = 0;
     for (const c of columnas) {
@@ -122,6 +124,7 @@ function construirMatriz(
 /**
  * Matriz FÍSICA (disponible + forward). Excluye anuladas y fijaciones — las
  * fijaciones NO suman volumen (§1.2/§5.1): son un registro que solo genera precio.
+ * Los 5 productos (girasol/sorgo también operan físico).
  */
 export function construirMatrizFisico(operaciones: Operacion[], hoyISO: string): Matriz {
   const columnas = columnasPeriodo(hoyISO);
@@ -129,20 +132,31 @@ export function construirMatrizFisico(operaciones: Operacion[], hoyISO: string):
   return construirMatriz(vivas, columnas, (op) => bucketFisico(op, hoyISO, columnas));
 }
 
-/** Matriz de FUTUROS A3 — separada del físico (§1.3: calzar físico con futuro es cobertura). */
+/**
+ * Matriz de FUTUROS A3 — separada del físico (§1.3: calzar físico con futuro es cobertura).
+ * Solo `PRODUCTOS_CON_FUTURO` (soja/maíz/trigo): girasol y sorgo no tienen futuro en A3
+ * (pedido de Lautaro, 05/08/2026 — mismo criterio que ya usan `pizarra.ts`/"Negocios de
+ * planta"), así que no tiene sentido mostrarles una fila siempre vacía acá.
+ */
 export function construirMatrizFuturos(operaciones: Operacion[], hoyISO: string): Matriz {
   const columnas = columnasPeriodo(hoyISO);
   const vivas = operaciones.filter((o) => !o.anulada && o.tipo === "futuro_a3" && o.posicion_a3);
-  return construirMatriz(vivas, columnas, (op) => bucketFuturo(op.posicion_a3!, columnas));
+  return construirMatriz(vivas, columnas, (op) => bucketFuturo(op.posicion_a3!, columnas), PRODUCTOS_CON_FUTURO);
 }
 
-/** Matriz TOTAL = físico + futuros, columna a columna (misma forma que las dos anteriores). */
+/**
+ * Matriz TOTAL = físico + futuros, columna a columna (misma forma que las dos anteriores,
+ * siempre los 5 productos porque parte de `fisico`). Empareja por `producto`, NO por índice
+ * — `futuros` puede tener menos filas que `fisico` (girasol/sorgo sin fila de futuros).
+ */
 export function combinarMatrices(fisico: Matriz, futuros: Matriz): Matriz {
-  const filas: FilaMatriz[] = fisico.filas.map((f, i) => {
-    const u = futuros.filas[i]!;
+  const filas: FilaMatriz[] = fisico.filas.map((f) => {
+    const u = futuros.filas.find((x) => x.producto === f.producto);
     const porColumna: Record<string, number> = {};
-    for (const c of fisico.columnas) porColumna[c.key] = redondear((f.porColumna[c.key] ?? 0) + (u.porColumna[c.key] ?? 0));
-    const total = redondear(f.total + u.total);
+    for (const c of fisico.columnas) {
+      porColumna[c.key] = redondear((f.porColumna[c.key] ?? 0) + (u?.porColumna[c.key] ?? 0));
+    }
+    const total = redondear(f.total + (u?.total ?? 0));
     return { producto: f.producto, porColumna, total, estado: estadoDe(total) };
   });
   const totalPorColumna: Record<string, number> = {};

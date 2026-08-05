@@ -158,6 +158,22 @@ describe("construirMatrizFuturos + combinarMatrices (§1.3)", () => {
     const maizTotal = total.filas.find((f) => f.producto === "maiz")!;
     expect(maizTotal.total).toBe(100);
   });
+
+  it("girasol y sorgo NO tienen fila en Futuros A3 (no cotizan en A3) pero SÍ en Físico y Total", () => {
+    const ops = [
+      op({ lado: "compra", producto: "girasol", volumen_tn: 40, tipo: "disponible" }),
+      op({ lado: "venta", producto: "sorgo", volumen_tn: 20, tipo: "disponible" }),
+    ];
+    const fisico = construirMatrizFisico(ops, HOY);
+    const futuros = construirMatrizFuturos(ops, HOY);
+    expect(fisico.filas.map((f) => f.producto)).toEqual(["soja", "maiz", "trigo", "girasol", "sorgo"]);
+    expect(futuros.filas.map((f) => f.producto)).toEqual(["soja", "maiz", "trigo"]);
+
+    const total = combinarMatrices(fisico, futuros);
+    expect(total.filas.map((f) => f.producto)).toEqual(["soja", "maiz", "trigo", "girasol", "sorgo"]);
+    expect(total.filas.find((f) => f.producto === "girasol")!.total).toBe(40);
+    expect(total.filas.find((f) => f.producto === "sorgo")!.total).toBe(-20);
+  });
 });
 
 describe("construirNetoDelDia", () => {
