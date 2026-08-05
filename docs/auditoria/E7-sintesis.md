@@ -525,6 +525,23 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   Routines/cierre. Detalle:
   [`sesiones/2026-08-04-plan-informes-v3.md`](../sesiones/2026-08-04-plan-informes-v3.md).
 
+- [ ] **C31. Operaciones diarias de clientes — posición comprado/vendido por empresa
+  (05/08/2026 — PLAN CERRADO, builds pendientes).** Pedido de Lautaro sobre una planilla de
+  Mauro ("Posición Agroleaginosa", transcripta en el plan, xlsx NO versionado por traer nombre
+  de cliente real): cada empresa cliente carga sus compras/ventas del día (5 granos, tipos
+  disponible/forward/fijación/futuro A3, precio $/USD/pizarra/sin precio + descuento, rango de
+  entrega, campaña) y ve su posición neta producto × período + registro diario + heatmap
+  comprado/vendido, con **RLS por `empresa_id`** (la PRIMERA tabla por-empresa del sistema y la
+  primera donde los clientes escriben) — "que cada uno vea lo suyo es lo más importante".
+  29 preguntas contestadas por Lautaro en la sesión (libro mayor · fijación no suma volumen ·
+  futuros separados y valorizados vs ajuste · anulación tachada · historial por trigger ·
+  admins ven/editan todo · sección de permisos nueva `operaciones`). Plan:
+  **[`PLAN_OPERACIONES_CLIENTES.md`](../PLAN_OPERACIONES_CLIENTES.md)** — DDL+RLS completos,
+  2 prompts autocontenidos (§8 Fase 1 base+carga+registro · §9 Fase 2 posición+heatmap+futuros)
+  y 7 preguntas de 2ª ronda con default (§7; solo §7.5 —fórmula de futuros— gatea un build).
+  Detalle:
+  [`sesiones/2026-08-05-plan-operaciones-clientes.md`](../sesiones/2026-08-05-plan-operaciones-clientes.md).
+
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN
   descartado (le falta la campaña 2025/26 completa). Decisión: carga semi-manual (Lautaro sube el
