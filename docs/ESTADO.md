@@ -19,15 +19,17 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 04/08/2026 — 🏁 E6 de PLAN INFORMES V3: monitoreo/watchdog/feedback
-hechos y verificados — Routines bloqueadas por un MCP sin destrabar)
+## Ahora (última actualización: 05/08/2026 — 🏁 E6 de PLAN INFORMES V3 CERRADO: PLAN_INFORMES_V3
+completo E1→E6, las 4 Routines renombradas/corregidas + la de interpretaciones creada)
 
-**🏁 E6 — ÚLTIMA ETAPA DE PLAN INFORMES V3 — PARCIAL, código+DB verificado, Routines
-BLOQUEADAS — rama `claude/hito-e6-plan-informe-3svmrm`, PR #_.** Ejecuta el PROMPT E6 de
-`PLAN_INFORMES_V3.md` §10 (requiere E1→E5, las 5 ya mergeadas). Cierra 3 de los 4 ítems del
-prompt de punta a punta; el 4º (Routines por MCP) quedó bloqueado por un error de aprobación del
-MCP que no se resolvió en toda la sesión — ver "Quedó pendiente" abajo con la especificación
-exacta para aplicarlo apenas destrabe.
+**🏁 E6 — ÚLTIMA ETAPA DE PLAN INFORMES V3 — HECHA DE PUNTA A PUNTA, cierra el plan completo
+(C30) — rama `claude/hito-e6-plan-informe-3svmrm`, PR #139.** Ejecuta el PROMPT E6 de
+`PLAN_INFORMES_V3.md` §10 (requiere E1→E5, las 5 ya mergeadas). Los 4 ítems del prompt cerrados
+de punta a punta. El MCP de Routines devolvió `requires approval` sin resolver al principio de la
+sesión (3 intentos) — se avanzó con el resto del prompt mientras tanto y, al reintentarlo más
+tarde en la misma sesión (a pedido explícito de Lautaro: "proba para volver a modificar las
+rutinas o crearlas"), **el canal ya estaba destrabado** y se aplicaron los 4 cambios sin
+problema.
 
 **Monitoreo N13 — `routine_runs` cableado al catálogo único.** `src/lib/monitoreo/catalogo.ts`
 suma un 4º `RoutineDef` (`interpretaciones`) + actualiza el texto de `informe-semanal` a "viernes
@@ -60,22 +62,24 @@ caso real (la interpretación del DEA del 27/07, que Lautaro editó de verdad) q
 producción (credenciales reales del entorno) · feedback de los 4 productos probado contra datos
 reales de producción y revertido sin dejar residuo (confirmado por SQL en cada caso).
 
-**Bloqueado — Routines por MCP (ítem 1 del prompt E6)**: el MCP de Routines
-(`claude-code-remote`) devolvió `MCP error -32003: MCP tool call requires approval` en los 3
-intentos (lectura y escritura), sin resolver — sospecha: sesión `remote_mobile`, la aprobación
-puede necesitar un tap en el teléfono que no llegó a completarse. Se alcanzó a leer el estado
-real de las 3 Routines existentes antes de que el bloqueo empezara — **especificación exacta de
-los 4 cambios pendientes (rename + fix de repo viejo `RFAGRO_RESEARCH_WEB`→`ROFOAGRO_RESEARCH_WEB`
-+ cláusula de mail en la del view + cron semanal 19:00→20:30 ART/N12 + confirmar/crear la Routine
-de interpretaciones) en la tabla de
-[`sesiones/2026-08-04-e6-routines-cierre.md`](sesiones/2026-08-04-e6-routines-cierre.md)** — para
-la próxima sesión con el MCP destrabado, o Lautaro a mano desde "Rutinas" en la app.
+**Routines por MCP (ítem 1 del prompt E6) — RESUELTO en la misma sesión.** Las 3 Routines
+existentes renombradas de "RF AGRO" a "**ROFO AGRO**" + fix del repo viejo
+`RFAGRO_RESEARCH_WEB`→`ROFOAGRO_RESEARCH_WEB` en sus 3 prompts: **Informe diario (MP1)** (sin
+cambio de cron, 18:30 ART L-V, ya tenía la cláusula de mail) · **Informe semanal (MP2)** (cron
+`0 22 * * 5`→`30 23 * * 5`, **19:00→20:30 ART/N12**, ya tenía la cláusula de mail) · **View de
+mercado (MP3)** (sin cambio de cron, 9:00 ART viernes, **sumada la cláusula de aviso por mail que
+le faltaba**). **Routine nueva creada**: "ROFO AGRO — Interpretaciones" (`0 12 * * 1-5` = 9:00 ART
+L-V, no existía — confirmado paginando el historial completo de Routines de la cuenta, sin
+ninguna coincidencia previa). Las 4 verificadas por `list_triggers` tras el cambio: nombres,
+crons y `next_run_at` correctos.
 
 **Pendiente (no nuevo, ya documentado)**: `INFORME_SHARE_SECRET` real sigue sin confirmarse en
-Vercel/Routines (mismo pendiente de E1). **Con esto PLAN_INFORMES_V3.md queda con E1-E5 cerrados
-y E6 parcial** — el plan completo (C30 del backlog maestro) cierra en cuanto se aplique el
-pendiente de Routines. Detalle:
-[`sesiones/2026-08-04-e6-routines-cierre.md`](sesiones/2026-08-04-e6-routines-cierre.md).
+Vercel/Routines (mismo pendiente de E1) · la Routine de interpretaciones quedó creada sin
+conectores MCP adjuntos (aviso del propio `create_trigger`: la sesión que la creó no tenía
+conectores propios para heredar) — no debería importarle, la skill usa `fetch`/`git`/`curl` con
+env vars, nunca tools `mcp__*`; confirmar en su primera corrida real. **Con esto
+`PLAN_INFORMES_V3.md` queda con E1→E6 completos — el plan (C30 del backlog maestro) cierra.**
+Detalle: [`sesiones/2026-08-04-e6-routines-cierre.md`](sesiones/2026-08-04-e6-routines-cierre.md).
 
 ## Anterior (04/08/2026 — 🎯 E5 de PLAN INFORMES V3: view de mercado a 5 estados)
 

@@ -1,8 +1,12 @@
-# Sesión 2026-08-04 — E6: Routines finales + cierre de PLAN_INFORMES_V3
+# Sesión 2026-08-04/05 — E6: Routines finales + cierre de PLAN_INFORMES_V3
 
-- **Rama:** `claude/hito-e6-plan-informe-3svmrm` · **PR:** #_ (base `main`)
+- **Rama:** `claude/hito-e6-plan-informe-3svmrm` · **PR:** #139 (base `main`)
 - **Objetivo pedido por Lautaro:** "Hace e6 del plan de informe" — ejecutar el PROMPT E6 de
   `docs/PLAN_INFORMES_V3.md` §10 (última etapa, requiere E1→E5 mergeadas — lo estaban las 5).
+- **Cierra el plan completo** (E1→E6, C30 del backlog maestro) en 2 tramos de la misma sesión: el
+  primero con los ítems 2-4 del prompt (el MCP de Routines devolvía `requires approval`); un
+  segundo tramo, a pedido explícito de Lautoro ("proba para volver a modificar las rutinas o
+  crearlas"), donde el canal ya estaba destrabado y se cerró el ítem 1 completo.
 
 ## Hecho
 
@@ -100,37 +104,41 @@ falso en la base):
 - Feedback end-to-end de los 4 productos contra datos reales, con reversión SQL confirmada en
   cada caso (detalle arriba) — sin residuo en producción (`nota`/`feedback` de los 2 informes y
   el view tocados quedaron exactamente como estaban antes de la sesión).
+- Las 4 Routines verificadas con `list_triggers` después de cada cambio (nombre, cron y
+  `next_run_at` correctos en las 4).
 
-## Quedó pendiente / en vuelo
+## Ítem 1 (Routines por MCP) — resuelto en un segundo tramo de la misma sesión
 
-**Bloqueado en esta sesión: la parte de Routines del prompt E6 (ítem 1) no se pudo aplicar.** El
-MCP de Routines (`claude-code-remote`) devolvió `MCP error -32003: MCP tool call requires
-approval` en los 3 intentos (uno de lectura — `list_triggers` — y dos de escritura —
-`update_trigger`), sin resolver en ningún momento de la sesión (entorno `remote_mobile`: la
-aprobación puede necesitar un tap en el teléfono de Lautaro que no llegó a completarse). **Se
-alcanzó a leer el estado actual de las 3 Routines existentes ANTES de que el bloqueo empezara**
-(vía la variante del tool con el nombre viejo del server, que siguió andando un rato tras un
-reconexión de MCPs a mitad de sesión) — quedan documentados acá, con el cambio EXACTO que hace
-falta aplicar apenas el canal de aprobación destrabe (próxima sesión, o Lautaro a mano desde la
-sección "Rutinas" de la app):
+Al principio de la sesión, el MCP de Routines (`claude-code-remote`) devolvía `MCP error -32003:
+MCP tool call requires approval` en cada intento (lectura y escritura) — se documentó acá la
+especificación EXACTA de los 4 cambios necesarios (ver abajo la tabla que quedó registrada
+mientras estuvo bloqueado) y se avanzó con el resto del prompt E6 mientras tanto. Lautoro pidió
+explícitamente, más tarde en la misma sesión ("proba para volver a modificar las rutinas o
+crearlas"), reintentarlo — **el canal ya estaba destrabado** y los 4 cambios se aplicaron sin
+inconvenientes, verificados con `list_triggers` después de cada uno:
 
-| Routine | id | Cambio necesario |
+| Routine | id | Cambio aplicado |
 |---|---|---|
-| `RF AGRO — Informe diario (MP1)` | `trig_018yRstH8JYBZ1CBBFPiveiG` | Rename a `ROFO AGRO — Informe diario (MP1)`. Prompt: reemplazar `RFAGRO_RESEARCH_WEB` → `ROFOAGRO_RESEARCH_WEB` (2 ocurrencias). Ya tiene la cláusula de aviso por mail. Cron sin cambios (`30 21 * * 1-5` = 18:30 ART). |
-| `RF AGRO — Informe semanal (MP2)` | `trig_01MxCN6gjseuYpHgvQMuv67g` | Rename a `ROFO AGRO — Informe semanal (MP2)`. Prompt: mismo fix de repo. Ya tiene la cláusula de mail. **Cron: `0 22 * * 5` (19:00 ART) → `30 23 * * 5` (20:30 ART, N12)** — a las 19:00 los cierres A3 (20:08 ART) y CBOT (19:11 ART) del viernes todavía no estaban en la base. |
-| `RF AGRO — View de mercado semanal (MP3)` | `trig_01JaV5eQ6fB5m2K54e7mACx9` | Rename a `ROFO AGRO — View de mercado semanal (MP3)`. Prompt: mismo fix de repo + **sumar la cláusula de aviso por mail** (hoy solo dice "contalo en el resumen", no avisa a `ADMIN_EMAILS` como las otras 2 — texto exacto sugerido: `"Si algo falla, avisá por mail a ADMIN_EMAILS con el error en vez de quedarte en silencio."`). Cron sin cambios (`0 12 * * 5` = 9:00 ART). |
-| `ROFO AGRO — Interpretaciones` | — (sin confirmar si existe; E2 ya había dejado esto como pendiente) | Si NO existe: crear con `create_trigger` — cron `0 12 * * 1-5` (9:00 ART L-V), prompt: `"Corré la skill interpretaciones del repo ROFOAGRO_RESEARCH_WEB (lautaroronchi97-commits/ROFOAGRO_RESEARCH_WEB) y ejecutá su procedimiento al pie de la letra. Si el repo no está clonado en este entorno, cloná directo con \`git clone\` (hay GH_TOKEN/proxy configurado). Si algo falla, avisá por mail a ADMIN_EMAILS con el error en vez de quedarte en silencio."` Si YA existe (no se pudo confirmar por el bloqueo), solo aplicar el mismo fix de nombre/repo/mail que las otras 3 si hiciera falta. |
+| `RF AGRO — Informe diario (MP1)` → **`ROFO AGRO — Informe diario (MP1)`** | `trig_018yRstH8JYBZ1CBBFPiveiG` | Rename + `RFAGRO_RESEARCH_WEB`→`ROFOAGRO_RESEARCH_WEB` en el prompt. Cron sin cambios (`30 21 * * 1-5` = 18:30 ART). Ya tenía la cláusula de mail. |
+| `RF AGRO — Informe semanal (MP2)` → **`ROFO AGRO — Informe semanal (MP2)`** | `trig_01MxCN6gjseuYpHgvQMuv67g` | Rename + fix de repo + **cron `0 22 * * 5` (19:00 ART) → `30 23 * * 5` (20:30 ART, N12)** — a las 19:00 los cierres A3 (20:08 ART) y CBOT (19:11 ART) del viernes todavía no estaban en la base. Ya tenía la cláusula de mail. |
+| `RF AGRO — View de mercado semanal (MP3)` → **`ROFO AGRO — View de mercado semanal (MP3)`** | `trig_01JaV5eQ6fB5m2K54e7mACx9` | Rename + fix de repo + **sumada la cláusula de aviso por mail que le faltaba** (antes solo decía "contalo en el resumen"). Cron sin cambios (`0 12 * * 5` = 9:00 ART). |
+| **`ROFO AGRO — Interpretaciones`** (nueva) | `trig_01Nb8cSuqyNpKQosjk2kZMT1` | No existía — confirmado paginando el historial COMPLETO de Routines de la cuenta (todas las páginas, hasta la más vieja del 08/07/2026) sin ninguna coincidencia de nombre ni de prompt. Creada con `create_trigger`: cron `0 12 * * 1-5` (9:00 ART L-V), prompt estándar con la cláusula de mail. |
 
-Con la telemetría real ya mostrando una fila `interpretaciones` — **no la hay todavía**: la única
-fila de `routine_runs` en toda la tabla es la del informe diario de hoy (`tipo=diario`). Esto es
-consistente con "la Routine de interpretaciones puede no existir todavía" (E2 lo había dejado
-así) — o con que existe pero corre y no encuentra nada para interpretar en un día sin reportes.
-Sin poder listar las Routines no se puede distinguir un caso del otro; queda para la próxima
-sesión con el MCP destrabado.
+**Con esto la telemetría (`routine_runs`) va a empezar a recibir filas `tipo='interpretaciones'`
+recién con la primera corrida real de mañana** — hoy la única fila en toda la tabla sigue siendo
+la del informe diario (`tipo=diario`, de esta misma sesión).
+
+**Detalle chico, no bloqueante**: `create_trigger` avisó que la Routine nueva quedó **sin
+conectores MCP adjuntos** (la sesión que la creó no tenía conectores propios para heredar — las 3
+Routines viejas sí los tienen, ver `mcp_connections` en su `job_config`). No debería importar: la
+skill `interpretaciones` usa `fetch`/`git`/`curl` con env vars (`SUPABASE_URL`, `GH_TOKEN`, etc.),
+nunca llama tools `mcp__*` — confirmar igual en su primera corrida real de mañana por si acaso.
 
 **`INFORME_SHARE_SECRET` real sigue sin confirmarse cargado en Vercel/Routines** (mismo pendiente
 que E1 dejó abierto el 04/08) — sin él, la nota 1-tap del mail queda honestamente cerrada (400),
 no rota.
+
+**Con esto `PLAN_INFORMES_V3.md` queda completo E1→E6 — C30 del backlog maestro cierra.**
 
 ## Trampas descubiertas (para la próxima sesión)
 
@@ -138,10 +146,12 @@ no rota.
   Cloudflare, Gmail, Google Drive todos cambiaron de hash de servidor) — las tools con el alias
   viejo (`mcp__Claude_Code_Remote__*`, `mcp__Supabase__*`) dejaron de resolver y hubo que volver a
   cargarlas con `ToolSearch` usando el hash nuevo del server (visible en el bloque de tools
-  deferred del system-reminder). El MCP de Routines específicamente quedó pidiendo aprobación sin
-  resolver después de esa reconexión — sospecha: la sesión es `entrypoint: remote_mobile`, y la
-  aprobación puede depender de una interacción en el teléfono que no llegó a completarse en toda
-  la sesión.
+  deferred del system-reminder). El MCP de Routines quedó pidiendo aprobación (`requires
+  approval`) un buen rato después de esa reconexión — sospecha: sesión `entrypoint:
+  remote_mobile`, la aprobación necesitaba un tap en el teléfono de Lautoro. **Se destrabó solo
+  más tarde en la misma sesión** (sin ninguna acción de código de por medio) — el patrón correcto
+  ante este error no es asumir que está bloqueado para siempre: avanzar con lo demás y
+  reintentarlo más tarde (o cuando el usuario lo pida explícitamente) suele alcanzar.
 - El literal de `tipo` en `routine_runs` que cada skill dice escribir en su Paso de telemetría no
   necesariamente coincide con lo que la Routine real terminó escribiendo (ver el bug de
   `informe_diario` vs `diario` arriba) — antes de construir lógica que filtra por ese campo, vale
