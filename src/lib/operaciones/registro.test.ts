@@ -6,6 +6,7 @@ import {
   campaniasVigentes,
   campaniaValida,
   validarOperacion,
+  precioModoDeCondicion,
   sumarDiasISO,
   elegirPizarraSiguiente,
   aplicarDescuentos,
@@ -18,17 +19,19 @@ const BASE: OperacionInputRaw = {
   lado: "compra",
   producto: "soja",
   tipo: "disponible",
-  condicion: "",
+  condicion: "a_precio",
   campania: "25/26",
   volumen: 100,
-  precioModo: "manual",
   precio: 320,
   moneda: "usd",
   descuentoPct: null,
   descuentoMonto: null,
   entregaDesde: "",
   entregaHasta: "",
+  fijacionDesde: "",
+  fijacionHasta: "",
   posicionA3: "",
+  esCanje: false,
   contraparte: "",
   nroContrato: "",
   observaciones: "",
@@ -68,15 +71,31 @@ describe("campañas (§7.7)", () => {
   });
 });
 
+describe("precioModoDeCondicion (pedido de Lautoro 06/08/2026)", () => {
+  it("a_fijar → sin_precio", () => {
+    expect(precioModoDeCondicion("a_fijar")).toBe("sin_precio");
+  });
+  it("pizarra → pizarra", () => {
+    expect(precioModoDeCondicion("pizarra")).toBe("pizarra");
+  });
+  it("a_precio y pago_anticipado → manual", () => {
+    expect(precioModoDeCondicion("a_precio")).toBe("manual");
+    expect(precioModoDeCondicion("pago_anticipado")).toBe("manual");
+  });
+});
+
 describe("validarOperacion — casos base", () => {
-  it("acepta una operación disponible con precio manual", () => {
+  it("acepta una operación disponible a precio manual", () => {
     const r = validarOperacion(BASE);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.data.volumen_tn).toBe(100);
       expect(r.data.precio).toBe(320);
-      expect(r.data.condicion).toBeNull();
+      expect(r.data.precio_modo).toBe("manual");
+      expect(r.data.condicion).toBe("a_precio");
       expect(r.data.posicion_a3).toBeNull();
+      expect(r.data.es_canje).toBe(false);
+      expect(r.data.fijacion_desde).toBeNull();
     }
   });
 
@@ -94,37 +113,117 @@ describe("validarOperacion — casos base", () => {
     const r = validarOperacion({ ...BASE, campania: "2025/26" });
     expect(r.ok).toBe(false);
   });
-});
 
-describe("validarOperacion — fijación (§1.2/§7.1)", () => {
-  it("una fijación exige precio manual", () => {
-    const r = validarOperacion({ ...BASE, tipo: "fijacion", precioModo: "pizarra", moneda: "usd" });
-    expect(r.ok).toBe(false);
-  });
-  it("fijación con precio manual pasa, y no lleva vínculo a ningún contrato (sin campo posible)", () => {
-    const r = validarOperacion({ ...BASE, tipo: "fijacion" });
+  it("es_canje pasa a data.es_canje tal cual", () => {
+    const r = validarOperacion({ ...BASE, esCanje: true });
     expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.es_canje).toBe(true);
   });
 });
 
-describe("validarOperacion — condición a fijar sin precio (pedido 06/08/2026)", () => {
-  it("un disponible a fijar con precio manual se rechaza", () => {
-    const r = validarOperacion({ ...BASE, condicion: "a_fijar" });
+describe("validarOperacion — condición (pedido de Lautoro 06/08/2026)", () => {
+  it("disponible admite cualquiera de las 4 condiciones", () => {
+    for (const condicion of ["a_fijar", "a_precio", "pago_anticipado", "pizarra"]) {
+      const base = condicion === "a_fijar" ? { precio: null, moneda: "", fijacionDesde: "2026-08-05" } : {};
+      const r = validarOperacion({ ...BASE, condicion, ...base });
+      expect(r.ok, `disponible + ${condicion}`).toBe(true);
+    }
+  });
+  it("forward admite cualquiera de las 4 condiciones", () => {
+    for (const condicion of ["a_fijar", "a_precio", "pago_anticipado", "pizarra"]) {
+      const base = condicion === "a_fijar" ? { precio: null, moneda: "", fijacionDesde: "2026-08-05" } : {};
+      const r = validarOperacion({ ...BASE, tipo: "forward", entregaDesde: "2026-11-01", condicion, ...base });
+      expect(r.ok, `forward + ${condicion}`).toBe(true);
+    }
+  });
+
+  it("rechaza un disponible/forward sin condición", () => {
+    const r = validarOperacion({ ...BASE, condicion: "" });
     expect(r.ok).toBe(false);
   });
-  it("un forward a fijar con pizarra se rechaza", () => {
+
+  it("rechaza una condición desconocida", () => {
+    const r = validarOperacion({ ...BASE, condicion: "carta_garantia" });
+    expect(r.ok).toBe(false);
+  });
+
+  it('condición "pizarra": sin precio manual, exige moneda', () => {
+    const r = validarOperacion({ ...BASE, condicion: "pizarra", precio: null, moneda: "usd" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.precio_modo).toBe("pizarra");
+      expect(r.data.precio).toBeNull();
+    }
+  });
+  it('condición "pizarra" sin moneda se rechaza', () => {
+    const r = validarOperacion({ ...BASE, condicion: "pizarra", precio: null, moneda: "" });
+    expect(r.ok).toBe(false);
+  });
+
+  it('condición "pago_anticipado" se comporta como "a_precio" (precio manual)', () => {
+    const r = validarOperacion({ ...BASE, condicion: "pago_anticipado" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.precio_modo).toBe("manual");
+  });
+});
+
+describe('validarOperacion — condición "a fijar" (pedido 06/08/2026, ampliado)', () => {
+  it('condición "a_fijar" ignora cualquier precio/moneda que venga en el input — el precio SIEMPRE sale null', () => {
+    const r = validarOperacion({ ...BASE, condicion: "a_fijar", fijacionDesde: "2026-08-05" }); // BASE trae precio:320/moneda:usd
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.precio_modo).toBe("sin_precio");
+      expect(r.data.precio).toBeNull();
+    }
+  });
+  it("un disponible a fijar sin precio ni moneda pasa, y exige fijación desde", () => {
+    const r = validarOperacion({ ...BASE, condicion: "a_fijar", precio: null, moneda: "", fijacionDesde: "" });
+    expect(r.ok).toBe(false); // falta fijacionDesde
+  });
+  it("con fijación desde, pasa — sin precio, con el período guardado", () => {
     const r = validarOperacion({
-      ...BASE, tipo: "forward", condicion: "a_fijar", entregaDesde: "2026-11-01", precioModo: "pizarra",
+      ...BASE, condicion: "a_fijar", precio: null, moneda: "", fijacionDesde: "2026-08-05", fijacionHasta: "2026-09-30",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.precio_modo).toBe("sin_precio");
+      expect(r.data.fijacion_desde).toBe("2026-08-05");
+      expect(r.data.fijacion_hasta).toBe("2026-09-30");
+    }
+  });
+  it("fijación hasta es libre (opcional) — sin ella, queda null (abierta)", () => {
+    const r = validarOperacion({
+      ...BASE, condicion: "a_fijar", precio: null, moneda: "", fijacionDesde: "2026-08-05", fijacionHasta: "",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.fijacion_hasta).toBeNull();
+  });
+  it("rechaza fijación hasta anterior a desde", () => {
+    const r = validarOperacion({
+      ...BASE, condicion: "a_fijar", precio: null, moneda: "", fijacionDesde: "2026-08-20", fijacionHasta: "2026-08-01",
     });
     expect(r.ok).toBe(false);
   });
-  it("un disponible a fijar SIN precio pasa", () => {
-    const r = validarOperacion({ ...BASE, condicion: "a_fijar", precioModo: "sin_precio", precio: null, moneda: "" });
+});
+
+describe("validarOperacion — fijación (§1.2/§7.1, restringida a pizarra/a_precio desde 06/08/2026)", () => {
+  it("una fijación con condición a_precio exige precio manual", () => {
+    const r = validarOperacion({ ...BASE, tipo: "fijacion", condicion: "a_precio" });
     expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.precio_modo).toBe("manual");
   });
-  it("la fijación misma no se ve afectada (sigue exigiendo manual)", () => {
-    const r = validarOperacion({ ...BASE, tipo: "fijacion", condicion: "a_fijar" });
+  it("una fijación con condición pizarra AHORA se acepta (antes se rechazaba siempre)", () => {
+    const r = validarOperacion({ ...BASE, tipo: "fijacion", condicion: "pizarra", precio: null, moneda: "usd" });
     expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.precio_modo).toBe("pizarra");
+  });
+  it("rechaza una fijación con condición a_fijar o pago_anticipado", () => {
+    expect(validarOperacion({ ...BASE, tipo: "fijacion", condicion: "a_fijar" }).ok).toBe(false);
+    expect(validarOperacion({ ...BASE, tipo: "fijacion", condicion: "pago_anticipado" }).ok).toBe(false);
+  });
+  it("rechaza una fijación sin condición", () => {
+    const r = validarOperacion({ ...BASE, tipo: "fijacion", condicion: "" });
+    expect(r.ok).toBe(false);
   });
 });
 
@@ -146,26 +245,41 @@ describe("validarOperacion — forward (§5.2)", () => {
 });
 
 describe("validarOperacion — futuro A3", () => {
-  it("exige posición y precio manual", () => {
-    expect(validarOperacion({ ...BASE, tipo: "futuro_a3" }).ok).toBe(false);
-    expect(
-      validarOperacion({ ...BASE, tipo: "futuro_a3", posicionA3: "NOV26", precioModo: "sin_precio", precio: null }).ok,
-    ).toBe(false);
-  });
-  it("rechaza girasol/sorgo (sin futuro A3)", () => {
-    const r = validarOperacion({ ...BASE, producto: "girasol", tipo: "futuro_a3", posicionA3: "NOV26" });
+  it("no usa condición — mandarla se rechaza", () => {
+    const r = validarOperacion({ ...BASE, tipo: "futuro_a3", condicion: "a_precio", posicionA3: "NOV26" });
     expect(r.ok).toBe(false);
   });
+  it("exige posición y precio manual", () => {
+    expect(validarOperacion({ ...BASE, tipo: "futuro_a3", condicion: "" }).ok).toBe(false);
+  });
+  it("rechaza girasol/sorgo (sin futuro A3)", () => {
+    const r = validarOperacion({ ...BASE, producto: "girasol", tipo: "futuro_a3", condicion: "", posicionA3: "NOV26" });
+    expect(r.ok).toBe(false);
+  });
+  it("rechaza expeller de soja/aceite de soja (sin futuro A3)", () => {
+    expect(
+      validarOperacion({ ...BASE, producto: "expeller_soja", tipo: "futuro_a3", condicion: "", posicionA3: "NOV26" }).ok,
+    ).toBe(false);
+    expect(
+      validarOperacion({ ...BASE, producto: "aceite_soja", tipo: "futuro_a3", condicion: "", posicionA3: "NOV26" }).ok,
+    ).toBe(false);
+  });
   it("acepta soja/maíz/trigo con posición válida", () => {
-    const r = validarOperacion({ ...BASE, tipo: "futuro_a3", posicionA3: "nov26" });
+    const r = validarOperacion({ ...BASE, tipo: "futuro_a3", condicion: "", posicionA3: "nov26" });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data.posicion_a3).toBe("NOV26"); // normaliza a mayúscula
+    if (r.ok) {
+      expect(r.data.posicion_a3).toBe("NOV26"); // normaliza a mayúscula
+      expect(r.data.condicion).toBeNull();
+      expect(r.data.precio_modo).toBe("manual");
+    }
   });
 });
 
 describe("validarOperacion — descuentos combinables (§7.4)", () => {
   it("acepta % y monto a la vez", () => {
-    const r = validarOperacion({ ...BASE, precioModo: "pizarra", precio: null, descuentoPct: 10, descuentoMonto: 38000, moneda: "ars" });
+    const r = validarOperacion({
+      ...BASE, condicion: "pizarra", precio: null, descuentoPct: 10, descuentoMonto: 38000, moneda: "ars",
+    });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.data.descuento_pct).toBe(10);

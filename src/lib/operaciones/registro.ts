@@ -3,7 +3,7 @@ import {
   PRODUCTOS_CON_FUTURO,
   TIPO_LABEL,
   CONDICION_LABEL,
-  PRECIO_MODO_LABEL,
+  CONDICIONES_POR_TIPO,
   type OperacionLado,
   type OperacionProducto,
   type OperacionTipo,
@@ -76,18 +76,21 @@ export type OperacionInputRaw = {
   lado: string;
   producto: string;
   tipo: string;
-  condicion: string; // "" = sin condición
+  condicion: string; // "" = sin condición (solo válido en futuro A3, que no la usa)
   campania: string;
   /** Ya convertido a TN por el caller (`normalizarVolumen`). */
   volumen: number | null;
-  precioModo: string;
   precio: number | null;
   moneda: string; // "" = sin moneda
   descuentoPct: number | null;
   descuentoMonto: number | null;
   entregaDesde: string; // "" = sin fecha
   entregaHasta: string; // "" = sin fecha
+  /** Período de fijación (solo condición "a_fijar"). */
+  fijacionDesde: string; // "" = sin fecha
+  fijacionHasta: string; // "" = sin fecha (libre/abierto)
   posicionA3: string; // "" = sin posición
+  esCanje: boolean;
   contraparte: string;
   nroContrato: string;
   observaciones: string;
@@ -108,13 +111,30 @@ export type OperacionValidada = {
   descuento_monto: number | null;
   entrega_desde: string | null;
   entrega_hasta: string | null;
+  fijacion_desde: string | null;
+  fijacion_hasta: string | null;
   posicion_a3: string | null;
+  es_canje: boolean;
   contraparte: string | null;
   nro_contrato: string | null;
   observaciones: string | null;
 };
 
 export type ValidacionResultado = { ok: true; data: OperacionValidada } | { ok: false; error: string };
+
+/**
+ * El "Precio" ya no es un campo que el usuario elige: sale SIEMPRE de la
+ * condición (pedido de Lautoro 06/08/2026) — "a fijar" no tiene precio
+ * (llega con la fijación), "pizarra" lo resuelve el scraping del día
+ * siguiente (§5.4), y "a precio"/"pago anticipado" son las 2 formas de
+ * cargarlo a mano. El futuro A3 no usa condición: siempre es manual (precio
+ * de ejecución), aparte de esta función.
+ */
+export function precioModoDeCondicion(condicion: OperacionCondicion): PrecioModo {
+  if (condicion === "a_fijar") return "sin_precio";
+  if (condicion === "pizarra") return "pizarra";
+  return "manual"; // a_precio | pago_anticipado
+}
 
 export function validarOperacion(input: OperacionInputRaw): ValidacionResultado {
   if (!FECHA_RE.test(input.fecha)) return { ok: false, error: "Elegí la fecha de la operación." };
@@ -127,9 +147,23 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
   if (!(input.tipo in TIPO_LABEL)) return { ok: false, error: "Elegí el tipo de negocio." };
   const tipo = input.tipo as OperacionTipo;
 
+  // Condición: qué valores admite este tipo (§ arriba, CONDICIONES_POR_TIPO).
+  // Array vacío (futuro A3) = no usa condición, tiene que venir vacía.
+  const condicionesPermitidas = CONDICIONES_POR_TIPO[tipo];
   let condicion: OperacionCondicion | null = null;
-  if (input.condicion) {
-    if (!(input.condicion in CONDICION_LABEL)) return { ok: false, error: "Condición inválida." };
+  if (condicionesPermitidas.length === 0) {
+    if (input.condicion) return { ok: false, error: "Un futuro A3 no usa condición (el precio siempre es manual)." };
+  } else {
+    if (!input.condicion) return { ok: false, error: "Elegí la condición del negocio." };
+    if (!(input.condicion in CONDICION_LABEL) || !condicionesPermitidas.includes(input.condicion as OperacionCondicion)) {
+      return {
+        ok: false,
+        error:
+          tipo === "fijacion"
+            ? 'Una fijación solo admite condición "Pizarra" o "A precio".'
+            : "Condición inválida.",
+      };
+    }
     condicion = input.condicion as OperacionCondicion;
   }
 
@@ -141,8 +175,9 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
     return { ok: false, error: "Ingresá un volumen mayor a cero." };
   }
 
-  if (!(input.precioModo in PRECIO_MODO_LABEL)) return { ok: false, error: "Elegí el modo de precio." };
-  const precio_modo = input.precioModo as PrecioModo;
+  // Precio: derivado de la condición (o siempre manual, en futuro A3 — el
+  // check de más abajo lo reafirma junto con la posición).
+  const precio_modo: PrecioModo = condicion ? precioModoDeCondicion(condicion) : "manual";
 
   let moneda: Moneda | null = null;
   if (input.moneda) {
@@ -159,18 +194,6 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
     if (!moneda) return { ok: false, error: "Elegí en qué moneda mostrar la pizarra." };
   }
   // sin_precio: precio queda null pase lo que pase.
-
-  if (tipo === "fijacion" && precio_modo !== "manual") {
-    return { ok: false, error: 'Una fijación siempre tiene precio (no puede ser "pizarra" ni "sin precio").' };
-  }
-
-  // Pedido de Lautaro 06/08/2026: un negocio con condición "a fijar" va SIN
-  // precio — justamente el precio llega después, con la fijación. Solo aplica a
-  // los físicos (disponible/forward): la fijación misma y el futuro A3 llevan
-  // precio manual por definición (checks de arriba).
-  if (condicion === "a_fijar" && (tipo === "disponible" || tipo === "forward") && precio_modo !== "sin_precio") {
-    return { ok: false, error: 'Un negocio "a fijar" va sin precio — el precio se genera después con la fijación.' };
-  }
 
   const descuento_pct = input.descuentoPct != null && input.descuentoPct > 0 ? input.descuentoPct : null;
   if (descuento_pct != null && (descuento_pct < 0 || descuento_pct > 100)) {
@@ -190,6 +213,25 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
   }
   if (entrega_desde && entrega_hasta && entrega_hasta < entrega_desde) {
     return { ok: false, error: 'La entrega "hasta" no puede ser anterior a "desde".' };
+  }
+
+  // Período de fijación (§ pedido de Lautoro 06/08/2026): solo cuando la
+  // condición es "a fijar" — el "desde" es obligatorio (el form lo prellena
+  // con el inicio de entrega/la fecha de la operación, pero queda editable);
+  // el "hasta" es libre — sin fecha = fijación abierta, sin límite.
+  let fijacion_desde: string | null = null;
+  let fijacion_hasta: string | null = null;
+  if (condicion === "a_fijar") {
+    fijacion_desde = input.fijacionDesde || null;
+    if (!fijacion_desde) return { ok: false, error: 'Un negocio "a fijar" necesita el inicio del período de fijación.' };
+    if (!FECHA_RE.test(fijacion_desde)) return { ok: false, error: "Fecha de fijación (desde) inválida." };
+    fijacion_hasta = input.fijacionHasta || null;
+    if (fijacion_hasta) {
+      if (!FECHA_RE.test(fijacion_hasta)) return { ok: false, error: "Fecha de fijación (hasta) inválida." };
+      if (fijacion_hasta < fijacion_desde) {
+        return { ok: false, error: 'El período de fijación "hasta" no puede ser anterior a "desde".' };
+      }
+    }
   }
 
   let posicion_a3: string | null = input.posicionA3 ? input.posicionA3.toUpperCase() : null;
@@ -225,7 +267,10 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
       descuento_monto,
       entrega_desde,
       entrega_hasta,
+      fijacion_desde,
+      fijacion_hasta,
       posicion_a3,
+      es_canje: input.esCanje === true,
       contraparte: input.contraparte.trim() || null,
       nro_contrato: input.nroContrato.trim() || null,
       observaciones: input.observaciones.trim() || null,

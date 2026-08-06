@@ -38,7 +38,10 @@ function op(over: Partial<Operacion>): Operacion {
     descuento_monto: null,
     entrega_desde: null,
     entrega_hasta: null,
+    fijacion_desde: null,
+    fijacion_hasta: null,
     posicion_a3: null,
+    es_canje: false,
     contraparte: null,
     nro_contrato: null,
     observaciones: null,
@@ -193,20 +196,40 @@ describe("construirMatrizFuturos + combinarMatrices (§1.3)", () => {
     expect(maizTotal.total).toBe(100);
   });
 
-  it("girasol y sorgo NO tienen fila en Futuros A3 (no cotizan en A3) pero SÍ en Físico y Total", () => {
+  it("girasol, sorgo, expeller de soja y aceite de soja NO tienen fila en Futuros A3 (no cotizan en A3) pero SÍ en Físico y Total", () => {
     const ops = [
       op({ lado: "compra", producto: "girasol", volumen_tn: 40, tipo: "disponible" }),
       op({ lado: "venta", producto: "sorgo", volumen_tn: 20, tipo: "disponible" }),
+      op({ lado: "compra", producto: "expeller_soja", volumen_tn: 15, tipo: "disponible" }),
+      op({ lado: "venta", producto: "aceite_soja", volumen_tn: 10, tipo: "disponible" }),
     ];
     const fisico = construirMatrizFisico(ops, HOY);
     const futuros = construirMatrizFuturos(ops, HOY);
-    expect(fisico.filas.map((f) => f.producto)).toEqual(["soja", "maiz", "trigo", "girasol", "sorgo"]);
+    expect(fisico.filas.map((f) => f.producto)).toEqual([
+      "soja",
+      "maiz",
+      "trigo",
+      "girasol",
+      "sorgo",
+      "expeller_soja",
+      "aceite_soja",
+    ]);
     expect(futuros.filas.map((f) => f.producto)).toEqual(["soja", "maiz", "trigo"]);
 
     const total = combinarMatrices(fisico, futuros);
-    expect(total.filas.map((f) => f.producto)).toEqual(["soja", "maiz", "trigo", "girasol", "sorgo"]);
+    expect(total.filas.map((f) => f.producto)).toEqual([
+      "soja",
+      "maiz",
+      "trigo",
+      "girasol",
+      "sorgo",
+      "expeller_soja",
+      "aceite_soja",
+    ]);
     expect(total.filas.find((f) => f.producto === "girasol")!.total).toBe(40);
     expect(total.filas.find((f) => f.producto === "sorgo")!.total).toBe(-20);
+    expect(total.filas.find((f) => f.producto === "expeller_soja")!.total).toBe(15);
+    expect(total.filas.find((f) => f.producto === "aceite_soja")!.total).toBe(-10);
   });
 });
 
@@ -248,7 +271,7 @@ describe("construirHeatmap — calendario producto × día (§1.23/§5.6, Fase 2
   it("ventana de N días terminando HOY, más viejo primero", () => {
     const hm = construirHeatmap([], HOY, 5);
     expect(hm.dias).toEqual(["2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05"]);
-    expect(hm.filas).toHaveLength(5); // los 5 productos, incluso sin operaciones
+    expect(hm.filas).toHaveLength(7); // los 7 productos, incluso sin operaciones
   });
 
   it("compra suma verde (+), venta resta (rojo -), por día y producto", () => {

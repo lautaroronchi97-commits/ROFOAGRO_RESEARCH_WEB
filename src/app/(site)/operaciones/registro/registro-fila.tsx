@@ -53,8 +53,15 @@ export function RegistroFila({
         <span>{PRODUCTO_LABEL[operacion.producto]}</span>
         <span className="dim">{TIPO_LABEL[operacion.tipo]}</span>
         {operacion.condicion && <span className="dim">{CONDICION_LABEL[operacion.condicion]}</span>}
+        {operacion.condicion === "a_fijar" && operacion.fijacion_desde && (
+          <span className="dim">
+            Fijación {fechaAR(operacion.fijacion_desde)}
+            {operacion.fijacion_hasta ? ` – ${fechaAR(operacion.fijacion_hasta)}` : " (libre)"}
+          </span>
+        )}
         <span>{fmtPrecio(operacion.moneda, precio)}</span>
         <span className="dim">Campaña {operacion.campania}</span>
+        {operacion.es_canje && <span className="dim">Canje</span>}
         {operacion.contraparte && <span className="dim">{operacion.contraparte}</span>}
       </div>
       <div className="op-fila-acciones">
