@@ -36,26 +36,34 @@ la dirección es clara pero el driver es débil o agotable (ej. un rally que ya
 descontó la mayor parte del recorrido, o una demanda firme pero sin margen para
 apretar más); si no hay una dirección clara, es `neutral`, no "levemente" de nada.
 
-**Aceite de soja (`aceite_soja`, sumado 06/08/2026) es distinto a los otros 3 —
-léelo antes de armar su view:**
-- **Sin futuro local en A3.** Los insumos "físicos" de la mesa (`temperatura`,
-  `semaforo`, `empresas`, `embarques`, `negociado`, `senalCamiones`, `arbitrajes`,
-  `pases`) miden el POROTO argentino (soja/maíz/trigo) — no aplican a aceite de
-  soja como producto propio. No los fuerces ahí solo para llenar el checklist.
-- **Su precio/driver primario es Chicago**: `chicago.agro` YA trae "Aceite de soja"
-  (CBOT ZL, USD/tn, Δ del día) — es tu punto de partida, igual que `chicago.agro`
-  lo es para soja/maíz/trigo.
-- **Su ancla local es `capacidad.industriaSoja`** (FAS teórico del complejo
-  aceite+harina — BCR vs "Nuestro" vs qué paga el mercado, con el FOB oficial de
-  aceite/harina de SAGyP): es lo más parecido a un "semáforo físico→precio" que
-  tiene este grano, úsalo así.
-- **research externo propio** (F1, agente 1): margen de crush (board crush =
-  aceite + harina − poroto, ¿se amplía o se achica?), aceite de palma (Malaysia
-  MPOB, Indonesia — el sustituto que más pesa en la demanda mundial de vegoils),
-  mandatos de biodiésel (RFS de EEUU, corte obligatorio en Argentina), demanda de
-  China/India. Es el mismo tipo de research que ya hacés para "¿algún
-  correlacionado tiene problemas?" en la sección de soja — para aceite_soja ESE
-  es el driver central, no un correlato de paso.
+**Aceite de soja (`aceite_soja`, sumado 06/08/2026) se arma DISTINTO a los otros 3 —
+léelo antes de armar su view. El resto del pipeline (soja/maíz/trigo) no cambia en
+nada: esto es SOLO para este grano.**
+
+Confirmado por Lautaro (06/08/2026): el mercado de aceite de soja es sobre todo
+**internacional** — el view de este grano se construye desde ahí, no replicando el
+balance físico-local que usás para soja/maíz/trigo.
+
+- **Centro de la tesis = Chicago + research internacional, no el balance físico
+  argentino.** Para soja/maíz/trigo arrancás por la demanda física local (índice
+  MESA, gap de cobertura, farmer selling) y Chicago es UN insumo más entre varios.
+  Para aceite_soja es al revés: `chicago.agro` "Aceite de soja" (CBOT ZL, USD/tn, Δ
+  del día) + el research externo del agente 1 de F1 (margen de crush/board crush =
+  aceite+harina−poroto, ¿se amplía o se achica?; aceite de palma — Malaysia MPOB,
+  Indonesia, el sustituto que más pesa en la demanda mundial de vegoils; mandatos de
+  biodiésel — RFS de EEUU, corte obligatorio en Argentina; demanda de China/India)
+  SON el driver central de la tesis, no un correlato de paso ni un complemento del
+  balance local.
+- **Sin futuro local en A3, y los insumos físicos de la mesa NO aplican.**
+  `temperatura`, `semaforo`, `empresas`, `embarques`, `negociado`, `senalCamiones`,
+  `arbitrajes`, `pases` miden el POROTO argentino (soja/maíz/trigo) — no fuerces
+  esos números acá solo para llenar el checklist de F2; para aceite_soja esa parte
+  del checklist se salta.
+- **`capacidad.industriaSoja` es contexto complementario, no el ancla de la tesis**
+  (FAS teórico del complejo aceite+harina — BCR vs "Nuestro" vs qué paga el
+  mercado): sirve para chequear si la industria local está pagando acorde al margen
+  internacional, pero la dirección del view la marca el ámbito internacional de
+  arriba, no este dato.
 - **Su scorecard degrada siempre a "sin datos"**: no hay serie de futuro local
   guardada (`GRANO_UNDERLYING` en `views-scorecard.ts` lo mapea a un ticker que
   nunca matchea `futuros_cierres`) — es honesto, no un bug; no lo menciones como
@@ -229,6 +237,13 @@ siguiendo el checklist de siempre (cómo piensa la mesa — `docs/negocio/01` y 
 4. **Precio**: curva A3 (carry/invertida), TNA de pases y arbitraje vs pizarra, Chicago
    (dirección y nivel), FAS vs pizarra.
 5. **Contexto**: noticias de la semana + agenda.
+
+**Para `aceite_soja` este checklist de 1-5 no aplica tal cual** (ver la nota al
+principio del documento): saltás 1-2 (son del poroto físico argentino, sin
+equivalente para aceite) y 4 se acota a Chicago/CBOT ZL (sin curva A3/pases/arbitraje
+propios). Tu checklist ahí es el research internacional del agente 1 de F1 (crush,
+palma, biodiésel, China/India) + `chicago.agro` como precio + `capacidad.
+industriaSoja` como chequeo de contexto local — 3 y 5 siguen igual.
 
 **Preguntas de la mesa (ejemplos, cabeza de mercado y mente abierta — no es una lista
 cerrada; si el mercado se mueve por algo que no está acá, eso es justo lo que hay que
