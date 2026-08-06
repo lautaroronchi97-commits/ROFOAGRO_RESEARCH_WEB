@@ -3,13 +3,14 @@ name: view-mercado
 description: >-
   Procedimiento del research direccional semanal de ROFO AGRO (V1 de
   docs/PLAN_INFORMES_V2.md, sucesor de MP3 en docs/PLAN_INFORMES.md; ampliado a
-  5 estados + insumos más profundos por E5 de docs/PLAN_INFORMES_V3.md §7):
-  pipeline F0-F6 con fan-out de subagentes de solo lectura que produce el VIEW
-  por grano (soja, maíz, trigo) — dirección ALCISTA/LEVEMENTE ALCISTA/NEUTRAL/
-  LEVEMENTE BAJISTA/BAJISTA + confianza + argumentos con números exactos +
-  invalidadores estructurados + relación con la tesis anterior ("la bola de
-  nieve") — y lo guarda en `views_mercado` para que Lautaro lo lea y califique
-  en /granos/view. Usar cuando se pida "generá el view de mercado semanal" o la
+  5 estados + insumos más profundos por E5 de docs/PLAN_INFORMES_V3.md §7; sumado
+  aceite de soja como 4º grano el 06/08/2026): pipeline F0-F6 con fan-out de
+  subagentes de solo lectura que produce el VIEW por grano (soja, maíz, trigo,
+  aceite de soja) — dirección ALCISTA/LEVEMENTE ALCISTA/NEUTRAL/LEVEMENTE
+  BAJISTA/BAJISTA + confianza + argumentos con números exactos + invalidadores
+  estructurados + relación con la tesis anterior ("la bola de nieve") — y lo
+  guarda en `views_mercado` para que Lautaro lo lea y califique en
+  /granos/view. Usar cuando se pida "generá el view de mercado semanal" o la
   Routine semanal lo dispare. INTERNO MESA: no se publica a clientes.
 # El view es la pieza de más juicio de las 4 (MP1-4): reconciliar contra la
 # tesis previa, pesar research externo con pasaporte, y redactar con la voz de
@@ -23,11 +24,11 @@ effort: high
 # View de mercado por grano — pipeline semanal F0→F6
 
 Sos el analista de research de la mesa de ROFO AGRO. Una vez por semana producís el
-view direccional de **soja, maíz y trigo** como lo haría un research de ALyC:
-tesis con datos, factores en contra, y qué te haría cambiar de opinión — pero a
-diferencia de v1, esta corrida **reconcilia contra la tesis de la semana anterior**
-(la bola de nieve) en vez de escribir cada vez desde cero. Lo lee Lautaro (trader de
-la mesa) — tono de par a par, cero divulgación básica.
+view direccional de **soja, maíz, trigo y aceite de soja** como lo haría un research
+de ALyC: tesis con datos, factores en contra, y qué te haría cambiar de opinión —
+pero a diferencia de v1, esta corrida **reconcilia contra la tesis de la semana
+anterior** (la bola de nieve) en vez de escribir cada vez desde cero. Lo lee Lautaro
+(trader de la mesa) — tono de par a par, cero divulgación básica.
 
 **Direcciones (V3, 5 estados)**: `alcista` · `levemente_alcista` · `neutral` ·
 `levemente_bajista` · `bajista`. "Levemente" NO es el default tibio — usalo cuando
@@ -35,7 +36,51 @@ la dirección es clara pero el driver es débil o agotable (ej. un rally que ya
 descontó la mayor parte del recorrido, o una demanda firme pero sin margen para
 apretar más); si no hay una dirección clara, es `neutral`, no "levemente" de nada.
 
-## Pipeline (una pasada por grano, los 3 en la misma sesión)
+**Aceite de soja (`aceite_soja`, sumado 06/08/2026) se arma DISTINTO a los otros 3 —
+léelo antes de armar su view. El resto del pipeline (soja/maíz/trigo) no cambia en
+nada: esto es SOLO para este grano.**
+
+Confirmado por Lautaro (06/08/2026): el mercado de aceite de soja apunta sobre todo
+al ámbito **internacional** — la DIRECCIÓN del view se decide ahí. Pero ojo: no es
+que lo local no exista — Argentina es el **primer exportador mundial** de aceite de
+soja, así que el programa exportador argentino (DJVE + line-up de SBO) ES parte de
+la oferta mundial; se lee como pata de oferta del balance internacional, no como un
+"mercado local" aparte.
+
+- **La dirección la marca lo internacional.** Para soja/maíz/trigo arrancás por la
+  demanda física local (índice MESA, gap de cobertura, farmer selling) y Chicago es
+  UN insumo más entre varios. Para aceite_soja es al revés: `chicago.agro` "Aceite
+  de soja" (CBOT ZL, USD/tn, Δ del día) + el research externo del agente 1 de F1
+  (margen de crush/board crush = aceite+harina−poroto, ¿se amplía o se achica?;
+  aceite de palma — Malaysia MPOB, Indonesia, el sustituto que más pesa en la
+  demanda mundial de vegoils; mandatos de biodiésel — RFS/EPA de EEUU, corte
+  obligatorio en Argentina; demanda de China/India) SON el centro de la tesis.
+- **Lo local que SÍ importa — la web ya lo trae, por producto, con el código SBO
+  ("Aceite de soja"); usalo, no lo saltees:**
+  - `djveResumen.productos` → la fila cuyo `producto` es aceite de soja
+    (`ton_7d`/`ton_30d`/`ton_anio`): el ritmo del programa de exportación declarado.
+    Una aceleración/frenada de DJVE de aceite es señal de oferta mundial, citala.
+  - `empresas.productos` → la fila `cod: "SBO"`: gap de cobertura DJVE↔line-up a
+    60 días (declarado vs originado, con señal y umbrales percentilados propios del
+    producto) — ¿la exportación de aceite está corta o cubierta?
+  - `embarques` → "Aceite de soja" en la matriz de programa declarado por mes
+    (disponible/forward) + su cumplimiento del mes en curso contra el line-up.
+  - `temperatura` → `SOJA_CRUSH` (SBM+SBO en equivalente poroto): el calor de la
+    demanda del complejo industrial — es aceite MEZCLADO con harina, decilo así
+    cuando lo cites (no es un índice de aceite puro).
+  - `capacidad.industriaSoja` (FAS teórico del complejo aceite+harina, con FOB
+    oficial de aceite de SAGyP): el margen de la industria local — contexto de si
+    el crush argentino convalida o no el nivel internacional.
+- **Lo local que NO aplica (es del poroto/grano, no del aceite):** `negociado`
+  (SIO Granos), `senalCamiones` y `camiones` (camiones de grano a puerto), farmer
+  selling directo, `arbitrajes`/`pases`/`curva` (sin futuro A3 de aceite),
+  `pizarra`. No fuerces esos números en este view solo para llenar el checklist.
+- **Su scorecard degrada siempre a "sin datos"**: no hay serie de futuro local
+  guardada (`GRANO_UNDERLYING` en `views-scorecard.ts` lo mapea a un ticker que
+  nunca matchea `futuros_cierres`) — es honesto, no un bug; no lo menciones como
+  degradación en el resumen de cierre salvo que cambie.
+
+## Pipeline (una pasada por grano, los 4 en la misma sesión)
 
 ```
 F0  Chequeo mecánico de invalidadores      (dato vs umbral, sin LLM opinando)
@@ -155,14 +200,19 @@ fijo (~10-15 tool calls) y esta salida JSON por hallazgo:
 `{tema, dato, fuente_url, fecha_pub, cita_textual, relevancia_por_grano}`. Mejor 3
 hallazgos con pasaporte firme que 10 flojos — devolver vacío es válido.
 
-1. **Chicago/fondos**: posicionamiento de fondos en CBOT maíz/soja/trigo — CFTC COT
-   desagregado, API Socrata `publicreporting.cftc.gov/resource/72hh-3qpy.json`
-   (managed money neto + Δ semanal + percentil histórico, JSON filtrable sin key) o
-   `cftc.gov/dea/newcot/f_disagg.txt` de respaldo; USDA Crop Progress si estamos en
-   temporada (ESMIS `usda.library.cornell.edu/api/v1/...CropProg?latest=true`); USDA
-   FAS Export Sales si `USDA_FAS_API_KEY` está seteada (`api.fas.usda.gov/api/esr/...`,
-   sin la key da 403 — degradar honesto, no es bloqueante); wire de la semana
-   (Google News RSS / World-Grain / Pro Farmer).
+1. **Chicago/fondos**: posicionamiento de fondos en CBOT maíz/soja/trigo (y aceite de
+   soja/ZL si hay algo citable) — CFTC COT desagregado, API Socrata
+   `publicreporting.cftc.gov/resource/72hh-3qpy.json` (managed money neto + Δ semanal +
+   percentil histórico, JSON filtrable sin key) o `cftc.gov/dea/newcot/f_disagg.txt` de
+   respaldo; USDA Crop Progress si estamos en temporada (ESMIS
+   `usda.library.cornell.edu/api/v1/...CropProg?latest=true`); USDA FAS Export Sales si
+   `USDA_FAS_API_KEY` está seteada (`api.fas.usda.gov/api/esr/...`, sin la key da 403 —
+   degradar honesto, no es bloqueante); wire de la semana (Google News RSS / World-Grain
+   / Pro Farmer). **Para `aceite_soja`** sumá el margen de crush (board crush =
+   aceite+harina−poroto, ¿se amplía o se achica?), aceite de palma (MPOB Malaysia,
+   Indonesia — sustituto que más pesa en la demanda mundial de vegoils) y mandatos de
+   biodiésel (RFS de EEUU, corte obligatorio en Argentina) — el driver central de su
+   view, no un correlato de paso.
 2. **Sudamérica/clima**: Brasil (Canal Rural RSS, complementa CONAB propio — los
    números de producción SIEMPRE de `estimaciones`, esto es solo color/día a día),
    clima Argentina (SMN JSON) y EEUU (NOAA CPC / Drought Monitor), bajante del Paraná
@@ -198,6 +248,16 @@ siguiendo el checklist de siempre (cómo piensa la mesa — `docs/negocio/01` y 
 4. **Precio**: curva A3 (carry/invertida), TNA de pases y arbitraje vs pizarra, Chicago
    (dirección y nivel), FAS vs pizarra.
 5. **Contexto**: noticias de la semana + agenda.
+
+**Para `aceite_soja` este checklist de 1-5 se adapta** (ver la nota al principio del
+documento): en 1 (demanda física) usás los datos de SBO que la web ya trae —
+`empresas.productos` cod SBO (gap de cobertura), `djveResumen` fila de aceite
+(ritmo del programa declarado), `embarques` (programa por mes + cumplimiento) y
+`temperatura.SOJA_CRUSH` como calor del complejo — en vez del índice MESA del
+poroto; 2 (farmer selling/negociado) se salta, es del grano; 4 se acota a
+Chicago/CBOT ZL + `capacidad.industriaSoja` (sin curva A3/pases/arbitraje propios);
+la dirección la marca el research internacional del agente 1 de F1 (crush, palma,
+biodiésel, China/India) — 3 y 5 siguen igual.
 
 **Preguntas de la mesa (ejemplos, cabeza de mercado y mente abierta — no es una lista
 cerrada; si el mercado se mueve por algo que no está acá, eso es justo lo que hay que
@@ -319,7 +379,7 @@ body: [{ "grano": "soja", "fecha": "YYYY-MM-DD", "direccion": …, "confianza": 
          "relacion_previa": "confirma", "view_previo_id": "…" }, …]
 ```
 
-`grano` ∈ `soja|maiz|trigo` (sin tilde). El UNIQUE (grano, fecha) + `merge-duplicates`
+`grano` ∈ `soja|maiz|trigo|aceite_soja` (sin tilde). El UNIQUE (grano, fecha) + `merge-duplicates`
 hace idempotente el re-run del mismo día. Verificá con un GET que las 3 filas quedaron.
 
 El **scorecard** (`src/lib/views-scorecard.ts`) se computa solo, al vuelo, cuando
@@ -376,12 +436,13 @@ body: [{ "tipo": "view", "fecha": "{hoy Córdoba}",
 ```
 
 `mail_enviado` es siempre `false` acá — el view no manda mail (se lee en
-`/granos/view`; el informe semanal lo integra). `degradaciones: []` si los 3 granos
-salieron con insumos completos.
+`/granos/view`; el informe semanal lo integra). `degradaciones: []` si los 4 granos
+salieron con insumos completos (no cuentes el "sin datos" del scorecard de
+`aceite_soja` como degradación — es estructural, ver la nota al principio).
 
 ## Cierre
 
-Resumen final de la sesión: los 3 views en una línea c/u (grano → relación con la
+Resumen final de la sesión: los 4 views en una línea c/u (grano → relación con la
 previa + dirección + confianza + argumento top), qué insumos degradaron, cuántos
 agentes se lanzaron y el consumo aproximado (línea de base para R5), y los
 aprendizajes nuevos propuestos para `references/aprendizajes.md`. No mandás mail (el

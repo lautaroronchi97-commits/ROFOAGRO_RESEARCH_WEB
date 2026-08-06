@@ -55,7 +55,7 @@ const DIR_COLOR_VAR: Record<DireccionView, string> = {
   levemente_bajista: "--neg",
   neutral: "--neu",
 };
-const GRANO_EMOJI: Record<string, string> = { soja: "🌱", maiz: "🌽", trigo: "🌾" };
+const GRANO_EMOJI: Record<string, string> = { soja: "🌱", maiz: "🌽", trigo: "🌾", aceite_soja: "🫗" };
 
 const RELACION_LABEL: Record<RelacionPrevia, string> = {
   inicial: "INICIAL",

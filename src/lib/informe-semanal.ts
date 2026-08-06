@@ -305,6 +305,7 @@ export const getScorecardResumen = cache(async (): Promise<Scorecard["porGrano"]
     soja: { grano: "soja", nMedidos: 0, hitRate: null, brier: null, racha: null },
     maiz: { grano: "maiz", nMedidos: 0, hitRate: null, brier: null, racha: null },
     trigo: { grano: "trigo", nMedidos: 0, hitRate: null, brier: null, racha: null },
+    aceite_soja: { grano: "aceite_soja", nMedidos: 0, hitRate: null, brier: null, racha: null },
   };
   const [viewsRes, cierresRes] = await Promise.all([
     sbSelectAll("views_mercado?select=id,grano,fecha,direccion,confianza&order=fecha.asc", 3600),
