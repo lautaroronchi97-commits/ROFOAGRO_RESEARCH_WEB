@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CambiarioPage() {
-  await requireSeccion("dolar");
+  await requireSeccion("dolar", "/dolar/cambiario");
   return (
     <main className="wrap">
       <div className="col">

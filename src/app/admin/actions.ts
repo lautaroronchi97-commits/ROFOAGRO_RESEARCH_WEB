@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from "@/lib/auth/server";
 import { requireAdmin } from "@/lib/auth/dal";
 import { SECCIONES } from "@/lib/auth/config";
 import { notificarAprobacion } from "@/lib/auth/emails";
+import { BIBLIOTECA_PERMISOS } from "@/lib/biblioteca";
+import { normalizarItems, type ItemsPorSeccion } from "@/lib/auth/permisos";
 
 export type AdminState = { error?: string; ok?: string } | undefined;
 
@@ -13,10 +15,20 @@ function refrescar() {
   revalidatePath("/admin", "layout");
 }
 
-/** Filtra una lista de secciones dejando solo las 7 claves canónicas válidas. */
+/** Filtra una lista de secciones dejando solo las 9 claves canónicas válidas. */
 function seccionesValidas(input: FormDataEntryValue[]): string[] {
   const set = new Set(SECCIONES as readonly string[]);
   return input.map(String).filter((s) => set.has(s));
+}
+
+/**
+ * Arma el mapa `items` (permisos por ítem, 06/08/2026) a partir de los checkboxes
+ * `items__<seccionKey>` del form, para las secciones que quedaron activas.
+ */
+function itemsDesdeForm(formData: FormData, seccionesActivas: string[]): ItemsPorSeccion {
+  return normalizarItems(BIBLIOTECA_PERMISOS, seccionesActivas, (key) =>
+    formData.getAll(`items__${key}`).map(String)
+  );
 }
 
 // ============================================================================
@@ -173,9 +185,10 @@ export async function guardarOverride(_state: AdminState, formData: FormData): P
   if (!userId) return { error: "Falta el usuario." };
   const usar = formData.get("usar_override") != null;
   const secciones = usar ? seccionesValidas(formData.getAll("secciones")) : null;
+  const items = usar ? itemsDesdeForm(formData, secciones!) : null;
   const { error } = await supabase
     .from("profiles")
-    .update({ secciones_override: secciones })
+    .update({ secciones_override: secciones, items_override: items })
     .eq("id", userId);
   if (error) return { error: "No se pudieron guardar los permisos." };
   refrescar();
@@ -193,7 +206,8 @@ export async function crearEmpresa(_state: AdminState, formData: FormData): Prom
   const nombre = String(formData.get("nombre") ?? "").trim();
   if (nombre.length < 2) return { error: "Escribí el nombre de la empresa." };
   const secciones = seccionesValidas(formData.getAll("secciones"));
-  const { error } = await supabase.from("empresas").insert({ nombre, secciones });
+  const items = itemsDesdeForm(formData, secciones);
+  const { error } = await supabase.from("empresas").insert({ nombre, secciones, items });
   if (error) {
     return { error: error.code === "23505" ? "Ya existe una empresa con ese nombre." : "No se pudo crear la empresa." };
   }
@@ -210,7 +224,8 @@ export async function guardarEmpresa(_state: AdminState, formData: FormData): Pr
   if (!id) return { error: "Falta la empresa." };
   if (nombre.length < 2) return { error: "El nombre no puede quedar vacío." };
   const secciones = seccionesValidas(formData.getAll("secciones"));
-  const { error } = await supabase.from("empresas").update({ nombre, secciones }).eq("id", id);
+  const items = itemsDesdeForm(formData, secciones);
+  const { error } = await supabase.from("empresas").update({ nombre, secciones, items }).eq("id", id);
   if (error) {
     return { error: error.code === "23505" ? "Ya existe una empresa con ese nombre." : "No se pudieron guardar los cambios." };
   }

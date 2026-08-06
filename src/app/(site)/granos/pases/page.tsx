@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PasesPage() {
-  await requireSeccion("granos");
+  await requireSeccion("granos", "/granos/pases");
   return (
     <main className="wrap">
       <div className="col">

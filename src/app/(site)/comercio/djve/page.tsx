@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DjvePage() {
-  await requireSeccion("comercio");
+  await requireSeccion("comercio", "/comercio/djve");
   return (
     <main className="wrap">
       <div className="col">

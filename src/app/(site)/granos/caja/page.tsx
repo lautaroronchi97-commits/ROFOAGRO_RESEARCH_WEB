@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CajaPage() {
-  await requireSeccion("granos");
+  await requireSeccion("granos", "/granos/caja");
   return (
     <main className="wrap">
       <div className="col">

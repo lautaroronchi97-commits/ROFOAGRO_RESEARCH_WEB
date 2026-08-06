@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MonitorPage() {
-  await requireSeccion("granos");
+  await requireSeccion("granos", "/granos/monitor");
   return (
     <main className="wrap">
       <div className="col">

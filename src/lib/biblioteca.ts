@@ -115,6 +115,39 @@ export const BIBLIOTECA: BibGrupo[] = SECCIONES_META.map((s) => ({
 }));
 
 /**
+ * Ítems de un grupo que se pueden habilitar/deshabilitar por separado desde
+ * `/admin/empresas` (permisos por ítem, 06/08/2026): dedupeados por pathname —
+ * dos ítems que comparten ruta (los 2 modos de Gráficos `/graficos`/`/graficos
+ * ?mc=periodo`, las 3 anclas de Informes) no se pueden gatear aparte en el
+ * servidor, solo cuentan una vez — y sin los `soloMesa` (esos nunca dependen de
+ * la empresa: siempre `requireAdmin()`, jamás aparecen en un whitelist de cliente).
+ */
+export function itemsConfigurables(g: BibGrupo): { href: string; label: string }[] {
+  const vistos = new Set<string>();
+  const out: { href: string; label: string }[] = [];
+  for (const it of g.items) {
+    if (it.soloMesa) continue;
+    // split por "?" y "#": las anclas de Informes (`/informes#informe-diario`) son la
+    // misma ruta que las query strings de Gráficos (`/graficos?mc=periodo`) a estos fines.
+    const path = it.href.split(/[?#]/)[0]!;
+    if (vistos.has(path)) continue;
+    vistos.add(path);
+    out.push({ href: path, label: it.label });
+  }
+  return out;
+}
+
+export type GrupoPermiso = { key: SeccionKey; label: string; items: { href: string; label: string }[] };
+
+/** Árbol de permisos para el panel admin (empresas + override individual): un grupo por
+ *  sección con sus ítems configurables ya resueltos — nada se recalcula a mano ahí. */
+export const BIBLIOTECA_PERMISOS: GrupoPermiso[] = BIBLIOTECA.map((g) => ({
+  key: g.key,
+  label: g.label,
+  items: itemsConfigurables(g),
+}));
+
+/**
  * Grupo "Admin" — no es una sección con permisos (`SECCIONES_META` no lo incluye): es
  * el panel `/admin/*`, siempre protegido por `requireAdmin()` con su propio layout y
  * nav (`admin-tabs.tsx`). Estos ítems solo alimentan el atajo de navegación de la

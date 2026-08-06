@@ -2,22 +2,30 @@
 
 import { useActionState } from "react";
 import { guardarEmpresa, type AdminState } from "../actions";
+import { PermisosTree } from "../permisos-tree";
+import type { GrupoPermiso } from "@/lib/biblioteca";
 
-type Empresa = { id: string; nombre: string; secciones: string[]; n_usuarios: number };
+type Empresa = {
+  id: string;
+  nombre: string;
+  secciones: string[];
+  items: Record<string, string[]>;
+  n_usuarios: number;
+};
 
 /**
- * Editor de una empresa: renombrar + tildar las secciones habilitadas. Guardar
- * impacta de inmediato en los usuarios que heredan de esta empresa.
+ * Editor de una empresa: renombrar + tildar las secciones habilitadas y, dentro de
+ * cada una, qué ítems concretos ve (permisos por ítem, 06/08/2026). Guardar impacta
+ * de inmediato en los usuarios que heredan de esta empresa.
  */
 export function EmpresaEditor({
   empresa,
-  secciones,
+  grupos,
 }: {
   empresa: Empresa;
-  secciones: { key: string; label: string }[];
+  grupos: GrupoPermiso[];
 }) {
   const [st, action, pend] = useActionState<AdminState, FormData>(guardarEmpresa, undefined);
-  const activas = new Set(empresa.secciones);
 
   return (
     <article className="admin-card">
@@ -32,17 +40,11 @@ export function EmpresaEditor({
           <span>Nombre</span>
           <input className="admin-input" type="text" name="nombre" defaultValue={empresa.nombre} autoComplete="off" required />
         </label>
-        <fieldset className="admin-secciones-fs">
-          <legend>Secciones habilitadas</legend>
-          <div className="admin-secciones">
-            {secciones.map((s) => (
-              <label key={s.key} className="admin-check">
-                <input type="checkbox" name="secciones" value={s.key} defaultChecked={activas.has(s.key)} />
-                <span>{s.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <PermisosTree
+          grupos={grupos}
+          seccionesActivas={new Set(empresa.secciones)}
+          itemsRestringidos={empresa.items}
+        />
         <button type="submit" className="admin-btn admin-btn-ok" disabled={pend}>
           {pend ? "Guardando…" : "Guardar"}
         </button>

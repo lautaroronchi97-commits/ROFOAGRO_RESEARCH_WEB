@@ -1,6 +1,6 @@
 import { getUsuarios, getEmpresas, fmtFechaHora } from "@/lib/auth/admin";
 import { requireAdmin } from "@/lib/auth/dal";
-import { SECCIONES_META } from "@/lib/auth/config";
+import { BIBLIOTECA_PERMISOS } from "@/lib/biblioteca";
 import { UsuarioRow } from "./usuario-row";
 
 /**
@@ -38,11 +38,13 @@ export default async function UsuariosPage() {
                 empresa_nombre: u.empresa_nombre,
                 empresa_secciones: u.empresa_secciones,
                 secciones_override: u.secciones_override,
+                empresa_items: u.empresa_items,
+                items_override: u.items_override,
                 creado: fmtFechaHora(u.created_at),
                 ultimo_login: fmtFechaHora(u.ultimo_login),
               }}
               empresas={opcionesEmpresa}
-              secciones={SECCIONES_META.map((s) => ({ key: s.key, label: s.label }))}
+              grupos={BIBLIOTECA_PERMISOS}
               esYo={u.id === admin.id}
             />
           ))}

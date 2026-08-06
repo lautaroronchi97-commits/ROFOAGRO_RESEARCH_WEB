@@ -1743,6 +1743,16 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .admin-check-strong { font-weight:700; color:var(--ink); }
 .admin-check input { accent-color:var(--brand-agro); }
 
+/* Árbol de permisos por sección + ítem (06/08/2026) — /admin/empresas y el override
+   individual de /admin/usuarios comparten el mismo componente (PermisosTree). */
+.admin-permisos { display:flex; flex-direction:column; gap:10px; }
+.admin-permiso-grupo { border-bottom:1px dashed var(--line); padding-bottom:8px; }
+.admin-permiso-grupo:last-child { border-bottom:none; padding-bottom:0; }
+.admin-permiso-items { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+  gap:4px 12px; margin:6px 0 0 24px; }
+.admin-permiso-items.is-disabled { opacity:.5; }
+.admin-check-sub { font-size:var(--fs-xs); color:var(--ink-3); }
+
 .admin-crear { margin:0 0 18px; background:var(--panel); border:1px solid var(--line);
   border-radius:var(--r-panel); padding:14px 18px; }
 

@@ -2,12 +2,14 @@
 
 import { useActionState } from "react";
 import { crearEmpresa, type AdminState } from "../actions";
+import { PermisosTree } from "../permisos-tree";
+import type { GrupoPermiso } from "@/lib/biblioteca";
 
 /**
- * Form para crear una empresa nueva. Las 7 secciones vienen marcadas por defecto
- * (el admin destilda las que no correspondan).
+ * Form para crear una empresa nueva. Las 9 secciones vienen marcadas por defecto, sin
+ * restricción de ítems (el admin destilda/acota lo que no corresponda).
  */
-export function EmpresaCrear({ secciones }: { secciones: { key: string; label: string }[] }) {
+export function EmpresaCrear({ grupos }: { grupos: GrupoPermiso[] }) {
   const [st, action, pend] = useActionState<AdminState, FormData>(crearEmpresa, undefined);
 
   return (
@@ -18,17 +20,11 @@ export function EmpresaCrear({ secciones }: { secciones: { key: string; label: s
           <span>Nombre</span>
           <input className="admin-input" type="text" name="nombre" placeholder="Ej. Acopio San Martín" autoComplete="off" required />
         </label>
-        <fieldset className="admin-secciones-fs">
-          <legend>Secciones habilitadas</legend>
-          <div className="admin-secciones">
-            {secciones.map((s) => (
-              <label key={s.key} className="admin-check">
-                <input type="checkbox" name="secciones" value={s.key} defaultChecked />
-                <span>{s.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <PermisosTree
+          grupos={grupos}
+          seccionesActivas={new Set(grupos.map((g) => g.key))}
+          itemsRestringidos={{}}
+        />
         <button type="submit" className="admin-btn admin-btn-ok" disabled={pend}>
           {pend ? "Creando…" : "Crear empresa"}
         </button>

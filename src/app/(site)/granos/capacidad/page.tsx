@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CapacidadPage() {
-  await requireSeccion("granos");
+  await requireSeccion("granos", "/granos/capacidad");
   return (
     <main className="wrap">
       <div className="col">

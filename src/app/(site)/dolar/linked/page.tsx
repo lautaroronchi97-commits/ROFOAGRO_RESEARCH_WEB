@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DolarLinkedPage() {
-  await requireSeccion("dolar");
+  await requireSeccion("dolar", "/dolar/linked");
   return (
     <main className="wrap">
       <div className="col">

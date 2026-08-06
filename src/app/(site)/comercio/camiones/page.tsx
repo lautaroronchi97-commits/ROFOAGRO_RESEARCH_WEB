@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CamionesPage() {
-  await requireSeccion("comercio");
+  await requireSeccion("comercio", "/comercio/camiones");
   const perfil = authConfigured() ? await getPerfil() : null;
   const esAdmin = perfil?.rol === "admin";
   const [plantas, camiones] = await Promise.all([getCamionesPlantas(), getCamiones()]);

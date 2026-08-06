@@ -10,6 +10,8 @@ import {
   guardarOverride,
   type AdminState,
 } from "../actions";
+import { PermisosTree } from "../permisos-tree";
+import type { GrupoPermiso } from "@/lib/biblioteca";
 
 type Usuario = {
   id: string;
@@ -22,6 +24,8 @@ type Usuario = {
   empresa_nombre: string | null;
   empresa_secciones: string[] | null;
   secciones_override: string[] | null;
+  empresa_items: Record<string, string[]> | null;
+  items_override: Record<string, string[]> | null;
   creado: string;
   ultimo_login: string;
 };
@@ -47,12 +51,12 @@ function Mensaje({ st }: { st: AdminState }) {
 export function UsuarioRow({
   u,
   empresas,
-  secciones,
+  grupos,
   esYo,
 }: {
   u: Usuario;
   empresas: { id: string; nombre: string }[];
-  secciones: { key: string; label: string }[];
+  grupos: GrupoPermiso[];
   esYo: boolean;
 }) {
   const [stBloq, accBloq, pBloq] = useActionState<AdminState, FormData>(alternarBloqueo, undefined);
@@ -65,6 +69,7 @@ export function UsuarioRow({
   const usaOverride = u.secciones_override != null;
   const [override, setOverride] = useState(usaOverride);
   const seleccionadas = new Set(u.secciones_override ?? u.empresa_secciones ?? []);
+  const itemsSeleccionados = u.secciones_override != null ? (u.items_override ?? {}) : (u.empresa_items ?? {});
 
   return (
     <article className="admin-card">
@@ -187,20 +192,12 @@ export function UsuarioRow({
             />
             <span>Usar permisos individuales (si no, hereda los de la empresa)</span>
           </label>
-          <div className={`admin-secciones ${override ? "" : "is-disabled"}`}>
-            {secciones.map((s) => (
-              <label key={s.key} className="admin-check">
-                <input
-                  type="checkbox"
-                  name="secciones"
-                  value={s.key}
-                  defaultChecked={seleccionadas.has(s.key)}
-                  disabled={!override}
-                />
-                <span>{s.label}</span>
-              </label>
-            ))}
-          </div>
+          <PermisosTree
+            grupos={grupos}
+            seccionesActivas={seleccionadas}
+            itemsRestringidos={itemsSeleccionados}
+            disabled={!override}
+          />
           <button type="submit" className="admin-btn admin-btn-ok" disabled={pOv}>
             {pOv ? "Guardando…" : "Guardar permisos"}
           </button>

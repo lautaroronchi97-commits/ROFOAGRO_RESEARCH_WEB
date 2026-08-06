@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CALCULADORAS } from "@/lib/calculadoras";
-import { requireSeccion, getAcceso } from "@/lib/auth/dal";
+import { requireSeccion, getAcceso, itemVisible } from "@/lib/auth/dal";
 import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { PageHead } from "@/components/page-head";
 
@@ -15,8 +15,13 @@ export default async function CalculadorasPage() {
   await requireSeccion("calculadoras");
   // Costos queda oculta del índice hasta cerrar el tarifario con la empresa
   // (relevamiento web 29/07, punto 44) — mismo criterio soloMesa de biblioteca.ts.
-  const esAdmin = AUTH_ENFORCED ? ((await getAcceso())?.esAdmin ?? false) : true;
-  const visibles = CALCULADORAS.filter((c) => c.slug !== "costos" || esAdmin);
+  const acceso = AUTH_ENFORCED ? await getAcceso() : null;
+  const esAdmin = AUTH_ENFORCED ? (acceso?.esAdmin ?? false) : true;
+  // Permisos por ítem (06/08/2026): además de costos (soloMesa), el admin puede haber
+  // restringido cuáles de las demás calculadoras ve esta empresa.
+  const visibles = CALCULADORAS.filter(
+    (c) => c.slug !== "costos" || esAdmin
+  ).filter((c) => c.slug === "costos" || itemVisible(acceso, "calculadoras", `/calculadoras/${c.slug}`));
   return (
     <>
       <main className="wrap">

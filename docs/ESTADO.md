@@ -19,7 +19,49 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 05/08/2026 — 🧱 C31 FASE 2: migración aplicada + RLS verificada + posición completa (heatmap + futuros valorizados), HECHO — C31 CIERRA COMPLETO)
+## Ahora (última actualización: 06/08/2026 — 🔐 permisos por ítem dentro de cada sección, HECHO — migración sin aplicar)
+
+**🔐 PERMISOS POR ÍTEM DENTRO DE CADA SECCIÓN — HECHO, migración SIN aplicar — rama
+`claude/client-section-visibility-7a7ukb`, PR #_.** Pedido de Lautaro: hasta ahora
+`/admin/empresas` solo prendía/apagaba una sección ENTERA por empresa (ej.
+"Calculadoras"); pidió poder elegir, dentro de cada sección, qué ítems concretos ve cada
+empresa — ej. no mostrarle todas las calculadoras — habilitando la sección completa O
+solo una parte.
+
+**Modelo**: 2 columnas jsonb nuevas — `empresas.items` y `profiles.items_override`
+(mismo par que `secciones`/`secciones_override` de siempre) — `{ [seccionKey]: string[]
+de hrefs }`. Clave de sección AUSENTE del objeto = sin restricción (todos sus ítems
+visibles, el comportamiento de hoy) → **cero migración de datos, toda empresa existente
+queda exactamente igual**. Migración `20260806120000_permisos_items_por_seccion.sql`
+(columnas + guard anti-escalada + `admin_usuarios()`/`admin_empresas()` recreadas con los
+campos nuevos), escrita, **SIN aplicar** (protocolo de siempre).
+
+**Código**: `src/lib/auth/permisos.ts` nueva (lib PURA, 12 tests) — `itemPermitido()` +
+`normalizarItems()` (tildar TODOS los ítems de una sección = sin restricción, se omite la
+clave; secciones con ≤1 ítem configurable —Gráficos/Informes/Noticias, comparten
+pathname— nunca se restringen) · `biblioteca.ts` suma `itemsConfigurables()` (dedup por
+pathname, sin los `soloMesa` — esos nunca dependen de la empresa) + `BIBLIOTECA_PERMISOS`
+(9 tests) · `dal.ts`: `Acceso.items` + `itemVisible()` + `requireSeccion(seccion, item?)`
+con 2º parámetro opcional · **26 páginas de sección** pasan su propio href +
+**5 índices de grupo + la sidebar** filtran su lista con `itemVisible` · panel admin:
+componente nuevo `PermisosTree` (árbol sección→ítems, controlado) reemplaza el fieldset
+plano en `/admin/empresas` (crear + editar) y en el override individual de
+`/admin/usuarios` — mismo componente, 3 usos.
+
+**Verificado**: lint/tsc/**576 tests** (21 nuevos)/build ✅ — build comparado contra el
+comportamiento de siempre: con `AUTH_ENFORCED` apagado (estado real de producción hoy)
+todas las rutas de sección siguen `○` estáticas con el mismo `revalidate` de antes (el
+requisito duro "con el flag apagado, cero cambios de render" se sostiene). **Sin
+verificar con sesión real** (sandbox sin credenciales de Supabase ni login activo): el
+flujo completo login→empresa restringida→página bloqueada no se probó en navegador —
+la lógica en sí está cubierta por tests unitarios exhaustivos, el resto es wiring
+mecánico sobre el mismo patrón que ya usa `soloMesa`/`esAdmin`.
+
+**Pendiente**: OK de Lautaro → aplicar la migración por MCP → primera prueba real en
+navegador con una empresa restringida de verdad. Detalle:
+[`sesiones/2026-08-06-permisos-por-item-seccion.md`](sesiones/2026-08-06-permisos-por-item-seccion.md).
+
+## Anterior (05/08/2026 — 🧱 C31 FASE 2: migración aplicada + RLS verificada + posición completa (heatmap + futuros valorizados), HECHO — C31 CIERRA COMPLETO)
 
 **🧱 C31 — FASE 2 (posición completa + heatmap + panel de futuros valorizado) — HECHA, migración
 APLICADA y RLS verificada — misma rama `claude/migracion-operaciones-clientes-tfstym`, PR #144.**

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireSeccion } from "@/lib/auth/dal";
+import { requireSeccion, getAcceso, itemVisible } from "@/lib/auth/dal";
 import { authConfigured } from "@/lib/auth/env";
 import { getPerfil } from "@/lib/auth/dal";
+import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { PageHead } from "@/components/page-head";
 
 export const revalidate = 3600;
@@ -34,6 +35,9 @@ export default async function ComercioPage() {
   // Guardado por authConfigured: sin auth configurada no lee cookies → la página sigue estática.
   const perfil = authConfigured() ? await getPerfil() : null;
   const esAdmin = perfil?.rol === "admin";
+  // Permisos por ítem (06/08/2026): NO-OP con el flag apagado.
+  const acceso = AUTH_ENFORCED ? await getAcceso() : null;
+  const publico = PUBLICO.filter((a) => itemVisible(acceso, "comercio", a.href));
 
   return (
     <>
@@ -42,7 +46,7 @@ export default async function ComercioPage() {
           <PageHead kicker="DJVE · line-up · camiones" title="Comercio exterior" lede="Declaraciones de venta al exterior de granos y subproductos." />
 
           <nav className="hub-grid" aria-label="Datos públicos" style={{ marginBottom: 18 }}>
-            {PUBLICO.map((a) => (
+            {publico.map((a) => (
               <Link key={a.href} href={a.href} className="hub-card">
                 <span className="hub-card-name">{a.nombre}</span>
                 <span className="hub-card-desc">{a.desc}</span>

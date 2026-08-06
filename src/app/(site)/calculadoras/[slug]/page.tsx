@@ -46,7 +46,7 @@ export default async function CalculadoraPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  await requireSeccion("calculadoras");
+  await requireSeccion("calculadoras", `/calculadoras/${slug}`);
   const calc = getCalc(slug);
   if (!calc) notFound();
   // Costos queda oculta hasta cerrar el tarifario con la empresa (relevamiento web
