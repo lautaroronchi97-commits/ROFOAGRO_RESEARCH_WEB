@@ -96,7 +96,7 @@ const INFORMES: BibItem[] = [
 const OPERACIONES: BibItem[] = [
   { href: "/operaciones", label: "Posición diaria", desc: "Movimientos del día sobre la posición inicial acumulada." },
   { href: "/operaciones/acumulada", label: "Posición acumulada", desc: "Posición neta comprado/vendido por producto y período de entrega, desde la primera operación." },
-  { href: "/operaciones/registro", label: "Registro diario", desc: "Cargá tus compras y ventas del día." },
+  { href: "/operaciones/registro", label: "Carga de negocios", desc: "Cargá tus compras y ventas del día." },
   { href: "/operaciones/evolucion", label: "Evolución", desc: "Curva de la posición física acumulada en el tiempo, por producto.", soloMesa: true },
 ];
 

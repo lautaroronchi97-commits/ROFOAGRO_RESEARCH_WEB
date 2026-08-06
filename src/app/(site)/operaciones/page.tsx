@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSeccion, getAcceso } from "@/lib/auth/dal";
 import { getOperaciones, getEmpresasParaSelector } from "@/lib/operaciones/datos";
-import { construirMatrizFisico, construirMatrizFuturos, construirMatrizPricing, construirMatrizDia, combinarMatrices } from "@/lib/operaciones/posicion";
+import { construirMatrizPricing, construirMatrizDia } from "@/lib/operaciones/posicion";
 import { valorizarFuturos } from "@/lib/operaciones/futuros-valorizados";
 import { construirAjusteLookupLive } from "@/lib/operaciones/ajustes-live";
 import { resumenPosicion } from "@/lib/operaciones/resumen";
@@ -80,13 +80,13 @@ export default async function OperacionesPage({
   const pricingDia = construirMatrizDia(operaciones, dia, hoy, construirMatrizPricing);
   const futurosDia = valorizarFuturos(operaciones.filter((o) => o.fecha === dia), ajustes);
 
-  // Resumen ejecutivo (KPIs): el TOTAL acumulado a HOY (no el neto del día),
-  // sumando el físico de TODAS las campañas a propósito (misma razón que el
-  // pricing) — el detalle campaña por campaña vive en Posición acumulada.
-  const fisicoAcumGlobal = construirMatrizFisico(operaciones, hoy);
-  const futurosValorizados = valorizarFuturos(operaciones, ajustes);
-  const futurosMatriz = construirMatrizFuturos(operaciones, hoy);
-  const resumen = resumenPosicion(fisicoAcumGlobal, combinarMatrices(fisicoAcumGlobal, futurosMatriz), futurosValorizados);
+  // Resumen ejecutivo (KPIs, pedido de Lautaro 06/08/2026 — vuelta 4): el
+  // TOTAL de pricing acumulado a HOY (mercadería con precio + fijaciones +
+  // futuros, NO el físico crudo — "no me importa el % de calzado ni el
+  // físico"), sumando TODAS las campañas a propósito (misma razón que la
+  // tabla de Pricing acumulado) — el detalle campaña por campaña vive en
+  // Posición acumulada.
+  const resumen = resumenPosicion(construirMatrizPricing(operaciones, hoy));
 
   return (
     <main className="wrap">

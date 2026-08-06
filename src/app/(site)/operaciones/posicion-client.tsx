@@ -60,17 +60,17 @@ export function PosicionDiaClient({
   if (sinOperaciones) {
     return (
       <Panel id="op-posicion">
-        <PanelHead title="Posición diaria" sub="se arma sola a partir del registro diario" />
+        <PanelHead title="Posición diaria" sub="se arma sola a partir de la carga de negocios" />
         <div className="op-panel-bd">
           <div className="op-controles">
             {empresas && <EmpresaSelector empresas={empresas} empresaId={empresaId} />}
             <Link href={registroHref} className="op-nav-link">
-              Registro diario →
+              Carga de negocios →
             </Link>
           </div>
           <p className="dim">
             {esAdmin ? "Esta empresa todavía no tiene operaciones cargadas." : "Todavía no cargaste ninguna operación."}{" "}
-            La posición se arma sola a partir del registro diario:{" "}
+            La posición se arma sola a partir de la carga de negocios:{" "}
             <Link href={registroHref}>cargá la primera operación →</Link>
           </p>
         </div>
@@ -83,7 +83,7 @@ export function PosicionDiaClient({
       <div className="op-controles">
         {empresas && <EmpresaSelector empresas={empresas} empresaId={empresaId} />}
         <Link href={registroHref} className="op-nav-link">
-          Registro diario →
+          Carga de negocios →
         </Link>
       </div>
       <PosicionResumen resumen={resumen} />

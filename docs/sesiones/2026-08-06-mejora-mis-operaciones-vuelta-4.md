@@ -62,6 +62,19 @@
   especificidad, la regla del KPI está declarada después en el archivo). Reforzado con
   `.tbl tbody td.ct-pos`/`.op-kpi-v.ct-pos` (y sus `-neg`) apuntando a los dos contextos reales
   donde se usa — nada de `!important`.
+- **KPI: pricing, no físico** ("tiene que reflejar el número del pricing, no me importe el
+  porcentaje de calzado ni el físico"): `resumen.ts` reescrito — `resumenPosicion()` ahora recibe
+  DIRECTO la `Matriz` de `construirMatrizPricing` (antes recibía físico total + físico∪futuros +
+  `FuturoValorizado[]` para derivar cobertura/desglose). Se sacaron `fisicoTn`/`futurosTn`/
+  `pctCalzado`/`coberturaEstado`/`calcularCobertura`/`resultadoFuturosUsd`/`futurosSinValorizar` —
+  ya no se usaban en ningún lado (el resultado de futuros se sigue viendo en el panel "Futuros A3
+  del día"). `KpiProducto` (`posicion-resumen.tsx`) queda con solo el número + Estado, sin el
+  desglose "Físico X · Futuros Y" ni la línea de cobertura. `page.tsx` (Posición diaria) pasa
+  `resumenPosicion(construirMatrizPricing(operaciones, hoy))` directo, sin `combinarMatrices` ni
+  un segundo `valorizarFuturos` solo para esto.
+- **Rename "Registro diario" → "Carga de negocios"** (solo el nombre visible — la ruta
+  `/operaciones/registro` no cambió): `biblioteca.ts`, metadata/`PageHead`/`PanelHead` de
+  `/operaciones/registro`, y los links cruzados "Carga de negocios →" en Posición diaria/acumulada.
 - **Valorización de futuros contra el último operado en vivo** ("siempre refrescando y valorizando
   contra el último operado, es el dato que vamos trayendo del websocket"): antes `AjusteLookup`
   salía SOLO de `getCierresGranos()` (el cierre/settlement guardado en Supabase, que se actualiza
