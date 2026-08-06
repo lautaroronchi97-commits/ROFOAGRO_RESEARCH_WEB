@@ -8,10 +8,13 @@ import { InfoTip } from "./infotip";
 import { FiltroGrano, type GranoFiltroValue, type GranoKey } from "./filtro-grano";
 
 /**
- * Tabla de arbitrajes con la pizarra (disponible USD) EDITABLE por grano.
- * Arranca con el valor de CAC (pizarraDefault); al cambiarlo se recalculan en
- * vivo el spread, la tasa directa y la TNA de cada posición. Los días vienen
- * fijos (vencimiento real de la posición), así que sólo depende de la pizarra.
+ * Tabla de arbitrajes con la pizarra (disponible, ARS y USD) EDITABLE por grano.
+ * El ARS arranca con el $ que publica CAC; el USD por defecto se calcula ARS/BNA
+ * online (o, sin BNA online, con el TC implícito que la propia pizarra de CAC ya
+ * trae) y se resincroniza solo con cada dato nuevo del server mientras no lo
+ * edites a mano. Al cambiar cualquiera de los dos campos se recalculan en vivo
+ * el spread, la tasa directa y la TNA de cada posición. Los días vienen fijos
+ * (vencimiento real de la posición), así que sólo dependen de la pizarra.
  */
 
 type Row = {
@@ -63,47 +66,58 @@ export function ArbitrajesEditable({
   oficial: number | null;
   bnaOnline: number | null;
 }) {
-  // TC implícito de la propia pizarra de CAC (ars/usd del día, por grano) — es lo que
-  // permite recalcular pesos↔USD reproduciendo la relación que CAC ya publica para
-  // ESE grano, en vez de aplicar un tipo de cambio genérico.
+  // TC vivo: preferimos el BNA estimado (oficial mayorista MAE − offset, se mueve durante la
+  // rueda) sobre el TC implícito de la propia pizarra de CAC (ars/usd del día, que queda
+  // congelado a la hora en que CAC publicó) — así el USD por defecto sigue al mercado en vez
+  // de a una foto fija. Sin BNA online (feed caído), cae al TC implícito de CAC, como antes.
   const tcDeGrano = (g: ArbGranoClient): number | null =>
-    g.pizarraArs != null && g.pizarraDefault != null && g.pizarraDefault > 0
-      ? g.pizarraArs / g.pizarraDefault
-      : null;
+    bnaOnline != null && bnaOnline > 0
+      ? bnaOnline
+      : g.pizarraArs != null && g.pizarraDefault != null && g.pizarraDefault > 0
+        ? g.pizarraArs / g.pizarraDefault
+        : null;
 
-  const [pz, setPz] = React.useState<Record<string, PzGrano>>(() =>
-    Object.fromEntries(
-      granos.map((g) => [
-        g.underlying,
-        {
-          usd: g.pizarraDefault != null ? String(g.pizarraDefault) : "",
-          ars: g.pizarraArs != null ? String(g.pizarraArs) : "",
-        },
-      ]),
-    ),
-  );
+  const defaultUsd = (g: ArbGranoClient): number | null => {
+    const tc = tcDeGrano(g);
+    if (g.pizarraArs != null && tc != null && tc > 0) return round2(g.pizarraArs / tc);
+    return g.pizarraDefault;
+  };
+  const defaultCampos = (g: ArbGranoClient): PzGrano => {
+    const usd = defaultUsd(g);
+    return {
+      usd: usd != null ? String(usd) : "",
+      ars: g.pizarraArs != null ? String(g.pizarraArs) : "",
+    };
+  };
+
+  // Solo se guarda lo que el usuario tocó a mano — sin entrada acá, el campo se deriva del
+  // default (arriba) recalculado en cada render, así sigue al BNA online/la pizarra de CAC
+  // en cada dato nuevo del server (poll de RefreshOnFocus) sin necesitar un efecto.
+  const [overrides, setOverrides] = React.useState<Record<string, PzGrano>>({});
   const [filtro, setFiltro] = React.useState<GranoFiltroValue>("todos");
+
+  const camposDe = (g: ArbGranoClient): PzGrano => overrides[g.underlying] ?? defaultCampos(g);
 
   const setUsd = (g: ArbGranoClient, v: string) => {
     const tc = tcDeGrano(g);
     const n = Number(v);
-    const ars = tc != null && v !== "" && Number.isFinite(n) ? String(round2(n * tc)) : pz[g.underlying]?.ars ?? "";
-    setPz((prev) => ({ ...prev, [g.underlying]: { usd: v, ars } }));
+    const arsActual = camposDe(g).ars;
+    const ars = tc != null && v !== "" && Number.isFinite(n) ? String(round2(n * tc)) : arsActual;
+    setOverrides((prev) => ({ ...prev, [g.underlying]: { usd: v, ars } }));
   };
   const setArs = (g: ArbGranoClient, v: string) => {
     const tc = tcDeGrano(g);
     const n = Number(v);
-    const usd = tc != null && v !== "" && Number.isFinite(n) ? String(round2(n / tc)) : pz[g.underlying]?.usd ?? "";
-    setPz((prev) => ({ ...prev, [g.underlying]: { usd, ars: v } }));
+    const usdActual = camposDe(g).usd;
+    const usd = tc != null && v !== "" && Number.isFinite(n) ? String(round2(n / tc)) : usdActual;
+    setOverrides((prev) => ({ ...prev, [g.underlying]: { usd, ars: v } }));
   };
   const resetear = (g: ArbGranoClient) =>
-    setPz((prev) => ({
-      ...prev,
-      [g.underlying]: {
-        usd: g.pizarraDefault != null ? String(g.pizarraDefault) : "",
-        ars: g.pizarraArs != null ? String(g.pizarraArs) : "",
-      },
-    }));
+    setOverrides((prev) => {
+      const next = { ...prev };
+      delete next[g.underlying];
+      return next;
+    });
 
   const visibles = filtro === "todos" ? granos : granos.filter((g) => g.underlying === filtro);
 
@@ -124,8 +138,9 @@ export function ArbitrajesEditable({
             )}
             {bnaOnline != null && (
               <InfoTip term={<span>BNA online <b>$ {nfmt(bnaOnline, 2)}</b></span>}>
-                Aproximación en vivo del comprador BNA: oficial mayorista − ${BNA_OFFSET}. Cuando
-                esté confirmado el BNA de las 15hs, usá ese valor en su lugar.
+                Aproximación en vivo del comprador BNA: oficial mayorista − ${BNA_OFFSET}. Es el
+                tipo de cambio que usa por defecto el USD de la pizarra de cada grano (se
+                actualiza solo mientras no edites el campo a mano).
               </InfoTip>
             )}
           </div>
@@ -192,13 +207,11 @@ export function ArbitrajesEditable({
         </thead>
         <tbody>
           {visibles.map((g) => {
-            const campos = pz[g.underlying] ?? { usd: "", ars: "" };
+            const campos = camposDe(g);
             const nUsd = Number(campos.usd);
             const pizarra = campos.usd !== "" && Number.isFinite(nUsd) ? nUsd : null;
             const tc = tcDeGrano(g);
-            const editada =
-              (g.pizarraDefault != null && pizarra !== g.pizarraDefault) ||
-              (g.pizarraArs != null && campos.ars !== "" && Number(campos.ars) !== g.pizarraArs);
+            const editada = overrides[g.underlying] != null;
             return (
               <React.Fragment key={g.underlying}>
                 <tr className="grp">
@@ -240,7 +253,7 @@ export function ArbitrajesEditable({
                           <button
                             type="button"
                             className="pz-reset"
-                            title="Volver al valor de CAC"
+                            title="Volver al valor por defecto (BNA online)"
                             onClick={() => resetear(g)}
                           >
                             ↺
