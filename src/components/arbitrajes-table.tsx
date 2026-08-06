@@ -92,12 +92,20 @@ export async function ArbitrajesTable() {
     };
   });
 
+  // CAC suele publicar la pizarra del día recién a la tarde — mientras tanto el disponible que
+  // se usa acá es el último que CAC tiene cargado. Mostrar su fecha evita que parezca "de hoy"
+  // solo porque el resto del panel (A3 en vivo) sí lo está.
+  const pizarraAtrasada = data.pizarraFecha != null && data.pizarraFecha !== hoy;
+  const sub = pizarraAtrasada
+    ? `Pizarra (disponible) del ${data.pizarraFecha!.slice(8, 10)}/${data.pizarraFecha!.slice(5, 7)} vs A3 (futuro)`
+    : "Pizarra (disponible) vs A3 (futuro)";
+
   return (
     <Panel id="arbitrajes">
       <PanelHead
         glyph={<IconArb />}
         title="Arbitrajes"
-        sub="Pizarra (disponible) vs A3 (futuro)"
+        sub={sub}
         stamp={<SourceStamp meta={meta} revalidateSeg={30} />}
       />
       <ArbitrajesEditable granos={granos} oficial={oficial.valor} bnaOnline={bnaOnline} />
