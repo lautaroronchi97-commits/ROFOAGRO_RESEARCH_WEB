@@ -17,11 +17,11 @@ import { calcularScorecard, type Scorecard, type FuturoCierreRow } from "./views
  */
 
 /** `aceite_soja` (agregado 06/08/2026): sin futuro local en A3 ni serie propia en
- *  `futuros_cierres`/`cbot_cierres` — el view se apoya en `chicago` (CBOT ZL, ya viene en los
- *  insumos) y en `capacidad.industriaSoja` (FAS teórico del complejo aceite+harina) en vez de
- *  la batería de datos físicos locales (temperatura/semáforo/empresas/embarques/negociado/
- *  senalCamiones/arbitrajes/pases), que son del poroto y no aplican al subproducto. Ver la
- *  skill `view-mercado` para el detalle. */
+ *  `futuros_cierres`/`cbot_cierres`. La dirección de su view la marca lo internacional
+ *  (CBOT ZL vía `chicago` + crush/palma/biodiésel); de lo local usa lo que la web ya trae
+ *  por producto SBO — DJVE de aceite, gap de cobertura de `empresas`, `embarques`,
+ *  `temperatura.SOJA_CRUSH`, `capacidad.industriaSoja` — y NO lo que es del poroto
+ *  (negociado/camiones/farmer selling/curva A3/pizarra). Detalle en la skill `view-mercado`. */
 export type GranoView = "soja" | "maiz" | "trigo" | "aceite_soja";
 /** 5 estados (V3, N2 — docs/PLAN_INFORMES_V3.md §7.1): "levemente_*" = misma dirección que su
  *  extremo, menor convicción — NO es el default tibio (guía de uso completa en la skill

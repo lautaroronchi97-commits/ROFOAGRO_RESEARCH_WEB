@@ -33,12 +33,20 @@ matchea `futuros_cierres` — sin futuro local en A3, el scorecard de este grano
 SIEMPRE a "sin datos", honesto y a propósito, no se inventó una serie) ·
 `informe-semanal.ts` (`getScorecardResumen` actualizado solo para compilar) ·
 `/granos/view` (`GRANO_EMOJI["aceite_soja"] = "🫗"`, el resto de la página ya era genérico
-sobre `GRANOS_VIEW`). **Skill `.claude/skills/view-mercado/SKILL.md` actualizada**:
-explica que aceite de soja no tiene futuro local (no le aplican temperatura/semáforo/
-empresas/embarques/negociado/senalCamiones/arbitrajes/pases, que miden el poroto), que su
-driver primario es `chicago.agro` "Aceite de soja" (CBOT ZL, ya en los insumos) y su ancla
-local `capacidad.industriaSoja` (FAS teórico aceite+harina de C16), y suma research propio
-(margen de crush, aceite de palma MPOB, biodiésel) al fan-out F1.
+sobre `GRANOS_VIEW`). **Skill `.claude/skills/view-mercado/SKILL.md` actualizada — nota de
+aceite refinada en 3 vueltas con Lautaro en la misma sesión**: la DIRECCIÓN del view la
+marca lo internacional (*"el mercado de aceite de soja apunta sobre todo al ámbito
+internacional"* — CBOT ZL vía `chicago.agro` + research F1 propio: margen de crush, aceite
+de palma MPOB, mandatos de biodiésel, China/India); y de lo local usa lo que la web YA trae
+por producto SBO (verificado contra el código a pedido suyo — "tenemos muchos datos sobre
+aceite, sobre todo DJVE"): `djveResumen` fila de aceite (ritmo del programa declarado),
+`empresas.productos` cod SBO (gap de cobertura DJVE↔line-up 60d con señal propia),
+`embarques` (programa por mes + cumplimiento), `temperatura.SOJA_CRUSH` (calor del
+complejo, aceite mezclado con harina) y `capacidad.industriaSoja` — encuadrado como pata
+de OFERTA del balance internacional (Argentina = 1º exportador mundial de aceite de soja),
+no como "mercado local" aparte. NO aplican los insumos del poroto (negociado/camiones/
+farmer selling/curva A3/pizarra). **El pipeline de soja/maíz/trigo quedó intacto**
+(pedido explícito).
 
 **Migración** `20260806130000_view_mercado_aceite_soja.sql` (escrita, **SIN aplicar**,
 protocolo de siempre): amplía el `CHECK` de `views_mercado.grano` a

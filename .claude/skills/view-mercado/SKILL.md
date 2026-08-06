@@ -40,30 +40,41 @@ apretar más); si no hay una dirección clara, es `neutral`, no "levemente" de n
 léelo antes de armar su view. El resto del pipeline (soja/maíz/trigo) no cambia en
 nada: esto es SOLO para este grano.**
 
-Confirmado por Lautaro (06/08/2026): el mercado de aceite de soja es sobre todo
-**internacional** — el view de este grano se construye desde ahí, no replicando el
-balance físico-local que usás para soja/maíz/trigo.
+Confirmado por Lautaro (06/08/2026): el mercado de aceite de soja apunta sobre todo
+al ámbito **internacional** — la DIRECCIÓN del view se decide ahí. Pero ojo: no es
+que lo local no exista — Argentina es el **primer exportador mundial** de aceite de
+soja, así que el programa exportador argentino (DJVE + line-up de SBO) ES parte de
+la oferta mundial; se lee como pata de oferta del balance internacional, no como un
+"mercado local" aparte.
 
-- **Centro de la tesis = Chicago + research internacional, no el balance físico
-  argentino.** Para soja/maíz/trigo arrancás por la demanda física local (índice
-  MESA, gap de cobertura, farmer selling) y Chicago es UN insumo más entre varios.
-  Para aceite_soja es al revés: `chicago.agro` "Aceite de soja" (CBOT ZL, USD/tn, Δ
-  del día) + el research externo del agente 1 de F1 (margen de crush/board crush =
-  aceite+harina−poroto, ¿se amplía o se achica?; aceite de palma — Malaysia MPOB,
-  Indonesia, el sustituto que más pesa en la demanda mundial de vegoils; mandatos de
-  biodiésel — RFS de EEUU, corte obligatorio en Argentina; demanda de China/India)
-  SON el driver central de la tesis, no un correlato de paso ni un complemento del
-  balance local.
-- **Sin futuro local en A3, y los insumos físicos de la mesa NO aplican.**
-  `temperatura`, `semaforo`, `empresas`, `embarques`, `negociado`, `senalCamiones`,
-  `arbitrajes`, `pases` miden el POROTO argentino (soja/maíz/trigo) — no fuerces
-  esos números acá solo para llenar el checklist de F2; para aceite_soja esa parte
-  del checklist se salta.
-- **`capacidad.industriaSoja` es contexto complementario, no el ancla de la tesis**
-  (FAS teórico del complejo aceite+harina — BCR vs "Nuestro" vs qué paga el
-  mercado): sirve para chequear si la industria local está pagando acorde al margen
-  internacional, pero la dirección del view la marca el ámbito internacional de
-  arriba, no este dato.
+- **La dirección la marca lo internacional.** Para soja/maíz/trigo arrancás por la
+  demanda física local (índice MESA, gap de cobertura, farmer selling) y Chicago es
+  UN insumo más entre varios. Para aceite_soja es al revés: `chicago.agro` "Aceite
+  de soja" (CBOT ZL, USD/tn, Δ del día) + el research externo del agente 1 de F1
+  (margen de crush/board crush = aceite+harina−poroto, ¿se amplía o se achica?;
+  aceite de palma — Malaysia MPOB, Indonesia, el sustituto que más pesa en la
+  demanda mundial de vegoils; mandatos de biodiésel — RFS/EPA de EEUU, corte
+  obligatorio en Argentina; demanda de China/India) SON el centro de la tesis.
+- **Lo local que SÍ importa — la web ya lo trae, por producto, con el código SBO
+  ("Aceite de soja"); usalo, no lo saltees:**
+  - `djveResumen.productos` → la fila cuyo `producto` es aceite de soja
+    (`ton_7d`/`ton_30d`/`ton_anio`): el ritmo del programa de exportación declarado.
+    Una aceleración/frenada de DJVE de aceite es señal de oferta mundial, citala.
+  - `empresas.productos` → la fila `cod: "SBO"`: gap de cobertura DJVE↔line-up a
+    60 días (declarado vs originado, con señal y umbrales percentilados propios del
+    producto) — ¿la exportación de aceite está corta o cubierta?
+  - `embarques` → "Aceite de soja" en la matriz de programa declarado por mes
+    (disponible/forward) + su cumplimiento del mes en curso contra el line-up.
+  - `temperatura` → `SOJA_CRUSH` (SBM+SBO en equivalente poroto): el calor de la
+    demanda del complejo industrial — es aceite MEZCLADO con harina, decilo así
+    cuando lo cites (no es un índice de aceite puro).
+  - `capacidad.industriaSoja` (FAS teórico del complejo aceite+harina, con FOB
+    oficial de aceite de SAGyP): el margen de la industria local — contexto de si
+    el crush argentino convalida o no el nivel internacional.
+- **Lo local que NO aplica (es del poroto/grano, no del aceite):** `negociado`
+  (SIO Granos), `senalCamiones` y `camiones` (camiones de grano a puerto), farmer
+  selling directo, `arbitrajes`/`pases`/`curva` (sin futuro A3 de aceite),
+  `pizarra`. No fuerces esos números en este view solo para llenar el checklist.
 - **Su scorecard degrada siempre a "sin datos"**: no hay serie de futuro local
   guardada (`GRANO_UNDERLYING` en `views-scorecard.ts` lo mapea a un ticker que
   nunca matchea `futuros_cierres`) — es honesto, no un bug; no lo menciones como
@@ -238,12 +249,15 @@ siguiendo el checklist de siempre (cómo piensa la mesa — `docs/negocio/01` y 
    (dirección y nivel), FAS vs pizarra.
 5. **Contexto**: noticias de la semana + agenda.
 
-**Para `aceite_soja` este checklist de 1-5 no aplica tal cual** (ver la nota al
-principio del documento): saltás 1-2 (son del poroto físico argentino, sin
-equivalente para aceite) y 4 se acota a Chicago/CBOT ZL (sin curva A3/pases/arbitraje
-propios). Tu checklist ahí es el research internacional del agente 1 de F1 (crush,
-palma, biodiésel, China/India) + `chicago.agro` como precio + `capacidad.
-industriaSoja` como chequeo de contexto local — 3 y 5 siguen igual.
+**Para `aceite_soja` este checklist de 1-5 se adapta** (ver la nota al principio del
+documento): en 1 (demanda física) usás los datos de SBO que la web ya trae —
+`empresas.productos` cod SBO (gap de cobertura), `djveResumen` fila de aceite
+(ritmo del programa declarado), `embarques` (programa por mes + cumplimiento) y
+`temperatura.SOJA_CRUSH` como calor del complejo — en vez del índice MESA del
+poroto; 2 (farmer selling/negociado) se salta, es del grano; 4 se acota a
+Chicago/CBOT ZL + `capacidad.industriaSoja` (sin curva A3/pases/arbitraje propios);
+la dirección la marca el research internacional del agente 1 de F1 (crush, palma,
+biodiésel, China/India) — 3 y 5 siguen igual.
 
 **Preguntas de la mesa (ejemplos, cabeza de mercado y mente abierta — no es una lista
 cerrada; si el mercado se mueve por algo que no está acá, eso es justo lo que hay que
