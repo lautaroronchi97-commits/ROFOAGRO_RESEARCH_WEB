@@ -136,7 +136,7 @@ export type FiltroPrecioFisico = "todos" | "con_precio" | "a_fijar";
 /**
  * Matriz FÍSICA (disponible + forward). Excluye anuladas y fijaciones — las
  * fijaciones NO suman volumen (§1.2/§5.1): son un registro que solo genera precio.
- * Los 5 productos (girasol/sorgo también operan físico).
+ * Los 7 productos (girasol/sorgo/expeller de soja/aceite de soja también operan físico).
  */
 export function construirMatrizFisico(
   operaciones: Operacion[],
@@ -230,8 +230,9 @@ export function construirMatrizPricing(operaciones: Operacion[], hoyISO: string)
 
 /**
  * Matriz TOTAL = físico + futuros, columna a columna (misma forma que las dos anteriores,
- * siempre los 5 productos porque parte de `fisico`). Empareja por `producto`, NO por índice
- * — `futuros` puede tener menos filas que `fisico` (girasol/sorgo sin fila de futuros).
+ * siempre los 7 productos porque parte de `fisico`). Empareja por `producto`, NO por índice
+ * — `futuros` puede tener menos filas que `fisico` (girasol/sorgo/expeller/aceite sin fila
+ * de futuros).
  */
 export function combinarMatrices(fisico: Matriz, futuros: Matriz): Matriz {
   const filas: FilaMatriz[] = fisico.filas.map((f) => {

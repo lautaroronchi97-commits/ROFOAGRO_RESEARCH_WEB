@@ -11,8 +11,8 @@ import type { SerieEvolucionProducto } from "@/lib/operaciones/posicion";
  * que `ORG_COLOR` de `evolucion-chart.tsx` (producción): hex fijos, no
  * `var(--...)`, porque ECharts pinta en `<canvas>` y no resuelve custom
  * properties de CSS ahí (bug ya documentado — ver `bcra-mulc-chart.tsx`).
- * Soja/maíz toman el verde/dorado de marca; trigo/girasol/sorgo, tonos
- * distintos entre sí y del semáforo pos/neg (`--pos`/`--neg`) para no
+ * Soja/maíz toman el verde/dorado de marca; trigo/girasol/sorgo/expeller/aceite,
+ * tonos distintos entre sí y del semáforo pos/neg (`--pos`/`--neg`) para no
  * confundir "línea de maíz" con "vendido".
  */
 const PRODUCTO_COLOR: Record<OperacionProducto, string> = {
@@ -21,6 +21,8 @@ const PRODUCTO_COLOR: Record<OperacionProducto, string> = {
   trigo: "#B45309",
   girasol: "#E8871E",
   sorgo: "#8B3A3A",
+  expeller_soja: "#6D4C7D",
+  aceite_soja: "#C08A2E",
 };
 
 function epoch(fechaISO: string): number {

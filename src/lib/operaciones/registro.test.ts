@@ -156,6 +156,14 @@ describe("validarOperacion — futuro A3", () => {
     const r = validarOperacion({ ...BASE, producto: "girasol", tipo: "futuro_a3", posicionA3: "NOV26" });
     expect(r.ok).toBe(false);
   });
+  it("rechaza expeller de soja/aceite de soja (sin futuro A3)", () => {
+    expect(validarOperacion({ ...BASE, producto: "expeller_soja", tipo: "futuro_a3", posicionA3: "NOV26" }).ok).toBe(
+      false,
+    );
+    expect(validarOperacion({ ...BASE, producto: "aceite_soja", tipo: "futuro_a3", posicionA3: "NOV26" }).ok).toBe(
+      false,
+    );
+  });
   it("acepta soja/maíz/trigo con posición válida", () => {
     const r = validarOperacion({ ...BASE, tipo: "futuro_a3", posicionA3: "nov26" });
     expect(r.ok).toBe(true);
