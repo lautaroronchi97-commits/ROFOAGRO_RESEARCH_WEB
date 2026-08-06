@@ -43,11 +43,11 @@ describe("biblioteca.ts — itemsConfigurables / BIBLIOTECA_PERMISOS", () => {
     expect(noticias.items).toEqual([]);
   });
 
-  it("Operaciones expone sus 3 ítems (rutas distintas de verdad)", () => {
+  it("Operaciones expone sus 3 ítems configurables (Evolución es soloMesa, no entra)", () => {
     const operaciones = BIBLIOTECA_PERMISOS.find((g) => g.key === "operaciones")!;
     expect(operaciones.items.map((it) => it.href).sort()).toEqual([
       "/operaciones",
-      "/operaciones/evolucion",
+      "/operaciones/acumulada",
       "/operaciones/registro",
     ]);
   });

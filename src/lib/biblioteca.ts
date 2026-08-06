@@ -87,12 +87,17 @@ const INFORMES: BibItem[] = [
   { href: "/informes#lectura-mesa", label: "Lecturas de la mesa", desc: "Interpretación de los informes de organismos." },
 ];
 
-// C31 (docs/PLAN_OPERACIONES_CLIENTES.md §4.5): sección nueva de clientes, sin
-// `soloMesa` — se habilita empresa por empresa desde /admin/empresas.
+// C31 (docs/PLAN_OPERACIONES_CLIENTES.md §4.5): sección de clientes, sin
+// `soloMesa` — se habilita empresa por empresa desde /admin/empresas. Posición
+// diaria/acumulada separadas en dos páginas (mejora post-C31, vuelta 4,
+// 06/08/2026 — "así como existe posición diaria, para llevarlo por separado").
+// Evolución pasó a `soloMesa` la misma vuelta ("no es útil para los clientes
+// por ahora, no te digo de eliminarlo"): sigue en el repo, solo la ve la mesa.
 const OPERACIONES: BibItem[] = [
-  { href: "/operaciones", label: "Mi posición", desc: "Posición neta comprado/vendido por producto y período de entrega." },
+  { href: "/operaciones", label: "Posición diaria", desc: "Movimientos del día sobre la posición inicial acumulada." },
+  { href: "/operaciones/acumulada", label: "Posición acumulada", desc: "Posición neta comprado/vendido por producto y período de entrega, desde la primera operación." },
   { href: "/operaciones/registro", label: "Registro diario", desc: "Cargá tus compras y ventas del día." },
-  { href: "/operaciones/evolucion", label: "Evolución", desc: "Curva de la posición física acumulada en el tiempo, por producto." },
+  { href: "/operaciones/evolucion", label: "Evolución", desc: "Curva de la posición física acumulada en el tiempo, por producto.", soloMesa: true },
 ];
 
 const ITEMS_POR_SECCION: Record<SeccionKey, BibItem[]> = {

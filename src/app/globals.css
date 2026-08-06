@@ -2143,6 +2143,15 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-empresa-sel { display:flex; align-items:center; gap:8px; font-size:var(--fs-xs); color:var(--ink-2); }
 .op-empresa-sel span { font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:var(--fs-2xs); }
 
+/* Cuerpo del panel de Posición diaria/acumulada (pedido de Lautaro 06/08/2026,
+   vuelta 4: "los márgenes izquierdo me interesa que sean más amplios para que
+   no queden las letras pegadas al recuadro") — el resto del contenido de estos
+   paneles no traía padding propio, a diferencia de `.panel-hd`/`.panel-note`.
+   `.ct` (ChartTabla) ya trae su propio padding horizontal: se anula acá para
+   que la tabla quede alineada al mismo margen que los títulos y los controles. */
+.op-panel-bd { padding:2px 20px 20px; }
+.op-panel-bd > .ct { padding-left:0; padding-right:0; }
+
 .op-matriz-tit { font-size:var(--fs-sm); font-weight:800; color:var(--ink); margin:22px 0 8px; }
 .op-matriz-tit:first-of-type { margin-top:6px; }
 

@@ -66,6 +66,7 @@ async function empresaDeEscritura(formData: FormData): Promise<{ empresaId: stri
 
 function revalidarPaginas(): void {
   revalidatePath("/operaciones");
+  revalidatePath("/operaciones/acumulada");
   revalidatePath("/operaciones/registro");
 }
 

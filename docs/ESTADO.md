@@ -19,7 +19,42 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 06/08/2026 — 🧱 mejora de "Mis operaciones": resumen ejecutivo + carga en serie + reestructura pricing/físico/día/acumulado + % calzado + físico por campaña + evolución + mobile, HECHO — 3 vueltas)
+## Ahora (última actualización: 06/08/2026 — 🧱 mejora de "Mis operaciones", vuelta 4: feedback de Lautaro por Word — Posición diaria/acumulada en páginas separadas, HECHO)
+
+**🧱 MEJORA DE "MIS OPERACIONES" — VUELTA 4, FEEDBACK DE LAUTARO POR WORD — HECHA — rama
+`claude/new-session-t5fkhz`, PR #_.** Lautaro trajo un Word (`SOLAPA_MIS_OPERACIONES.docx`) con
+feedback puntual sobre `/operaciones` (las vueltas 1-3 de más abajo, mismo día) — 2 capturas
+anotadas con comentarios sueltos. Pedido explícito: *"ejecutemos las modificaciones que están en
+este Word. No supongas nada, preguntame."* — 4 puntos genuinamente ambiguos resueltos con
+`AskUserQuestion` ANTES de tocar código (las 4 con la opción recomendada).
+
+**Estructura**: "Mi posición" pasa a **dos páginas separadas** ("así como existe posición diaria,
+para llevarlo por separado"): **`/operaciones` = Posición diaria** (Pricing del día + Futuros A3
+del día + resumen ejecutivo, sin Físico del día ni heatmap — sacados de la vista a pedido
+explícito, código intacto en el repo por si se retoma) · **`/operaciones/acumulada` (nueva) =
+Posición acumulada** (Pricing acumulado + Físico acumulado por campaña + Posición de futuros
+acumulada, con "Posición al [fecha]"), navegación cruzada entre las dos. `biblioteca.ts` renombra
+"Mi posición"→**"Posición diaria"** y suma **"Posición acumulada"**. **Evolución pasa a
+`soloMesa: true`** (no borrada — "no es útil para los clientes por ahora, no te digo de
+eliminarlo") — sigue en el menú solo para la mesa, guard cambiado a `requireAdmin()`.
+
+**Ajustes puntuales**: márgenes izquierdos más amplios en los paneles (`.op-panel-bd`, los títulos
+quedaban pegados al borde) · **columnas de mes recortadas de 8 a 6** (`columnasPeriodo()`,
+compartida por Físico/Pricing/Futuros, día y acumulada — esto también resolvió el reclamo de que
+la columna Estado no se veía, estaba fuera del scroll horizontal) · **fila TOTAL sacada** de
+Pricing/Físico ("no me interesan los totales por columna" — la de Posición de futuros acumulada la
+conserva a propósito, solo se le sacó la columna Estado) · **KPI "Resultado futuros (hoy)"
+sacado** del resumen ejecutivo (quedan solo los KPI por producto, que ya reflejaban el total
+acumulado — confirmado, sin cambio de fórmula) · **filtro nuevo en Físico acumulado**
+(todos/con precio/a fijar, `FiltroPrecioFisico` en `posicion.ts`, calculado server-side las 3
+variantes de una — el cliente elige sin volver a pedirle nada a Supabase).
+
+**Verificado**: lint/tsc/**617 tests** (5 nuevos)/build ✅. **Sin verificar**: sesión real logueada
+(este sandbox no tenía credenciales de Supabase) — quedó en lint/tsc/tests/build + revisión de
+código contra las 2 capturas del Word. Detalle:
+[`sesiones/2026-08-06-mejora-mis-operaciones-vuelta-4.md`](sesiones/2026-08-06-mejora-mis-operaciones-vuelta-4.md).
+
+## Anterior (06/08/2026 — 🧱 mejora de "Mis operaciones": resumen ejecutivo + carga en serie + reestructura pricing/físico/día/acumulado + % calzado + físico por campaña + evolución + mobile, HECHO — 3 vueltas)
 
 **🧱 MEJORA DE "MIS OPERACIONES" — HECHA, EN 3 VUELTAS EN LA MISMA SESIÓN — rama
 `claude/mis-operaciones-mejora-yj2t38`, PR #147.** Pedido de Lautaro: mejorar C31 (recién cerrado el

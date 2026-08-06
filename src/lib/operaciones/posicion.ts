@@ -17,14 +17,16 @@ function capitalizar(s: string): string {
 }
 
 /**
- * Las 10 columnas rodantes: Disponible · [mes actual+1 … mes actual+8] · Más
- * adelante — siempre relativas a `hoyISO`, tal como la hoja Posición de Mauro
- * (las columnas de mes "rotan solas").
+ * Las 8 columnas rodantes: Disponible · [mes actual+1 … mes actual+6] · Más
+ * adelante (pedido de Lautaro 06/08/2026: recortar de 8 a 6 meses posteriores
+ * para que la tabla entre sin scroll horizontal) — siempre relativas a
+ * `hoyISO`, tal como la hoja Posición de Mauro (las columnas de mes "rotan
+ * solas").
  */
 export function columnasPeriodo(hoyISO: string): ColumnaPeriodo[] {
   const [y, m] = hoyISO.split("-").map(Number);
   const cols: ColumnaPeriodo[] = [{ key: "disponible", label: "Disponible" }];
-  for (let i = 1; i <= 8; i++) {
+  for (let i = 1; i <= 6; i++) {
     const total = (m ?? 1) - 1 + i;
     const anio = (y ?? 0) + Math.floor(total / 12);
     const mes = (total % 12) + 1;
@@ -39,7 +41,7 @@ export function columnasPeriodo(hoyISO: string): ColumnaPeriodo[] {
  * Bucket de una operación FÍSICA (disponible/forward) — regla de Mauro elegida por
  * Lautoro en §7.2: un forward con entrega dentro de los próximos 30 días figura
  * "Disponible" (la posición migra sola de columna con el paso de los días); si no,
- * va al mes de `entrega_desde`; si ese mes cae fuera de la ventana de 8 meses, va a
+ * va al mes de `entrega_desde`; si ese mes cae fuera de la ventana de 6 meses, va a
  * "Más adelante".
  */
 export function bucketFisico(
@@ -122,13 +124,29 @@ function construirMatriz(
 }
 
 /**
+ * Filtro de "estado de precio" del físico acumulado (pedido de Lautaro
+ * 06/08/2026, exclusivo de Físico acumulado): `"todos"` = sin filtrar (default,
+ * comportamiento de siempre) · `"con_precio"` = solo lo que ya tiene precio
+ * (manual o pizarra) · `"a_fijar"` = solo lo que todavía no lo tiene. Mismo
+ * criterio que `esOperacionConPrecio` usa para el físico (nunca mira
+ * fijaciones/futuros acá, esta matriz ya está acotada a disponible/forward).
+ */
+export type FiltroPrecioFisico = "todos" | "con_precio" | "a_fijar";
+
+/**
  * Matriz FÍSICA (disponible + forward). Excluye anuladas y fijaciones — las
  * fijaciones NO suman volumen (§1.2/§5.1): son un registro que solo genera precio.
  * Los 5 productos (girasol/sorgo también operan físico).
  */
-export function construirMatrizFisico(operaciones: Operacion[], hoyISO: string): Matriz {
+export function construirMatrizFisico(
+  operaciones: Operacion[],
+  hoyISO: string,
+  filtroPrecio: FiltroPrecioFisico = "todos",
+): Matriz {
   const columnas = columnasPeriodo(hoyISO);
-  const vivas = operaciones.filter((o) => !o.anulada && (o.tipo === "disponible" || o.tipo === "forward"));
+  let vivas = operaciones.filter((o) => !o.anulada && (o.tipo === "disponible" || o.tipo === "forward"));
+  if (filtroPrecio === "con_precio") vivas = vivas.filter((o) => o.precio_modo !== "sin_precio");
+  else if (filtroPrecio === "a_fijar") vivas = vivas.filter((o) => o.precio_modo === "sin_precio");
   return construirMatriz(vivas, columnas, (op) => bucketFisico(op, hoyISO, columnas));
 }
 
@@ -161,8 +179,11 @@ export function campaniasFisicasPresentes(operaciones: Operacion[]): string[] {
  * filtrando antes por `campania`, así comparte 100% de la lógica de buckets/
  * neteo (y sirve directo como `builder` de `construirMatrizDia`).
  */
-export function construirMatrizFisicoDeCampania(campania: string): (ops: Operacion[], hoyISO: string) => Matriz {
-  return (ops, hoyISO) => construirMatrizFisico(ops.filter((o) => o.campania === campania), hoyISO);
+export function construirMatrizFisicoDeCampania(
+  campania: string,
+  filtroPrecio: FiltroPrecioFisico = "todos",
+): (ops: Operacion[], hoyISO: string) => Matriz {
+  return (ops, hoyISO) => construirMatrizFisico(ops.filter((o) => o.campania === campania), hoyISO, filtroPrecio);
 }
 
 /**

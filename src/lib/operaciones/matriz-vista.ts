@@ -26,23 +26,15 @@ export function matrizAColumnas(matriz: Matriz): ChartTablaColumna[] {
   ];
 }
 
-/** `filtro` (opcional) acota a un solo producto — la fila TOTAL sigue siendo la de toda la matriz. */
+/** `filtro` (opcional) acota a un solo producto. Sin fila de TOTAL al pie
+ *  (pedido de Lautaro 06/08/2026: "no me interesan los totales por columna"). */
 export function matrizAFilas(matriz: Matriz, filtro?: OperacionProducto): ChartTablaFila[] {
   const filas = filtro ? matriz.filas.filter((f) => f.producto === filtro) : matriz.filas;
-  const rows: ChartTablaFila[] = filas.map((f) => {
+  return filas.map((f) => {
     const fila: ChartTablaFila = { producto: PRODUCTO_LABEL[f.producto], total: fmtNeto(f.total), estado: f.estado };
     for (const c of matriz.columnas) fila[c.key] = fmtNeto(f.porColumna[c.key] ?? 0);
     return fila;
   });
-  const totalFila: ChartTablaFila = { producto: "TOTAL", total: fmtNeto(matriz.totalGeneral), estado: "" };
-  for (const c of matriz.columnas) totalFila[c.key] = fmtNeto(matriz.totalPorColumna[c.key] ?? 0);
-  rows.push(totalFila);
-  return rows;
-}
-
-/** La fila de TOTAL, para el prop `destacada` de `ChartTabla`. */
-export function esFilaTotal(fila: ChartTablaFila): boolean {
-  return fila.producto === "TOTAL";
 }
 
 /** Columnas numéricas de una `Matriz` (períodos + total) — para `ChartTabla.columnasSigno`
@@ -71,9 +63,10 @@ export function matrizDiaAColumnas(matriz: MatrizDia): ChartTablaColumna[] {
   ];
 }
 
+/** Sin fila de TOTAL al pie (mismo pedido que `matrizAFilas`). */
 export function matrizDiaAFilas(matriz: MatrizDia, filtro?: OperacionProducto): ChartTablaFila[] {
   const filas = filtro ? matriz.filas.filter((f) => f.producto === filtro) : matriz.filas;
-  const rows: ChartTablaFila[] = filas.map((f) => {
+  return filas.map((f) => {
     const fila: ChartTablaFila = {
       producto: PRODUCTO_LABEL[f.producto],
       inicial: fmtNeto(f.inicial),
@@ -84,16 +77,6 @@ export function matrizDiaAFilas(matriz: MatrizDia, filtro?: OperacionProducto): 
     for (const c of matriz.columnas) fila[c.key] = fmtNeto(f.porColumna[c.key] ?? 0);
     return fila;
   });
-  const totalFila: ChartTablaFila = {
-    producto: "TOTAL",
-    inicial: fmtNeto(matriz.inicialTotal),
-    netoDia: fmtNeto(matriz.netoDiaGeneral),
-    total: fmtNeto(matriz.totalGeneral),
-    estado: "",
-  };
-  for (const c of matriz.columnas) totalFila[c.key] = fmtNeto(matriz.totalPorColumna[c.key] ?? 0);
-  rows.push(totalFila);
-  return rows;
 }
 
 /** Columnas con signo (verde/rojo) de una `MatrizDia`. */
