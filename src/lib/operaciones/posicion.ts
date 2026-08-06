@@ -145,6 +145,36 @@ export function construirMatrizFuturos(operaciones: Operacion[], hoyISO: string)
 }
 
 /**
+ * ¿La operación YA genera precio? (pedido de Lautaro 06/08/2026 — la tabla de
+ * "pricing"): físicos a precio (manual o pizarra, que resuelve sola §5.4),
+ * fijaciones (SON la generación de precio de un a-fijar) y futuros A3. Lo único
+ * que queda afuera es el negocio a fijar (`sin_precio`).
+ */
+export function esOperacionConPrecio(
+  op: Pick<Operacion, "tipo" | "precio_modo">,
+): boolean {
+  if (op.tipo === "futuro_a3" || op.tipo === "fijacion") return true;
+  return op.precio_modo !== "sin_precio";
+}
+
+/**
+ * Matriz de PRICING (pedido de Lautaro 06/08/2026): la mercadería CON precio —
+ * físicos a precio + fijaciones + futuros A3 — producto × período. A diferencia
+ * de la matriz física, acá las fijaciones SÍ suman volumen: miden cuánta
+ * mercadería ya tiene precio (una fijación es exactamente eso), y los futuros
+ * van en el mes de su posición. Una fijación sin entrega cae en "Disponible".
+ */
+export function construirMatrizPricing(operaciones: Operacion[], hoyISO: string): Matriz {
+  const columnas = columnasPeriodo(hoyISO);
+  const vivas = operaciones.filter((o) => !o.anulada && esOperacionConPrecio(o));
+  return construirMatriz(vivas, columnas, (op) => {
+    if (op.tipo === "futuro_a3" && op.posicion_a3) return bucketFuturo(op.posicion_a3, columnas);
+    if (op.tipo === "fijacion" && !op.entrega_desde) return "disponible";
+    return bucketFisico(op, hoyISO, columnas);
+  });
+}
+
+/**
  * Matriz TOTAL = físico + futuros, columna a columna (misma forma que las dos anteriores,
  * siempre los 5 productos porque parte de `fisico`). Empareja por `producto`, NO por índice
  * — `futuros` puede tener menos filas que `fisico` (girasol/sorgo sin fila de futuros).
@@ -187,6 +217,63 @@ export function construirNetoDelDia(operacionesDelDia: Operacion[], hoyISO: stri
  */
 export function filtrarHasta(operaciones: Operacion[], fechaCorte: string): Operacion[] {
   return operaciones.filter((o) => o.fecha <= fechaCorte);
+}
+
+// ============================================================================
+// "Posición del día" (pedido de Lautaro 06/08/2026): los movimientos de UN día
+// con su POSICIÓN INICIAL (lo acumulado hasta el día anterior, con el mismo
+// criterio de la matriz — pricing con pricing, físico con físico) y el total
+// resultante. Integridad por construcción: total = inicial + neto del día, y
+// como inicial y día salen del MISMO builder sobre el mismo array, el total
+// coincide EXACTO con la matriz acumulada hasta ese día (testeado aparte contra
+// el camino independiente `builder(filtrarHasta(ops, dia))`).
+// ============================================================================
+
+export type FilaMatrizDia = {
+  producto: OperacionProducto;
+  /** Acumulado hasta el día ANTERIOR (la "posición inicial" del día). */
+  inicial: number;
+  /** Movimientos del día, por columna de período (relativa a HOY, como todo). */
+  porColumna: Record<string, number>;
+  /** Neto del día (suma de `porColumna`). */
+  netoDia: number;
+  /** inicial + netoDia = acumulado al cierre del día. */
+  total: number;
+  estado: Estado;
+};
+
+export type MatrizDia = {
+  columnas: ColumnaPeriodo[];
+  filas: FilaMatrizDia[];
+  inicialTotal: number;
+  totalPorColumna: Record<string, number>;
+  netoDiaGeneral: number;
+  totalGeneral: number;
+};
+
+export function construirMatrizDia(
+  operaciones: Operacion[],
+  diaISO: string,
+  hoyISO: string,
+  builder: (ops: Operacion[], hoy: string) => Matriz,
+): MatrizDia {
+  const inicial = builder(operaciones.filter((o) => o.fecha < diaISO), hoyISO);
+  const dia = builder(operaciones.filter((o) => o.fecha === diaISO), hoyISO);
+
+  const filas: FilaMatrizDia[] = dia.filas.map((f) => {
+    const ini = inicial.filas.find((x) => x.producto === f.producto)?.total ?? 0;
+    const total = redondear(ini + f.total);
+    return { producto: f.producto, inicial: ini, porColumna: f.porColumna, netoDia: f.total, total, estado: estadoDe(total) };
+  });
+
+  return {
+    columnas: dia.columnas,
+    filas,
+    inicialTotal: inicial.totalGeneral,
+    totalPorColumna: dia.totalPorColumna,
+    netoDiaGeneral: dia.totalGeneral,
+    totalGeneral: redondear(inicial.totalGeneral + dia.totalGeneral),
+  };
 }
 
 // ============================================================================

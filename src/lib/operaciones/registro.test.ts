@@ -107,6 +107,27 @@ describe("validarOperacion — fijación (§1.2/§7.1)", () => {
   });
 });
 
+describe("validarOperacion — condición a fijar sin precio (pedido 06/08/2026)", () => {
+  it("un disponible a fijar con precio manual se rechaza", () => {
+    const r = validarOperacion({ ...BASE, condicion: "a_fijar" });
+    expect(r.ok).toBe(false);
+  });
+  it("un forward a fijar con pizarra se rechaza", () => {
+    const r = validarOperacion({
+      ...BASE, tipo: "forward", condicion: "a_fijar", entregaDesde: "2026-11-01", precioModo: "pizarra",
+    });
+    expect(r.ok).toBe(false);
+  });
+  it("un disponible a fijar SIN precio pasa", () => {
+    const r = validarOperacion({ ...BASE, condicion: "a_fijar", precioModo: "sin_precio", precio: null, moneda: "" });
+    expect(r.ok).toBe(true);
+  });
+  it("la fijación misma no se ve afectada (sigue exigiendo manual)", () => {
+    const r = validarOperacion({ ...BASE, tipo: "fijacion", condicion: "a_fijar" });
+    expect(r.ok).toBe(true);
+  });
+});
+
 describe("validarOperacion — forward (§5.2)", () => {
   it("exige entrega_desde", () => {
     const r = validarOperacion({ ...BASE, tipo: "forward" });

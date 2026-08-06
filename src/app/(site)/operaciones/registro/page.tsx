@@ -106,7 +106,6 @@ export default async function RegistroPage({
             empresaId={empresaId}
             empresas={acceso.esAdmin ? empresas : null}
             fecha={fecha}
-            hoy={hoy}
             operaciones={operacionesDelDia}
             historial={historial}
             precios={precios}

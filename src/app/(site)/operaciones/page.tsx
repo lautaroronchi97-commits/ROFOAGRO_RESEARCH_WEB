@@ -5,15 +5,17 @@ import { getOperaciones, getEmpresasParaSelector } from "@/lib/operaciones/datos
 import {
   construirMatrizFisico,
   construirMatrizFuturos,
+  construirMatrizPricing,
+  construirMatrizDia,
   combinarMatrices,
   construirHeatmap,
   filtrarHasta,
 } from "@/lib/operaciones/posicion";
-import { valorizarFuturos, claveAjuste, type AjusteLookup } from "@/lib/operaciones/futuros-valorizados";
+import { valorizarFuturos, acumularFuturos, claveAjuste, type AjusteLookup } from "@/lib/operaciones/futuros-valorizados";
+import { resumenPosicion } from "@/lib/operaciones/resumen";
 import { getCierresGranos } from "@/lib/futuros";
 import { hoyCordobaISO } from "@/lib/dates";
 import { PageHead } from "@/components/page-head";
-import { Panel, PanelHead } from "@/components/panel";
 import { PosicionClient } from "./posicion-client";
 
 /**
@@ -45,7 +47,7 @@ function armarAjusteLookup(cierres: Awaited<ReturnType<typeof getCierresGranos>>
 export default async function OperacionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ empresa?: string; fecha?: string }>;
+  searchParams: Promise<{ empresa?: string; fecha?: string; dia?: string }>;
 }) {
   await requireSeccion("operaciones", "/operaciones");
   const sp = await searchParams;
@@ -78,21 +80,36 @@ export default async function OperacionesPage({
 
   const hoy = hoyCordobaISO();
   const fechaCorte = sp.fecha && FECHA_RE.test(sp.fecha) && sp.fecha !== hoy ? sp.fecha : null;
+  const dia = sp.dia && FECHA_RE.test(sp.dia) && sp.dia <= hoy ? sp.dia : hoy;
 
   const [operaciones, cierres] = await Promise.all([getOperaciones(empresaId), getCierresGranos()]);
+  const ajustes = armarAjusteLookup(cierres);
 
-  // Las 3 matrices SÍ respetan "Posición al [fecha]" (§5.1: filtrar fecha <= corte);
-  // el heatmap y el panel de futuros valorizado quedan siempre relativos a HOY
-  // (el heatmap es "el patrón de los últimos N días" y el ajuste de mercado de
-  // los futuros solo existe para hoy — no hay un "mark-to-market pasado" sin
-  // guardar historial de ajustes, fuera de v1).
+  // POSICIÓN DEL DÍA (pedido de Lautaro 06/08/2026): pricing y físico del día
+  // elegido, cada uno con su posición inicial (lo acumulado hasta el día
+  // anterior, mismo criterio de tabla) — integridad por construcción: inicial +
+  // neto del día = acumulado al cierre de ese día, testeado también contra el
+  // camino independiente en posicion.test.ts. Los futuros del día se valorizan
+  // con el ajuste de HOY (no hay mark-to-market pasado sin historial de ajustes).
+  const pricingDia = construirMatrizDia(operaciones, dia, hoy, construirMatrizPricing);
+  const fisicoDia = construirMatrizDia(operaciones, dia, hoy, construirMatrizFisico);
+  const futurosDia = valorizarFuturos(operaciones.filter((o) => o.fecha === dia), ajustes);
+
+  // POSICIÓN ACUMULADA: pricing y físico con el mismo criterio, respetando
+  // "Posición al [fecha]"; la posición de futuros acumulada (neteo + precio
+  // promedio + valorización) queda siempre relativa a HOY, como el ajuste.
   const operacionesParaMatriz = fechaCorte ? filtrarHasta(operaciones, fechaCorte) : operaciones;
-  const fisico = construirMatrizFisico(operacionesParaMatriz, hoy);
-  const futuros = construirMatrizFuturos(operacionesParaMatriz, hoy);
-  const total = combinarMatrices(fisico, futuros);
+  const pricingAcum = construirMatrizPricing(operacionesParaMatriz, hoy);
+  const fisicoAcum = construirMatrizFisico(operacionesParaMatriz, hoy);
+  const futurosAcum = acumularFuturos(operaciones, ajustes);
 
   const heatmap = construirHeatmap(operaciones, hoy, HEATMAP_VENTANA_MAX);
-  const futurosValorizados = valorizarFuturos(operaciones, armarAjusteLookup(cierres));
+
+  // El resumen ejecutivo condensa la posición acumulada completa (físico +
+  // futuros por producto) y el resultado de futuros a hoy.
+  const futurosValorizados = valorizarFuturos(operaciones, ajustes);
+  const futurosMatriz = construirMatrizFuturos(operacionesParaMatriz, hoy);
+  const resumen = resumenPosicion(fisicoAcum, combinarMatrices(fisicoAcum, futurosMatriz), futurosValorizados);
 
   return (
     <main className="wrap">
@@ -102,21 +119,23 @@ export default async function OperacionesPage({
           title="Mis operaciones"
           lede="Producto por período de entrega, siempre relativo a hoy."
         />
-        <Panel id="op-posicion">
-          <PanelHead title="Posición" sub="acumulada, desde la primera operación cargada" />
-          <PosicionClient
-            empresaId={empresaId}
-            empresas={acceso.esAdmin ? empresas : null}
-            hoy={hoy}
-            fechaCorte={fechaCorte}
-            fisico={fisico}
-            futuros={futuros}
-            total={total}
-            heatmap={heatmap}
-            futurosValorizados={futurosValorizados}
-            esAdmin={acceso.esAdmin}
-          />
-        </Panel>
+        <PosicionClient
+          empresaId={empresaId}
+          empresas={acceso.esAdmin ? empresas : null}
+          hoy={hoy}
+          dia={dia}
+          fechaCorte={fechaCorte}
+          pricingDia={pricingDia}
+          fisicoDia={fisicoDia}
+          futurosDia={futurosDia}
+          pricingAcum={pricingAcum}
+          fisicoAcum={fisicoAcum}
+          futurosAcum={futurosAcum}
+          heatmap={heatmap}
+          resumen={resumen}
+          sinOperaciones={operaciones.length === 0}
+          esAdmin={acceso.esAdmin}
+        />
       </div>
     </main>
   );

@@ -5,6 +5,9 @@ import {
   bucketFuturo,
   construirMatrizFisico,
   construirMatrizFuturos,
+  construirMatrizPricing,
+  construirMatrizDia,
+  esOperacionConPrecio,
   combinarMatrices,
   construirNetoDelDia,
   filtrarHasta,
@@ -254,5 +257,98 @@ describe("construirHeatmap — calendario producto × día (§1.23/§5.6, Fase 2
     expect(hm.dias).toEqual(["2026-07-31", "2026-08-01", "2026-08-02"]);
     const soja = hm.filas.find((f) => f.producto === "soja")!;
     expect(soja.porDia["2026-07-31"]).toBe(80);
+  });
+});
+
+describe("construirMatrizPricing (pedido 06/08/2026 — mercadería CON precio)", () => {
+  it("incluye físicos a precio/pizarra, fijaciones y futuros; excluye a fijar y anuladas", () => {
+    const ops = [
+      op({ volumen_tn: 200, precio_modo: "manual", precio: 320, moneda: "usd" }),
+      op({ volumen_tn: 50, precio_modo: "pizarra", moneda: "usd" }),
+      op({ volumen_tn: 80, precio_modo: "sin_precio", condicion: "a_fijar" }), // a fijar: NO entra
+      op({ volumen_tn: 120, tipo: "fijacion", precio_modo: "manual", precio: 330, moneda: "usd" }),
+      op({ volumen_tn: 300, tipo: "futuro_a3", posicion_a3: "NOV26", precio_modo: "manual", precio: 320, moneda: "usd" }),
+      op({ volumen_tn: 999, precio_modo: "manual", precio: 320, moneda: "usd", anulada: true }),
+    ];
+    const m = construirMatrizPricing(ops, HOY);
+    const soja = m.filas.find((f) => f.producto === "soja")!;
+    // 200 + 50 + 120 (fijación SÍ suma acá) + 300 (futuro NOV26) = 670
+    expect(soja.total).toBe(670);
+    expect(soja.porColumna["disponible"]).toBe(370); // 200 + 50 + fijación sin entrega
+    expect(soja.porColumna["2026-11"]).toBe(300); // el futuro va al mes de su posición
+    expect(soja.estado).toBe("COMPRADOS");
+  });
+
+  it("físico vs pricing: el a fijar está en físico pero no en pricing (y la fijación al revés)", () => {
+    const ops = [
+      op({ volumen_tn: 100, precio_modo: "sin_precio", condicion: "a_fijar" }),
+      op({ volumen_tn: 100, tipo: "fijacion", precio_modo: "manual", precio: 325, moneda: "usd" }),
+    ];
+    const fisico = construirMatrizFisico(ops, HOY);
+    const pricing = construirMatrizPricing(ops, HOY);
+    expect(fisico.filas.find((f) => f.producto === "soja")!.total).toBe(100); // solo el a fijar
+    expect(pricing.filas.find((f) => f.producto === "soja")!.total).toBe(100); // solo la fijación
+  });
+
+  it("esOperacionConPrecio: la pizarra cuenta como con precio", () => {
+    expect(esOperacionConPrecio({ tipo: "disponible", precio_modo: "pizarra" })).toBe(true);
+    expect(esOperacionConPrecio({ tipo: "disponible", precio_modo: "sin_precio" })).toBe(false);
+    expect(esOperacionConPrecio({ tipo: "fijacion", precio_modo: "manual" })).toBe(true);
+    expect(esOperacionConPrecio({ tipo: "futuro_a3", precio_modo: "manual" })).toBe(true);
+  });
+});
+
+describe("construirMatrizDia (posición inicial + integridad entre tablas)", () => {
+  const ops = [
+    op({ fecha: "2026-08-01", volumen_tn: 200, precio_modo: "manual", precio: 320, moneda: "usd" }),
+    op({ fecha: "2026-08-03", lado: "venta", volumen_tn: 60, precio_modo: "manual", precio: 330, moneda: "usd" }),
+    op({ fecha: HOY, volumen_tn: 100, precio_modo: "manual", precio: 335, moneda: "usd" }),
+    op({ fecha: HOY, producto: "maiz", tipo: "forward", volumen_tn: 80, entrega_desde: "2026-10-15", precio_modo: "sin_precio", condicion: "a_fijar" }),
+  ];
+
+  it("inicial = acumulado hasta el día anterior; total = inicial + neto del día", () => {
+    const m = construirMatrizDia(ops, HOY, HOY, construirMatrizFisico);
+    const soja = m.filas.find((f) => f.producto === "soja")!;
+    expect(soja.inicial).toBe(140); // 200 − 60
+    expect(soja.netoDia).toBe(100);
+    expect(soja.total).toBe(240);
+    expect(soja.estado).toBe("COMPRADOS");
+    const maiz = m.filas.find((f) => f.producto === "maiz")!;
+    expect(maiz.inicial).toBe(0);
+    expect(maiz.netoDia).toBe(80);
+    expect(m.totalGeneral).toBe(320);
+  });
+
+  it("INTEGRIDAD: el total del día coincide EXACTO con la matriz acumulada hasta ese día (camino independiente)", () => {
+    for (const builder of [construirMatrizFisico, construirMatrizPricing]) {
+      const dia = construirMatrizDia(ops, HOY, HOY, builder);
+      const acumulada = builder(filtrarHasta(ops, HOY), HOY);
+      for (const f of dia.filas) {
+        const fAcum = acumulada.filas.find((x) => x.producto === f.producto)!;
+        expect(f.total).toBe(fAcum.total);
+        expect(f.estado).toBe(fAcum.estado);
+      }
+      expect(dia.totalGeneral).toBe(acumulada.totalGeneral);
+    }
+  });
+
+  it("un día sin operaciones: neto 0 y total = inicial", () => {
+    const m = construirMatrizDia(ops, "2026-08-04", HOY, construirMatrizFisico);
+    const soja = m.filas.find((f) => f.producto === "soja")!;
+    expect(soja.inicial).toBe(140);
+    expect(soja.netoDia).toBe(0);
+    expect(soja.total).toBe(140);
+  });
+
+  it("pricing del día: la posición inicial viene de lo acumulado A PRECIO (no del físico)", () => {
+    const conAFijar = [
+      op({ fecha: "2026-08-01", volumen_tn: 500, precio_modo: "sin_precio", condicion: "a_fijar" }),
+      op({ fecha: "2026-08-01", volumen_tn: 200, precio_modo: "manual", precio: 320, moneda: "usd" }),
+      op({ fecha: HOY, volumen_tn: 100, precio_modo: "manual", precio: 335, moneda: "usd" }),
+    ];
+    const pricingDia = construirMatrizDia(conAFijar, HOY, HOY, construirMatrizPricing);
+    const fisicoDia = construirMatrizDia(conAFijar, HOY, HOY, construirMatrizFisico);
+    expect(pricingDia.filas.find((f) => f.producto === "soja")!.inicial).toBe(200); // sin las 500 a fijar
+    expect(fisicoDia.filas.find((f) => f.producto === "soja")!.inicial).toBe(700); // con ellas
   });
 });

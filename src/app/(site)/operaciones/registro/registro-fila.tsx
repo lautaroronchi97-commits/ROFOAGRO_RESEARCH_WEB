@@ -26,17 +26,19 @@ function fmtPrecio(moneda: string | null, precio: PrecioResuelto): string {
   return `${simbolo} ${valor}${sufijo}`;
 }
 
-/** Una fila de compra/venta del día: datos + editar/anular/restaurar + historial desplegable. */
+/** Una fila de compra/venta del día: datos + editar/duplicar/anular/restaurar + historial desplegable. */
 export function RegistroFila({
   operacion,
   precio,
   historial,
   onEditar,
+  onDuplicar,
 }: {
   operacion: Operacion;
   precio: PrecioResuelto;
   historial: OperacionLogEntry[];
   onEditar: () => void;
+  onDuplicar: () => void;
 }) {
   const [stAnular, actAnular, pendAnular] = useActionState<OperacionFormState, FormData>(anularOperacion, undefined);
   const [stRestaurar, actRestaurar, pendRestaurar] = useActionState<OperacionFormState, FormData>(restaurarOperacion, undefined);
@@ -60,6 +62,9 @@ export function RegistroFila({
           <>
             <button type="button" className="admin-btn admin-btn-ghost" onClick={onEditar}>
               Editar
+            </button>
+            <button type="button" className="admin-btn admin-btn-ghost" onClick={onDuplicar}>
+              Duplicar
             </button>
             <form action={actAnular}>
               <input type="hidden" name="id" value={operacion.id} />

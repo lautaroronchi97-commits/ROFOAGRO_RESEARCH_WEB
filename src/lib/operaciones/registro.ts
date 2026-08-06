@@ -164,6 +164,14 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
     return { ok: false, error: 'Una fijación siempre tiene precio (no puede ser "pizarra" ni "sin precio").' };
   }
 
+  // Pedido de Lautaro 06/08/2026: un negocio con condición "a fijar" va SIN
+  // precio — justamente el precio llega después, con la fijación. Solo aplica a
+  // los físicos (disponible/forward): la fijación misma y el futuro A3 llevan
+  // precio manual por definición (checks de arriba).
+  if (condicion === "a_fijar" && (tipo === "disponible" || tipo === "forward") && precio_modo !== "sin_precio") {
+    return { ok: false, error: 'Un negocio "a fijar" va sin precio — el precio se genera después con la fijación.' };
+  }
+
   const descuento_pct = input.descuentoPct != null && input.descuentoPct > 0 ? input.descuentoPct : null;
   if (descuento_pct != null && (descuento_pct < 0 || descuento_pct > 100)) {
     return { ok: false, error: "El descuento en % debe estar entre 0 y 100." };

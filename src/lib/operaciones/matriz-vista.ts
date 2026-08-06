@@ -1,5 +1,5 @@
 import type { ChartTablaColumna, ChartTablaFila } from "@/components/chart-tabla";
-import type { Matriz } from "./posicion";
+import type { Matriz, MatrizDia } from "./posicion";
 import { PRODUCTO_LABEL, type OperacionProducto } from "./tipos";
 
 /**
@@ -53,3 +53,50 @@ export function columnasSignoDe(matriz: Matriz): string[] {
 
 /** Para `ChartTabla.columnasEstado` (COMPRADOS/VENDIDOS con el mismo color). */
 export const COLUMNA_ESTADO = ["estado"];
+
+// ============================================================================
+// Vista de una `MatrizDia` (pedido de Lautaro 06/08/2026): Posición inicial ·
+// movimientos del día por período · Neto del día · Total (= inicial + día) ·
+// Estado. Mismo `fmtNeto`/colores que la matriz acumulada.
+// ============================================================================
+
+export function matrizDiaAColumnas(matriz: MatrizDia): ChartTablaColumna[] {
+  return [
+    { key: "producto", label: "Producto", align: "left" },
+    { key: "inicial", label: "Pos. inicial" },
+    ...matriz.columnas.map((c) => ({ key: c.key, label: c.label })),
+    { key: "netoDia", label: "Neto del día" },
+    { key: "total", label: "Total" },
+    { key: "estado", label: "Estado" },
+  ];
+}
+
+export function matrizDiaAFilas(matriz: MatrizDia, filtro?: OperacionProducto): ChartTablaFila[] {
+  const filas = filtro ? matriz.filas.filter((f) => f.producto === filtro) : matriz.filas;
+  const rows: ChartTablaFila[] = filas.map((f) => {
+    const fila: ChartTablaFila = {
+      producto: PRODUCTO_LABEL[f.producto],
+      inicial: fmtNeto(f.inicial),
+      netoDia: fmtNeto(f.netoDia),
+      total: fmtNeto(f.total),
+      estado: f.estado,
+    };
+    for (const c of matriz.columnas) fila[c.key] = fmtNeto(f.porColumna[c.key] ?? 0);
+    return fila;
+  });
+  const totalFila: ChartTablaFila = {
+    producto: "TOTAL",
+    inicial: fmtNeto(matriz.inicialTotal),
+    netoDia: fmtNeto(matriz.netoDiaGeneral),
+    total: fmtNeto(matriz.totalGeneral),
+    estado: "",
+  };
+  for (const c of matriz.columnas) totalFila[c.key] = fmtNeto(matriz.totalPorColumna[c.key] ?? 0);
+  rows.push(totalFila);
+  return rows;
+}
+
+/** Columnas con signo (verde/rojo) de una `MatrizDia`. */
+export function columnasSignoDia(matriz: MatrizDia): string[] {
+  return ["inicial", ...matriz.columnas.map((c) => c.key), "netoDia", "total"];
+}
