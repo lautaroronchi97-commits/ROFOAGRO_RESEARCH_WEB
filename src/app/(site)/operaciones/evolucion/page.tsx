@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { requireSeccion, getAcceso } from "@/lib/auth/dal";
+import { requireAdmin } from "@/lib/auth/dal";
 import { getOperaciones, getEmpresasParaSelector } from "@/lib/operaciones/datos";
 import { evolucionFisico, campaniasFisicasPresentes } from "@/lib/operaciones/posicion";
 import { campaniaActualIniYear, campaniaLabel } from "@/lib/operaciones/registro";
@@ -16,8 +15,12 @@ import { EvolucionClient } from "./evolucion-client";
  * en solapa propia — "no quiero landings interminables de scroll hacia
  * abajo"): la curva de cómo se fue construyendo el FÍSICO acumulado en el
  * tiempo, por producto, de UNA campaña a la vez (mismo criterio que el físico
- * segmentado de "Mi posición": campañas distintas no son la misma mercadería,
- * nunca se mezclan en la misma línea).
+ * segmentado de "Posición diaria"/"Posición acumulada": campañas distintas no
+ * son la misma mercadería, nunca se mezclan en la misma línea).
+ *
+ * Solo mesa desde la vuelta 4 (06/08/2026): "por ahora lo ocultamos no es útil
+ * para los clientes" — mismo patrón `requireAdmin()` que `/comercio/puertos`,
+ * con selector de empresa para que el admin elija a quién mirar.
  */
 export const metadata: Metadata = {
   title: "Evolución · Mis operaciones · ROFO AGRO",
@@ -30,30 +33,17 @@ export default async function EvolucionPage({
 }: {
   searchParams: Promise<{ empresa?: string; campania?: string }>;
 }) {
-  await requireSeccion("operaciones", "/operaciones/evolucion");
+  await requireAdmin();
   const sp = await searchParams;
-  const acceso = await getAcceso();
-  if (!acceso) redirect("/ingresar");
-
-  let empresaId: string | null;
-  let empresas: { id: string; nombre: string }[] = [];
-  if (acceso.esAdmin) {
-    empresas = await getEmpresasParaSelector();
-    empresaId = sp.empresa && empresas.some((e) => e.id === sp.empresa) ? sp.empresa : (empresas[0]?.id ?? null);
-  } else {
-    empresaId = acceso.perfil.empresa_id;
-  }
+  const empresas = await getEmpresasParaSelector();
+  const empresaId = sp.empresa && empresas.some((e) => e.id === sp.empresa) ? sp.empresa : (empresas[0]?.id ?? null);
 
   if (!empresaId) {
     return (
       <main className="wrap">
         <div className="col">
           <PageHead kicker="Físico acumulado en el tiempo" title="Evolución de la posición" />
-          <p className="dim">
-            {acceso.esAdmin
-              ? "Todavía no hay empresas cargadas."
-              : "Tu cuenta todavía no tiene una empresa asignada — pedile a la mesa que te la habilite."}
-          </p>
+          <p className="dim">Todavía no hay empresas cargadas.</p>
         </div>
       </main>
     );

@@ -52,13 +52,13 @@ function op(over: Partial<Operacion>): Operacion {
 }
 
 describe("columnasPeriodo", () => {
-  it("10 columnas: Disponible + 8 meses + Más adelante, rotando desde hoy", () => {
+  it("8 columnas: Disponible + 6 meses + Más adelante, rotando desde hoy", () => {
     const cols = columnasPeriodo(HOY);
-    expect(cols).toHaveLength(10);
+    expect(cols).toHaveLength(8);
     expect(cols[0]).toEqual({ key: "disponible", label: "Disponible" });
     expect(cols[1]).toEqual({ key: "2026-09", label: "Sep-26" });
-    expect(cols[8]).toEqual({ key: "2027-04", label: "Abr-27" });
-    expect(cols[9]).toEqual({ key: "mas_adelante", label: "Más adelante" });
+    expect(cols[6]).toEqual({ key: "2027-02", label: "Feb-27" });
+    expect(cols[7]).toEqual({ key: "mas_adelante", label: "Más adelante" });
   });
 
   it("cruza el año nuevo correctamente (diciembre)", () => {
@@ -82,7 +82,7 @@ describe("bucketFisico — regla de Mauro (§5.2/§7.2, hoy+30 exacto)", () => {
   it("forward con entrega ya pasada: Disponible (la entrega ya arrancó)", () => {
     expect(bucketFisico({ tipo: "forward", entrega_desde: "2026-07-01" }, HOY, cols)).toBe("disponible");
   });
-  it("forward más allá de 8 meses: Más adelante", () => {
+  it("forward más allá de 6 meses: Más adelante", () => {
     expect(bucketFisico({ tipo: "forward", entrega_desde: "2027-08-01" }, HOY, cols)).toBe("mas_adelante");
   });
 });
@@ -144,6 +144,34 @@ describe("construirMatrizFisico — reglas del neto (§5.1)", () => {
     const soja = construirMatrizFisico(ops, HOY).filas.find((f) => f.producto === "soja")!;
     expect(soja.estado).toBe("VENDIDOS");
     expect(construirMatrizFisico([], HOY).filas.find((f) => f.producto === "soja")!.estado).toBe("NEUTRO");
+  });
+});
+
+describe("construirMatrizFisico — filtro de precio (pedido 06/08/2026, Físico acumulado)", () => {
+  const ops = [
+    op({ lado: "compra", volumen_tn: 200, precio_modo: "manual", precio: 320, moneda: "usd" }),
+    op({ lado: "venta", volumen_tn: 50, precio_modo: "sin_precio", condicion: "a_fijar" }),
+  ];
+
+  it("todos (default): suma con precio y a fijar", () => {
+    const soja = construirMatrizFisico(ops, HOY).filas.find((f) => f.producto === "soja")!;
+    expect(soja.total).toBe(150);
+  });
+
+  it("con_precio: solo lo que ya tiene precio", () => {
+    const soja = construirMatrizFisico(ops, HOY, "con_precio").filas.find((f) => f.producto === "soja")!;
+    expect(soja.total).toBe(200);
+  });
+
+  it("a_fijar: solo lo que todavía no tiene precio", () => {
+    const soja = construirMatrizFisico(ops, HOY, "a_fijar").filas.find((f) => f.producto === "soja")!;
+    expect(soja.total).toBe(-50);
+  });
+
+  it("construirMatrizFisicoDeCampania propaga el filtro", () => {
+    const conCampania = ops.map((o) => ({ ...o, campania: "25/26" }));
+    const m = construirMatrizFisicoDeCampania("25/26", "con_precio")(conCampania, HOY);
+    expect(m.filas.find((f) => f.producto === "soja")!.total).toBe(200);
   });
 });
 

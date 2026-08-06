@@ -33,7 +33,8 @@ function descargarCsvDia(operaciones: Operacion[], fecha: string) {
 }
 
 /**
- * Registro diario (§5.6, docs/PLAN_OPERACIONES_CLIENTES.md §8): orquesta el
+ * Carga de negocios (§5.6, docs/PLAN_OPERACIONES_CLIENTES.md §8 — renombrada de
+ * "Registro diario" 06/08/2026, vuelta 4): orquesta el
  * formulario de carga/edición y los listados de compras/ventas del día — solo
  * lo que se va realizando, sin tablas de posición (pedido de Lautaro
  * 06/08/2026: el neto/posición vive en /operaciones, acá se CARGA). Todo el

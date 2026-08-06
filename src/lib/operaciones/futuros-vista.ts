@@ -111,6 +111,7 @@ export function futuroEsFilaDestacada(fila: ChartTablaFila): boolean {
 // valorización — mismo esquema de subtotales/TOTAL que la tabla por operación.
 // ============================================================================
 
+/** Sin columna Estado (pedido de Lautaro 06/08/2026: "dejala igual, quitale la columna estado"). */
 export function futurosAcumuladosAColumnas(): ChartTablaColumna[] {
   return [
     { key: "posicion", label: "Posición", align: "left" },
@@ -119,7 +120,6 @@ export function futurosAcumuladosAColumnas(): ChartTablaColumna[] {
     { key: "promedio", label: "Precio prom. (USD)" },
     { key: "ajuste", label: "Ajuste hoy (USD)" },
     { key: "resultado", label: "Resultado (USD)" },
-    { key: "estado", label: "Estado", align: "left" },
   ];
 }
 
@@ -146,8 +146,6 @@ export function futurosAcumuladosAFilas(filas: FuturoAcumulado[], filtro?: Opera
         promedio: fmtMoneda(f.precioPromedio),
         ajuste: fmtMoneda(f.ajusteHoy),
         resultado: f.estado === "valorizado" ? fmtNeto(f.resultadoUsd ?? 0) : "—",
-        estado:
-          f.estado === "valorizado" && f.netoTn === 0 ? "Cerrada (resultado fijado)" : ESTADO_LABEL[f.estado],
       });
     }
 
@@ -159,7 +157,6 @@ export function futurosAcumuladosAFilas(filas: FuturoAcumulado[], filtro?: Opera
         promedio: "",
         ajuste: "",
         resultado: subtotalValorizado ? fmtNeto(subtotal) : "—",
-        estado: "",
       });
     }
   }
@@ -174,7 +171,6 @@ export function futurosAcumuladosAFilas(filas: FuturoAcumulado[], filtro?: Opera
       promedio: "",
       ajuste: "",
       resultado: valorizadas.length > 0 ? fmtNeto(total) : "—",
-      estado: "",
     });
   }
 
