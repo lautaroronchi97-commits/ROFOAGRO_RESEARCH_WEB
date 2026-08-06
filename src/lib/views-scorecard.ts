@@ -18,7 +18,10 @@ import { vencKeyDePosicion, vtoDePosicion } from "./dates";
 
 export type FuturoCierreRow = { underlying: string; posicion: string; fecha: string; settlement: number };
 
-export const GRANO_UNDERLYING: Record<GranoView, string> = { soja: "SOJ", maiz: "MAI", trigo: "TRI" };
+/** `aceite_soja` no tiene futuro local en A3 (sin fila en `futuros_cierres`) — el ticker de
+ *  abajo es un placeholder que nunca matchea un `underlying` real, así el scorecard de ese
+ *  grano degrada siempre a `nMedidos: 0` en vez de mezclar el retorno de otro producto. */
+export const GRANO_UNDERLYING: Record<GranoView, string> = { soja: "SOJ", maiz: "MAI", trigo: "TRI", aceite_soja: "SOJACEITE" };
 
 const VENTANAS_DIAS = [7, 14, 28] as const;
 /** Umbral de "sin movimiento" para que un view NEUTRAL cuente como acierto — provisorio, a calibrar
@@ -218,7 +221,7 @@ export function calcularScorecard(
   rows: FuturoCierreRow[],
 ): Scorecard {
   const porView: Record<string, ScorecardView> = {};
-  const rowsPorGrano: Record<GranoView, ScorecardView[]> = { soja: [], maiz: [], trigo: [] };
+  const rowsPorGrano: Record<GranoView, ScorecardView[]> = { soja: [], maiz: [], trigo: [], aceite_soja: [] };
 
   for (const v of views) {
     const underlying = GRANO_UNDERLYING[v.grano];

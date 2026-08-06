@@ -19,10 +19,49 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 06/08/2026 — 🧱 mejora de "Mis operaciones", vuelta 4: feedback de Lautaro por Word — Posición diaria/acumulada en páginas separadas, HECHO)
+## Ahora (última actualización: 06/08/2026 — 🛢️ view semanal: aceite de soja como 4º grano, HECHO — migración sin aplicar)
+
+**🛢️ SKILL `view-mercado`: ACEITE DE SOJA COMO 4º GRANO — HECHO, migración SIN aplicar —
+rama `claude/weekly-view-soybean-oil-j5gftn`, PR #_.** Pedido de Lautaro: que el view
+direccional semanal (research de la mesa en `/granos/view`, hasta ahora soja/maíz/trigo)
+también produzca un view para **aceite de soja**.
+
+**Código**: `GranoView` suma `aceite_soja` (`views-mercado.ts`: `GRANOS_VIEW`/
+`GRANO_VIEW_LABEL`/los 2 objetos hardcodeados de `getViewsMercado`/`getScorecard`) ·
+`views-scorecard.ts` (`GRANO_UNDERLYING["aceite_soja"]` = ticker placeholder que nunca
+matchea `futuros_cierres` — sin futuro local en A3, el scorecard de este grano degrada
+SIEMPRE a "sin datos", honesto y a propósito, no se inventó una serie) ·
+`informe-semanal.ts` (`getScorecardResumen` actualizado solo para compilar) ·
+`/granos/view` (`GRANO_EMOJI["aceite_soja"] = "🫗"`, el resto de la página ya era genérico
+sobre `GRANOS_VIEW`). **Skill `.claude/skills/view-mercado/SKILL.md` actualizada**:
+explica que aceite de soja no tiene futuro local (no le aplican temperatura/semáforo/
+empresas/embarques/negociado/senalCamiones/arbitrajes/pases, que miden el poroto), que su
+driver primario es `chicago.agro` "Aceite de soja" (CBOT ZL, ya en los insumos) y su ancla
+local `capacidad.industriaSoja` (FAS teórico aceite+harina de C16), y suma research propio
+(margen de crush, aceite de palma MPOB, biodiésel) al fan-out F1.
+
+**Migración** `20260806130000_view_mercado_aceite_soja.sql` (escrita, **SIN aplicar**,
+protocolo de siempre): amplía el `CHECK` de `views_mercado.grano` a
+`soja|maiz|trigo|aceite_soja` (mismo patrón por catálogo que
+`20260804120000_e1_views_mercado_5_estados`).
+
+**Verificado**: lint/tsc/**613 tests**/build ✅ (sin tests nuevos — se extendieron
+objetos/tipos ya cubiertos por los tests existentes, que siguen pasando sin cambios; no
+se tocó ninguna fórmula). **Sin verificar con datos reales**: no se corrió la skill de
+punta a punta (requiere la migración aplicada + creds reales) — el primer view real de
+`aceite_soja` queda para la primera corrida de la Routine semanal post-merge.
+
+**Pendiente**: OK de Lautaro → aplicar la migración por MCP → confirmar en la primera
+corrida real que el POST a `views_mercado` con `grano='aceite_soja'` funciona. Si algún
+día se quiere que su scorecard mida contra un futuro real, hace falta persistir CBOT ZL
+(sumar a `ingest-cbot.mjs`/`cbot_cierres`) — decisión de infraestructura aparte, no
+pedida en esta sesión. Detalle:
+[`sesiones/2026-08-06-view-mercado-aceite-soja.md`](sesiones/2026-08-06-view-mercado-aceite-soja.md).
+
+## Anterior (06/08/2026 — 🧱 mejora de "Mis operaciones", vuelta 4: feedback de Lautaro por Word — Posición diaria/acumulada en páginas separadas, HECHO)
 
 **🧱 MEJORA DE "MIS OPERACIONES" — VUELTA 4, FEEDBACK DE LAUTARO POR WORD — HECHA — rama
-`claude/new-session-t5fkhz`, PR #_.** Lautaro trajo un Word (`SOLAPA_MIS_OPERACIONES.docx`) con
+`claude/new-session-t5fkhz`, PR #148.** Lautaro trajo un Word (`SOLAPA_MIS_OPERACIONES.docx`) con
 feedback puntual sobre `/operaciones` (las vueltas 1-3 de más abajo, mismo día) — 2 capturas
 anotadas con comentarios sueltos. Pedido explícito: *"ejecutemos las modificaciones que están en
 este Word. No supongas nada, preguntame."* — 4 puntos genuinamente ambiguos resueltos con

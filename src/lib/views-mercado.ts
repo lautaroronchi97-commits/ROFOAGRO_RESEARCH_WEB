@@ -16,7 +16,13 @@ import { calcularScorecard, type Scorecard, type FuturoCierreRow } from "./views
  * `futuros_cierres` es una tabla pública — no hace falta la sesión para leerla.
  */
 
-export type GranoView = "soja" | "maiz" | "trigo";
+/** `aceite_soja` (agregado 06/08/2026): sin futuro local en A3 ni serie propia en
+ *  `futuros_cierres`/`cbot_cierres` — el view se apoya en `chicago` (CBOT ZL, ya viene en los
+ *  insumos) y en `capacidad.industriaSoja` (FAS teórico del complejo aceite+harina) en vez de
+ *  la batería de datos físicos locales (temperatura/semáforo/empresas/embarques/negociado/
+ *  senalCamiones/arbitrajes/pases), que son del poroto y no aplican al subproducto. Ver la
+ *  skill `view-mercado` para el detalle. */
+export type GranoView = "soja" | "maiz" | "trigo" | "aceite_soja";
 /** 5 estados (V3, N2 — docs/PLAN_INFORMES_V3.md §7.1): "levemente_*" = misma dirección que su
  *  extremo, menor convicción — NO es el default tibio (guía de uso completa en la skill
  *  view-mercado). Los views históricos con solo 3 estados siguen siendo valores válidos. */
@@ -74,11 +80,12 @@ export type ViewsMercadoData = {
   error: string | null;
 };
 
-export const GRANOS_VIEW: GranoView[] = ["soja", "maiz", "trigo"];
+export const GRANOS_VIEW: GranoView[] = ["soja", "maiz", "trigo", "aceite_soja"];
 export const GRANO_VIEW_LABEL: Record<GranoView, string> = {
   soja: "Soja",
   maiz: "Maíz",
   trigo: "Trigo",
+  aceite_soja: "Aceite de soja",
 };
 export const DIRECCION_VIEW_LABEL: Record<DireccionView, string> = {
   alcista: "ALCISTA",
@@ -132,7 +139,7 @@ export function parseEvidenciaExterna(x: unknown): EvidenciaExterna[] {
 }
 
 export const getViewsMercado = cache(async (): Promise<ViewsMercadoData> => {
-  const vacio: Record<GranoView, ViewMercado | null> = { soja: null, maiz: null, trigo: null };
+  const vacio: Record<GranoView, ViewMercado | null> = { soja: null, maiz: null, trigo: null, aceite_soja: null };
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
@@ -176,13 +183,23 @@ export const getViewsMercado = cache(async (): Promise<ViewsMercadoData> => {
  * key indistintamente) — se lee con `sbSelectAll` como el resto de las libs de mercado,
  * no con la sesión del usuario. Nunca tira: si `futuros_cierres` no responde, el
  * scorecard de cada grano queda con `nMedidos: 0` (la UI ya sabe mostrar "sin datos
- * todavía" para eso).
+ * todavía" para eso). `aceite_soja` no tiene futuro local (sin fila en `futuros_cierres`)
+ * → su scorecard degrada SIEMPRE a `nMedidos: 0`, a propósito (ver `GRANO_UNDERLYING` en
+ * `views-scorecard.ts`) — no es un bug, es la ausencia real de una serie propia.
  */
 export const getScorecard = cache(async (): Promise<Scorecard> => {
   const { vigentes, historial } = await getViewsMercado();
   const todos = [...GRANOS_VIEW.map((g) => vigentes[g]).filter((v): v is ViewMercado => v !== null), ...historial];
   if (todos.length === 0) {
-    return { porGrano: { soja: vacioResumen("soja"), maiz: vacioResumen("maiz"), trigo: vacioResumen("trigo") }, porView: {} };
+    return {
+      porGrano: {
+        soja: vacioResumen("soja"),
+        maiz: vacioResumen("maiz"),
+        trigo: vacioResumen("trigo"),
+        aceite_soja: vacioResumen("aceite_soja"),
+      },
+      porView: {},
+    };
   }
 
   const res = await sbSelectAll(
