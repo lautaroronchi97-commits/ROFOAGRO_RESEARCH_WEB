@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { arNum, leerOverrideEnv } from "./env-utils";
+import { esHabil, hoyCordoba, parseYmd } from "./habiles";
 import type { Meta } from "./market";
 
 /**
@@ -125,6 +126,13 @@ export const getPizarra = cache(async (): Promise<PizarraData> => {
   const problemas: string[] = [];
   if (caida) problemas.push("CAC no respondió");
   else if (!requeridosOk) problemas.push("CAC: faltan granos en la pizarra");
+  // CAC suele tardar en publicar la pizarra del día (a veces recién a la tarde) — sin esto
+  // el panel de Arbitrajes mostraba "Actualizado" con la hora de AHORA (heredada del feed en
+  // vivo de A3) mientras el disponible seguía siendo el de ayer, sin ninguna señal visible.
+  const hoy = hoyCordoba();
+  if (!caida && fecha != null && fecha !== hoy && esHabil(parseYmd(hoy))) {
+    problemas.push(`Pizarra CAC del ${fecha.slice(8, 10)}/${fecha.slice(5, 7)} — todavía no publicó la de hoy`);
+  }
 
   return {
     granos,
