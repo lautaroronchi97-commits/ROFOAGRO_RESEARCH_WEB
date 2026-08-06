@@ -19,7 +19,39 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 06/08/2026 — 🔐 permisos por ítem dentro de cada sección, HECHO — migración sin aplicar)
+## Ahora (última actualización: 06/08/2026 — 🚨 fix login roto: migración de permisos por ítem aplicada)
+
+**🚨 FIX: LOGIN ROTO PARA TODOS LOS USUARIOS (migración de "permisos por ítem" pendiente de
+aplicar) — HECHO — rama `claude/gmail-login-approval-fk347n`, PR #_.** Lautaro reportó no poder
+entrar con su Gmail pese a ser admin ("me pide que me aprueben"). Causa raíz: el PR #145
+(mergeado el mismo 06/08, ver entrada de abajo) sumó a `getPerfil()`/`getAcceso()`
+(`src/lib/auth/dal.ts`) queries sobre las columnas `profiles.items_override` y `empresas.items`
+— pero la migración que las crea (`20260806120000_permisos_items_por_seccion.sql`) había
+quedado **escrita, sin aplicar**, esperando el OK de Lautaro (protocolo de siempre). Con las
+columnas inexistentes en la base real, la lectura de `profiles` fallaba con error para
+**absolutamente todos los usuarios logueados** (no solo Lautaro): `getPerfil()` devolvía `null`
+→ `requireAprobado()` mandaba a cualquiera, aprobado o no, a `/completar` → `completarPerfil()`
+termina siempre en `redirect("/pendiente?nuevo=1")` → de ahí el mensaje de "esperando
+aprobación" pese a que en la base Lautaro/Mauro/Joel seguían `admin`/`aprobado` sin cambios.
+
+**Fix**: aplicada la migración por MCP (`apply_migration`) — es 100% aditiva (2 columnas jsonb
+con default `'{}'::jsonb`/`null`, cero migración de datos, sin tocar RLS), tal cual estaba
+documentada y lista desde el propio cierre de la sesión de abajo. Verificado por SQL que la
+query exacta de `getPerfil()` corre sin error para los 3 usuarios reales (`estado=aprobado`,
+`rol=admin` intactos) y que `empresas.items` trae `{}` (sin restricción nueva para nadie).
+**Lautaro confirmó en el chat que ya puede entrar.** Con esto, el pendiente de la entrada de
+abajo ("migración SIN aplicar") queda resuelto — sigue faltando solo la primera prueba real en
+navegador con una empresa restringida por ítem. Detalle:
+[`sesiones/2026-08-06-fix-login-migracion-items.md`](sesiones/2026-08-06-fix-login-migracion-items.md).
+
+**Trampa para sesiones futuras**: mergear a `main` un PR que agrega columnas nuevas a una query
+del código NO alcanza si la migración que las crea queda "escrita, sin aplicar" — el código ya
+deployado en Vercel las necesita de inmediato. Cuando un PR de este tipo mergea con
+`AUTH_ENFORCED` prendido en producción (como ahora), la migración correspondiente debe aplicarse
+en el mismo momento del merge — dejarla pendiente rompe el login de TODOS, no solo la feature
+nueva.
+
+## Anterior (06/08/2026 — 🔐 permisos por ítem dentro de cada sección, HECHO — migración sin aplicar)
 
 **🔐 PERMISOS POR ÍTEM DENTRO DE CADA SECCIÓN — HECHO, migración SIN aplicar — rama
 `claude/client-section-visibility-7a7ukb`, PR #_.** Pedido de Lautaro: hasta ahora
