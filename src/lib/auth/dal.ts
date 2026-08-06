@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "./server";
 import { authConfigured } from "./env";
 import { AUTH_ENFORCED, SECCIONES, type SeccionKey } from "./config";
+import { itemPermitido, type ItemsPorSeccion } from "./permisos";
 
 /**
  * Data Access Layer de auth (chequeos SEGUROS contra la base — ver guía de
@@ -21,6 +22,7 @@ export type Perfil = {
   rol: "cliente" | "admin";
   empresa_id: string | null;
   secciones_override: string[] | null;
+  items_override: ItemsPorSeccion | null;
 };
 
 /** Usuario autenticado (o null). Valida el JWT contra Supabase Auth. */
@@ -40,7 +42,7 @@ export const getPerfil = cache(async (): Promise<Perfil | null> => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,email,nombre,empresa_texto,telefono,estado,rol,empresa_id,secciones_override")
+    .select("id,email,nombre,empresa_texto,telefono,estado,rol,empresa_id,secciones_override,items_override")
     .eq("id", user.id)
     .maybeSingle();
   if (error || !data) return null;
@@ -48,9 +50,13 @@ export const getPerfil = cache(async (): Promise<Perfil | null> => {
 });
 
 /**
- * "Pase" del usuario: perfil + secciones visibles ya resueltas.
+ * "Pase" del usuario: perfil + secciones visibles + ítems permitidos ya resueltos.
  *  - `visibles` = override individual si está seteado (aunque sea vacío = sin acceso),
- *    si no las de la empresa; los admin ven las 7.
+ *    si no las de la empresa; los admin ven las 9.
+ *  - `items` = el mismo criterio de par (override si `secciones_override` no es null,
+ *    si no los de la empresa) para la restricción opcional POR ÍTEM dentro de cada
+ *    sección visible (06/08/2026) — clave de sección ausente = sin restricción, todos
+ *    sus ítems visibles (ver `permisos.ts`).
  * Se lee fresco por request (no hay cookie-cache), así los cambios que hace un admin
  * en permisos/estado impactan de inmediato — no hay caché que invalidar (§3.3 del plan).
  */
@@ -59,6 +65,7 @@ export type Acceso = {
   esAdmin: boolean;
   empresaSecciones: string[];
   visibles: string[];
+  items: ItemsPorSeccion;
 };
 
 export const getAcceso = cache(async (): Promise<Acceso | null> => {
@@ -67,20 +74,37 @@ export const getAcceso = cache(async (): Promise<Acceso | null> => {
   const esAdmin = perfil.rol === "admin";
 
   let empresaSecciones: string[] = [];
+  let empresaItems: ItemsPorSeccion = {};
   if (perfil.empresa_id) {
     const supabase = await createSupabaseServerClient();
     const { data } = await supabase
       .from("empresas")
-      .select("secciones")
+      .select("secciones,items")
       .eq("id", perfil.empresa_id)
       .maybeSingle();
     empresaSecciones = (data?.secciones as string[] | undefined) ?? [];
+    empresaItems = (data?.items as ItemsPorSeccion | undefined) ?? {};
   }
 
-  const base = perfil.secciones_override ?? empresaSecciones;
+  const usaOverride = perfil.secciones_override != null;
+  const base = usaOverride ? perfil.secciones_override! : empresaSecciones;
+  const items = usaOverride ? (perfil.items_override ?? {}) : empresaItems;
   const visibles = esAdmin ? [...SECCIONES] : base;
-  return { perfil, esAdmin, empresaSecciones, visibles };
+  return { perfil, esAdmin, empresaSecciones, visibles, items };
 });
+
+/**
+ * ¿Es visible este ítem puntual (href, sin query/hash) para el acceso dado? Para usar
+ * en índices/hub-grid/sidebar que necesitan filtrar una LISTA de ítems ya sabiendo que
+ * la sección en sí es alcanzable (por eso `acceso` puede ser null: mismo criterio que
+ * ya usan `calculadoras/page.tsx` y `comercio/page.tsx` con `esAdmin` — con
+ * `AUTH_ENFORCED` apagado no hay acceso que leer, todo se ve). No redirige: solo dice
+ * sí/no, la redirección autoritativa vive en `requireSeccion`.
+ */
+export function itemVisible(acceso: Acceso | null, seccion: SeccionKey, href: string): boolean {
+  if (!acceso) return true;
+  return itemPermitido(acceso.esAdmin, acceso.visibles.includes(seccion), acceso.items[seccion], href);
+}
 
 /**
  * Exige un usuario aprobado. Redirige según el caso:
@@ -99,20 +123,25 @@ export async function requireAprobado(): Promise<Perfil> {
 }
 
 /**
- * Enforcement de permisos por sección (Etapa 2). Se llama al tope de cada página de
+ * Enforcement de permisos por sección (Etapa 2) y, opcionalmente, por ÍTEM dentro de
+ * esa sección (06/08/2026 — `item` es el href sin query/hash, ej. "/granos/arbitrajes"
+ * o "/calculadoras/a-fijar"; las páginas de índice de cada grupo no pasan `item`,
+ * siempre son alcanzables si la sección lo es). Se llama al tope de cada página de
  * sección — las páginas SÍ re-renderizan al navegar (a diferencia de los layouts, por
  * el partial rendering de Next), así el chequeo corre en cada visita.
  *
  * Con `AUTH_ENFORCED` apagado es un NO-OP inmediato: no lee cookies → la página sigue
  * siendo estática/ISR igual que hoy (requisito duro). Con el flag prendido, exige
- * aprobado + permiso de la sección; si no, redirige.
+ * aprobado + permiso de la sección (y del ítem, si se pasó); si no, redirige.
  */
-export async function requireSeccion(seccion: SeccionKey): Promise<void> {
+export async function requireSeccion(seccion: SeccionKey, item?: string): Promise<void> {
   if (!AUTH_ENFORCED) return;
   const acceso = await getAcceso();
   if (!acceso) redirect("/ingresar");
   if (acceso.perfil.estado !== "aprobado") redirect("/pendiente");
-  if (!acceso.esAdmin && !acceso.visibles.includes(seccion)) redirect("/sin-acceso");
+  if (acceso.esAdmin) return;
+  if (!acceso.visibles.includes(seccion)) redirect("/sin-acceso");
+  if (item && !itemVisible(acceso, seccion, item)) redirect("/sin-acceso");
 }
 
 /**

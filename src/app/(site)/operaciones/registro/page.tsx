@@ -33,7 +33,7 @@ export default async function RegistroPage({
 }: {
   searchParams: Promise<{ fecha?: string; empresa?: string }>;
 }) {
-  await requireSeccion("operaciones");
+  await requireSeccion("operaciones", "/operaciones/registro");
   const sp = await searchParams;
   const acceso = await getAcceso();
   if (!acceso) redirect("/ingresar");

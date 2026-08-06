@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SinteticosPage() {
-  await requireSeccion("dolar");
+  await requireSeccion("dolar", "/dolar/sinteticos");
   return (
     <main className="wrap">
       <div className="col">

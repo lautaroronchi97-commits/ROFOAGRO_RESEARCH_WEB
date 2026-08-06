@@ -47,7 +47,7 @@ export default async function OperacionesPage({
 }: {
   searchParams: Promise<{ empresa?: string; fecha?: string }>;
 }) {
-  await requireSeccion("operaciones");
+  await requireSeccion("operaciones", "/operaciones");
   const sp = await searchParams;
   const acceso = await getAcceso();
   if (!acceso) redirect("/ingresar");

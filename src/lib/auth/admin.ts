@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createSupabaseServerClient } from "./server";
 import { requireAdmin } from "./dal";
 import { navegadorYSO } from "./session-id";
+import type { ItemsPorSeccion } from "./permisos";
 
 /**
  * Lecturas del panel de administración (Etapa 2). Cada función exige rol admin
@@ -23,6 +24,8 @@ export type UsuarioAdmin = {
   empresa_nombre: string | null;
   empresa_secciones: string[] | null;
   secciones_override: string[] | null;
+  empresa_items: ItemsPorSeccion | null;
+  items_override: ItemsPorSeccion | null;
   created_at: string;
   approved_at: string | null;
   ultimo_login: string | null;
@@ -32,6 +35,7 @@ export type EmpresaAdmin = {
   id: string;
   nombre: string;
   secciones: string[];
+  items: ItemsPorSeccion;
   created_at: string;
   n_usuarios: number;
 };

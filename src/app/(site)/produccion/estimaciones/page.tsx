@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function EstimacionesProduccionPage() {
-  await requireSeccion("produccion");
+  await requireSeccion("produccion", "/produccion/estimaciones");
   return (
     <main className="wrap">
       <div className="col">

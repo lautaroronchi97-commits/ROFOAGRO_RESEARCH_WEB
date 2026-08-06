@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BIBLIOTECA } from "@/lib/biblioteca";
-import { requireSeccion } from "@/lib/auth/dal";
+import { requireSeccion, getAcceso, itemVisible } from "@/lib/auth/dal";
+import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { PageHead } from "@/components/page-head";
 
 export const revalidate = 3600;
@@ -12,10 +13,15 @@ export const metadata: Metadata = {
     "Arbitrajes, pases, capacidad de pago, monitor de mercados y la mejor salida para hacer caja en el mercado de granos.",
 };
 
-const ITEMS = BIBLIOTECA.find((g) => g.key === "granos")!.items;
+const TODOS = BIBLIOTECA.find((g) => g.key === "granos")!.items;
 
 export default async function GranosPage() {
   await requireSeccion("granos");
+  // Permisos por ítem (06/08/2026): con el flag apagado no hay acceso que leer (sigue
+  // estática/ISR); con el flag prendido, oculta los ítems que el admin restringió para
+  // esta empresa — los soloMesa siguen su propio criterio (candado, sin filtrar acá).
+  const acceso = AUTH_ENFORCED ? await getAcceso() : null;
+  const ITEMS = TODOS.filter((it) => it.soloMesa || itemVisible(acceso, "granos", it.href.split(/[?#]/)[0]!));
   return (
     <main className="wrap">
       <div className="col">

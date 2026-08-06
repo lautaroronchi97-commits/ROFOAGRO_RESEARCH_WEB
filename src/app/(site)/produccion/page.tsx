@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BIBLIOTECA } from "@/lib/biblioteca";
-import { requireSeccion } from "@/lib/auth/dal";
+import { requireSeccion, getAcceso, itemVisible } from "@/lib/auth/dal";
+import { AUTH_ENFORCED } from "@/lib/auth/config";
 import { PageHead } from "@/components/page-head";
 
 export const metadata: Metadata = {
@@ -13,10 +14,14 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
-const ITEMS = BIBLIOTECA.find((g) => g.key === "produccion")!.items;
+const TODOS = BIBLIOTECA.find((g) => g.key === "produccion")!.items;
 
 export default async function ProduccionPage() {
   await requireSeccion("produccion");
+  // Permisos por ítem (06/08/2026): NO-OP con el flag apagado (sigue estática/ISR). Los
+  // soloMesa (zonas/condición) siguen su criterio de siempre — no se tocan acá.
+  const acceso = AUTH_ENFORCED ? await getAcceso() : null;
+  const ITEMS = TODOS.filter((it) => it.soloMesa || itemVisible(acceso, "produccion", it.href.split(/[?#]/)[0]!));
   return (
     <main className="wrap">
       <div className="col">

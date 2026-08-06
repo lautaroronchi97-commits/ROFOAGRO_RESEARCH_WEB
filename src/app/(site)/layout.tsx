@@ -9,7 +9,7 @@ import { SidebarProvider } from "@/components/sidebar-provider";
 import { KillSwitchBanner } from "@/components/kill-switch-banner";
 import { BIBLIOTECA, BIBLIOTECA_ADMIN } from "@/lib/biblioteca";
 import { AUTH_ENFORCED } from "@/lib/auth/config";
-import { requireAprobado, getAcceso } from "@/lib/auth/dal";
+import { requireAprobado, getAcceso, itemVisible, type Acceso } from "@/lib/auth/dal";
 
 /**
  * Layout compartido del sitio (C25 — biblioteca + sidebar): masthead mínimo + shell de
@@ -38,16 +38,23 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   let visibles: string[] | undefined;
   let esAdmin = false;
   let email: string | null = null;
+  let acceso: Acceso | null = null;
 
   if (AUTH_ENFORCED) {
     const perfil = await requireAprobado();
     email = perfil.email;
-    const acceso = await getAcceso();
+    acceso = await getAcceso();
     visibles = acceso?.visibles;
     esAdmin = acceso?.esAdmin ?? false;
   }
 
-  const grupos = visibles ? BIBLIOTECA.filter((g) => visibles.includes(g.key)) : BIBLIOTECA;
+  // Permisos por ítem (06/08/2026): dentro de cada grupo visible, además filtra los
+  // ítems que el admin restringió para esta empresa/usuario. Los `soloMesa` pasan de
+  // largo acá (nunca dependen de esto) — el propio Sidebar los filtra por `esAdmin`.
+  const grupos = (visibles ? BIBLIOTECA.filter((g) => visibles.includes(g.key)) : BIBLIOTECA).map((g) => ({
+    ...g,
+    items: g.items.filter((it) => it.soloMesa || itemVisible(acceso, g.key, it.href.split(/[?#]/)[0]!)),
+  }));
 
   return (
     <SidebarProvider>

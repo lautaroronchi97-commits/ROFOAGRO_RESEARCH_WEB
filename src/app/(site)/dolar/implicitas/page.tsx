@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ImplicitasPage() {
-  await requireSeccion("dolar");
+  await requireSeccion("dolar", "/dolar/implicitas");
   return (
     <main className="wrap">
       <div className="col">

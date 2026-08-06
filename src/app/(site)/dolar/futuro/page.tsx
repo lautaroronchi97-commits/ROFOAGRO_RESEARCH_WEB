@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DolarFuturoPage() {
-  await requireSeccion("dolar");
+  await requireSeccion("dolar", "/dolar/futuro");
   return (
     <main className="wrap">
       <div className="col">

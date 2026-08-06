@@ -19,7 +19,7 @@ export const revalidate = 3600;
 const ORDEN_ORG: Organismo[] = ["USDA", "CONAB", "BCR", "BCBA", "DEA", "CFTC", "EIA", "NOPA"];
 
 export default async function CalendarioProduccionPage() {
-  await requireSeccion("produccion");
+  await requireSeccion("produccion", "/produccion/calendario");
   const hoy = hoyCordobaISO();
   // Horizonte: 60 días desde hoy (relevamiento web R7, punto 49 — antes iba hasta fin de 2026).
   const hasta = ymd(sumarCorridos(parseYmd(hoy), 60));

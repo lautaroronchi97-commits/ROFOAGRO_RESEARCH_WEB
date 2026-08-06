@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ArbitrajesPage() {
-  await requireSeccion("granos");
+  await requireSeccion("granos", "/granos/arbitrajes");
   return (
     <main className="wrap">
       <div className="col">
