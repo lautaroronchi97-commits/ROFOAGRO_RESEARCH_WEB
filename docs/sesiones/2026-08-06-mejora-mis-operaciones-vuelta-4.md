@@ -53,6 +53,31 @@
   server calcula las 3 variantes por campaña de una sola vez; el cliente elige cuál mostrar con
   `RangoChips` (mismo componente que ya usaba el heatmap), sin volver a pedirle nada a Supabase.
 
+## Follow-up en el mismo PR (feedback en vivo de Lautoro sobre el Preview de Vercel)
+- **Bug real: verde/rojo no se pintaba en NINGÚN lado** (ni la columna Estado de las tablas ni el
+  número grande de los KPI) — Lautaro lo reportó con una captura circulando la columna Estado en
+  negro. Causa raíz encontrada en `globals.css`: `.ct-pos`/`.ct-neg` (clase de `chart-tabla.tsx`)
+  perdían contra `.tbl tbody td { color:var(--ink) }` por especificidad (2 elementos+1 clase le
+  gana a 1 clase sola) y contra `.op-kpi-v { color:var(--ink) }` por orden de cascada (misma
+  especificidad, la regla del KPI está declarada después en el archivo). Reforzado con
+  `.tbl tbody td.ct-pos`/`.op-kpi-v.ct-pos` (y sus `-neg`) apuntando a los dos contextos reales
+  donde se usa — nada de `!important`.
+- **Valorización de futuros contra el último operado en vivo** ("siempre refrescando y valorizando
+  contra el último operado, es el dato que vamos trayendo del websocket"): antes `AjusteLookup`
+  salía SOLO de `getCierresGranos()` (el cierre/settlement guardado en Supabase, que se actualiza
+  una vez por noche) — durante la rueda mostraba "Sin ajuste vigente" para un futuro operado hoy
+  mismo. Nuevo `src/lib/operaciones/ajustes-live.ts` (`construirAjusteLookupLive()`) reusa **la
+  MISMA regla ya validada en producción por Arbitrajes/Pases** (`referencia-futuro.ts`:
+  `esModoOperado`/`referenciaDeFila`, ya con Playwright+datos reales en otra sesión) — en rueda con
+  feed A3 respondiendo → último operado del websocket (`a3-live.ts`, se refresca solo por la
+  regeneración ISR de la página); fuera de rueda → el último ajuste (settlement), que es
+  simultáneamente "el ajuste de HOY" para lo operado hoy (Posición diaria) y "el último ajuste
+  disponible" para una posición vieja todavía abierta (Posición acumulada) — misma fuente
+  (`futuros_cierres_ultimo` guarda el ÚLTIMO cierre por símbolo), sin necesitar dos rutas de
+  código distintas para los dos paneles. Aclarado explícitamente por Lautoro en el chat y verificado
+  que el diseño ya lo cumplía sin cambios extra. Reemplaza el `armarAjusteLookup` que estaba
+  duplicado en los dos `page.tsx` (día/acumulada) — ahora un solo helper server-only compartido.
+
 ## Decisiones tomadas (y por qué)
 - Evolución **solo mesa** (no borrada) — confirmado por `AskUserQuestion`, opción recomendada.
 - Posición acumulada en **página propia** (no un segundo bloque en la misma página) — confirmado
@@ -64,10 +89,11 @@
 
 ## Verificado
 - lint / `tsc --noEmit` / `npx vitest run` (**617 tests**, 5 nuevos de `FiltroPrecioFisico` +
-  ajustes de `columnasPeriodo`) / `npm run build` — los 4 en verde.
+  ajustes de `columnasPeriodo`) / `npm run build` — los 4 en verde, en cada commit del PR.
 - Sin sesión real en este sandbox (sin credenciales de Supabase): no se pudo verificar visualmente
   con Playwright contra datos reales — la verificación quedó en lint/tsc/tests/build + revisión de
-  código línea por línea contra las 2 capturas del Word.
+  código línea por línea. El follow-up (colores + valorización en vivo) sí lo vio y lo pidió
+  Lautoro mirando el Preview real de Vercel, con capturas concretas del bug.
 
 ## Quedó pendiente / en vuelo
 - Primer vistazo real de Lautaro logueado a `/operaciones` y `/operaciones/acumulada` (los márgenes

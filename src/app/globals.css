@@ -1987,6 +1987,13 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .ct-nota { margin:7px 2px 0; font-size:var(--fs-2xs); color:var(--ink-3); }
 .ct-pos { color:var(--pos); font-weight:700; }
 .ct-neg { color:var(--neg); font-weight:700; }
+/* Bug real (06/08/2026, reportado por Lautaro con captura): `.tbl tbody td` y
+   `.op-kpi-v` declaran su propio `color`, con más especificidad (la primera)
+   o después en la cascada (la segunda) que la clase sola — le ganaban a
+   `.ct-pos`/`.ct-neg` y las celdas/KPI quedaban sin verde/rojo. Reforzado acá
+   con los dos contextos reales donde se usa. */
+.tbl tbody td.ct-pos, .op-kpi-v.ct-pos { color:var(--pos); }
+.tbl tbody td.ct-neg, .op-kpi-v.ct-neg { color:var(--neg); }
 
 /* Comercio exterior · Negociado por producto (SIO Granos) --------------------- */
 .ng-activa { display:inline-block; margin-left:8px; padding:1px 7px; border-radius:99px;

@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import { requireSeccion, getAcceso } from "@/lib/auth/dal";
 import { getOperaciones, getEmpresasParaSelector } from "@/lib/operaciones/datos";
 import { construirMatrizFisico, construirMatrizFuturos, construirMatrizPricing, construirMatrizDia, combinarMatrices } from "@/lib/operaciones/posicion";
-import { valorizarFuturos, claveAjuste, type AjusteLookup } from "@/lib/operaciones/futuros-valorizados";
+import { valorizarFuturos } from "@/lib/operaciones/futuros-valorizados";
+import { construirAjusteLookupLive } from "@/lib/operaciones/ajustes-live";
 import { resumenPosicion } from "@/lib/operaciones/resumen";
-import { getCierresGranos } from "@/lib/futuros";
 import { hoyCordobaISO } from "@/lib/dates";
 import { PageHead } from "@/components/page-head";
 import { PosicionDiaClient } from "./posicion-client";
@@ -28,15 +28,6 @@ export const metadata: Metadata = {
 };
 
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** `Map<"GRANO|POSICION", settlement>` desde `getCierresGranos()` — el ajuste de hoy para valorizar futuros (§5.5). */
-function armarAjusteLookup(cierres: Awaited<ReturnType<typeof getCierresGranos>>): AjusteLookup {
-  const mapa: AjusteLookup = new Map();
-  for (const grano of cierres.granos) {
-    for (const p of grano.posiciones) mapa.set(claveAjuste(grano.underlying, p.posicion), p.settlement);
-  }
-  return mapa;
-}
 
 export default async function OperacionesPage({
   searchParams,
@@ -75,13 +66,14 @@ export default async function OperacionesPage({
   const hoy = hoyCordobaISO();
   const dia = sp.dia && FECHA_RE.test(sp.dia) && sp.dia <= hoy ? sp.dia : hoy;
 
-  const [operaciones, cierres] = await Promise.all([getOperaciones(empresaId), getCierresGranos()]);
-  const ajustes = armarAjusteLookup(cierres);
+  const [operaciones, ajustes] = await Promise.all([getOperaciones(empresaId), construirAjusteLookupLive()]);
 
   // PRICING DEL DÍA (pedido de Lautaro 06/08/2026): posición inicial = lo
   // acumulado A PRECIO hasta el día anterior (sumando TODAS las campañas — es
-  // exposición en $, no identidad de grano) + futuros del día valorizados con
-  // el ajuste de HOY (no hay mark-to-market pasado sin historial de ajustes).
+  // exposición en $, no identidad de grano) + futuros del día valorizados
+  // contra la referencia viva (§5.5, "siempre refrescando y valorizando
+  // contra el último operado" — en rueda es el último operado del websocket
+  // de A3, fuera de rueda el último ajuste; `construirAjusteLookupLive`).
   // Integridad por construcción: inicial + neto del día = acumulado al cierre
   // de ese día, testeado también contra el camino independiente en
   // posicion.test.ts.

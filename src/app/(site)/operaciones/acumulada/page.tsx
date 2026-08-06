@@ -10,8 +10,8 @@ import {
   type FiltroPrecioFisico,
   type Matriz,
 } from "@/lib/operaciones/posicion";
-import { acumularFuturos, claveAjuste, type AjusteLookup } from "@/lib/operaciones/futuros-valorizados";
-import { getCierresGranos } from "@/lib/futuros";
+import { acumularFuturos } from "@/lib/operaciones/futuros-valorizados";
+import { construirAjusteLookupLive } from "@/lib/operaciones/ajustes-live";
 import { hoyCordobaISO } from "@/lib/dates";
 import { PageHead } from "@/components/page-head";
 import { PosicionAcumuladaClient } from "./posicion-acumulada-client";
@@ -34,15 +34,6 @@ export const metadata: Metadata = {
 
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 const FILTROS_PRECIO: FiltroPrecioFisico[] = ["todos", "con_precio", "a_fijar"];
-
-/** `Map<"GRANO|POSICION", settlement>` desde `getCierresGranos()` — el ajuste de hoy para valorizar futuros (§5.5). */
-function armarAjusteLookup(cierres: Awaited<ReturnType<typeof getCierresGranos>>): AjusteLookup {
-  const mapa: AjusteLookup = new Map();
-  for (const grano of cierres.granos) {
-    for (const p of grano.posiciones) mapa.set(claveAjuste(grano.underlying, p.posicion), p.settlement);
-  }
-  return mapa;
-}
 
 export default async function OperacionesAcumuladaPage({
   searchParams,
@@ -81,13 +72,16 @@ export default async function OperacionesAcumuladaPage({
   const hoy = hoyCordobaISO();
   const fechaCorte = sp.fecha && FECHA_RE.test(sp.fecha) && sp.fecha !== hoy ? sp.fecha : null;
 
-  const [operaciones, cierres] = await Promise.all([getOperaciones(empresaId), getCierresGranos()]);
-  const ajustes = armarAjusteLookup(cierres);
+  const [operaciones, ajustes] = await Promise.all([getOperaciones(empresaId), construirAjusteLookupLive()]);
 
   // Pricing con el mismo criterio que Posición diaria, respetando "Posición al
   // [fecha]"; la posición de futuros acumulada (neteo + precio promedio +
-  // valorización) queda siempre relativa a HOY, como el ajuste — no hay
-  // mark-to-market pasado sin historial de ajustes.
+  // valorización) queda siempre relativa a HOY, valorizada contra la
+  // referencia viva (§5.5, "siempre refrescando y valorizando contra el
+  // último operado" — en rueda el último operado del websocket de A3, fuera
+  // de rueda el último ajuste; para una posición abierta de un contrato que ya
+  // no opera en rueda, sigue siendo el último ajuste disponible de ese
+  // contrato — `construirAjusteLookupLive`, mismo criterio que Arbitrajes).
   const operacionesParaMatriz = fechaCorte ? filtrarHasta(operaciones, fechaCorte) : operaciones;
   const pricingAcum = construirMatrizPricing(operacionesParaMatriz, hoy);
   const futurosAcum = acumularFuturos(operaciones, ajustes);
