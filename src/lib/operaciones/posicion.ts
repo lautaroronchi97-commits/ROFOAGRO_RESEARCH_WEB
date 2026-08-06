@@ -132,6 +132,39 @@ export function construirMatrizFisico(operaciones: Operacion[], hoyISO: string):
   return construirMatriz(vivas, columnas, (op) => bucketFisico(op, hoyISO, columnas));
 }
 
+// ============================================================================
+// Físico segmentado por CAMPAÑA (pedido de Lautaro 06/08/2026): "no hace falta
+// que todo se calce en la misma campaña — solo para la mercadería física sí,
+// el pricing no". La mercadería física de dos campañas distintas no es
+// fungible entre sí (una compra 25/26 y una venta 26/27 no son la "misma
+// soja"), así que netearlas en una sola celda mentiría sobre el calce real —
+// el pricing, en cambio, mide exposición en $/USD, donde sí tiene sentido
+// seguir sumando todas las campañas juntas (sin cambios ahí).
+// ============================================================================
+
+/**
+ * Campañas presentes entre las operaciones FÍSICAS (disponible/forward, no
+ * anuladas) del conjunto dado — determina cuántas tablas de físico segmentado
+ * hay que mostrar. Detectadas de los datos reales (no de una lista fija de
+ * campañas vigentes): así una operación cargada con una campaña vieja/futura
+ * sigue apareciendo en algún lado, nunca desaparece en silencio.
+ */
+export function campaniasFisicasPresentes(operaciones: Operacion[]): string[] {
+  const set = new Set(
+    operaciones.filter((o) => !o.anulada && (o.tipo === "disponible" || o.tipo === "forward")).map((o) => o.campania),
+  );
+  return [...set].sort();
+}
+
+/**
+ * Builder de matriz física acotado a UNA campaña — reusa `construirMatrizFisico`
+ * filtrando antes por `campania`, así comparte 100% de la lógica de buckets/
+ * neteo (y sirve directo como `builder` de `construirMatrizDia`).
+ */
+export function construirMatrizFisicoDeCampania(campania: string): (ops: Operacion[], hoyISO: string) => Matriz {
+  return (ops, hoyISO) => construirMatrizFisico(ops.filter((o) => o.campania === campania), hoyISO);
+}
+
 /**
  * Matriz de FUTUROS A3 — separada del físico (§1.3: calzar físico con futuro es cobertura).
  * Solo `PRODUCTOS_CON_FUTURO` (soja/maíz/trigo): girasol y sorgo no tienen futuro en A3
@@ -142,6 +175,36 @@ export function construirMatrizFuturos(operaciones: Operacion[], hoyISO: string)
   const columnas = columnasPeriodo(hoyISO);
   const vivas = operaciones.filter((o) => !o.anulada && o.tipo === "futuro_a3" && o.posicion_a3);
   return construirMatriz(vivas, columnas, (op) => bucketFuturo(op.posicion_a3!, columnas), PRODUCTOS_CON_FUTURO);
+}
+
+/**
+ * ¿La operación YA genera precio? (pedido de Lautaro 06/08/2026 — la tabla de
+ * "pricing"): físicos a precio (manual o pizarra, que resuelve sola §5.4),
+ * fijaciones (SON la generación de precio de un a-fijar) y futuros A3. Lo único
+ * que queda afuera es el negocio a fijar (`sin_precio`).
+ */
+export function esOperacionConPrecio(
+  op: Pick<Operacion, "tipo" | "precio_modo">,
+): boolean {
+  if (op.tipo === "futuro_a3" || op.tipo === "fijacion") return true;
+  return op.precio_modo !== "sin_precio";
+}
+
+/**
+ * Matriz de PRICING (pedido de Lautaro 06/08/2026): la mercadería CON precio —
+ * físicos a precio + fijaciones + futuros A3 — producto × período. A diferencia
+ * de la matriz física, acá las fijaciones SÍ suman volumen: miden cuánta
+ * mercadería ya tiene precio (una fijación es exactamente eso), y los futuros
+ * van en el mes de su posición. Una fijación sin entrega cae en "Disponible".
+ */
+export function construirMatrizPricing(operaciones: Operacion[], hoyISO: string): Matriz {
+  const columnas = columnasPeriodo(hoyISO);
+  const vivas = operaciones.filter((o) => !o.anulada && esOperacionConPrecio(o));
+  return construirMatriz(vivas, columnas, (op) => {
+    if (op.tipo === "futuro_a3" && op.posicion_a3) return bucketFuturo(op.posicion_a3, columnas);
+    if (op.tipo === "fijacion" && !op.entrega_desde) return "disponible";
+    return bucketFisico(op, hoyISO, columnas);
+  });
 }
 
 /**
@@ -187,6 +250,111 @@ export function construirNetoDelDia(operacionesDelDia: Operacion[], hoyISO: stri
  */
 export function filtrarHasta(operaciones: Operacion[], fechaCorte: string): Operacion[] {
   return operaciones.filter((o) => o.fecha <= fechaCorte);
+}
+
+// ============================================================================
+// "Posición del día" (pedido de Lautaro 06/08/2026): los movimientos de UN día
+// con su POSICIÓN INICIAL (lo acumulado hasta el día anterior, con el mismo
+// criterio de la matriz — pricing con pricing, físico con físico) y el total
+// resultante. Integridad por construcción: total = inicial + neto del día, y
+// como inicial y día salen del MISMO builder sobre el mismo array, el total
+// coincide EXACTO con la matriz acumulada hasta ese día (testeado aparte contra
+// el camino independiente `builder(filtrarHasta(ops, dia))`).
+// ============================================================================
+
+export type FilaMatrizDia = {
+  producto: OperacionProducto;
+  /** Acumulado hasta el día ANTERIOR (la "posición inicial" del día). */
+  inicial: number;
+  /** Movimientos del día, por columna de período (relativa a HOY, como todo). */
+  porColumna: Record<string, number>;
+  /** Neto del día (suma de `porColumna`). */
+  netoDia: number;
+  /** inicial + netoDia = acumulado al cierre del día. */
+  total: number;
+  estado: Estado;
+};
+
+export type MatrizDia = {
+  columnas: ColumnaPeriodo[];
+  filas: FilaMatrizDia[];
+  inicialTotal: number;
+  totalPorColumna: Record<string, number>;
+  netoDiaGeneral: number;
+  totalGeneral: number;
+};
+
+export function construirMatrizDia(
+  operaciones: Operacion[],
+  diaISO: string,
+  hoyISO: string,
+  builder: (ops: Operacion[], hoy: string) => Matriz,
+): MatrizDia {
+  const inicial = builder(operaciones.filter((o) => o.fecha < diaISO), hoyISO);
+  const dia = builder(operaciones.filter((o) => o.fecha === diaISO), hoyISO);
+
+  const filas: FilaMatrizDia[] = dia.filas.map((f) => {
+    const ini = inicial.filas.find((x) => x.producto === f.producto)?.total ?? 0;
+    const total = redondear(ini + f.total);
+    return { producto: f.producto, inicial: ini, porColumna: f.porColumna, netoDia: f.total, total, estado: estadoDe(total) };
+  });
+
+  return {
+    columnas: dia.columnas,
+    filas,
+    inicialTotal: inicial.totalGeneral,
+    totalPorColumna: dia.totalPorColumna,
+    netoDiaGeneral: dia.totalGeneral,
+    totalGeneral: redondear(inicial.totalGeneral + dia.totalGeneral),
+  };
+}
+
+// ============================================================================
+// Evolución de la posición física en el tiempo (pedido de Lautaro 06/08/2026,
+// "en otra solapa"): la curva de cómo se fue construyendo el físico acumulado,
+// publicación a publicación (fecha de la operación) — mismo alcance de UNA
+// campaña por vez que el resto del físico segmentado de arriba (netear entre
+// campañas mentiría igual acá).
+// ============================================================================
+
+export type PuntoEvolucion = { fecha: string; acumulado: number };
+export type SerieEvolucionProducto = { producto: OperacionProducto; puntos: PuntoEvolucion[] };
+
+/**
+ * Curva acumulada por producto, de UNA campaña, ordenada por fecha. Un solo
+ * punto por fecha (si hubo varias operaciones el mismo día, se funden en el
+ * acumulado de ese día — igual que "neto del día"). Solo devuelve productos
+ * con al menos una operación física en esa campaña.
+ */
+export function evolucionFisico(operaciones: Operacion[], campania: string): SerieEvolucionProducto[] {
+  const vivas = operaciones
+    .filter((o) => !o.anulada && (o.tipo === "disponible" || o.tipo === "forward") && o.campania === campania)
+    .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+
+  const porProducto = new Map<OperacionProducto, Map<string, number>>();
+  for (const op of vivas) {
+    let porFecha = porProducto.get(op.producto);
+    if (!porFecha) {
+      porFecha = new Map();
+      porProducto.set(op.producto, porFecha);
+    }
+    const signo = op.lado === "compra" ? 1 : -1;
+    porFecha.set(op.fecha, (porFecha.get(op.fecha) ?? 0) + signo * op.volumen_tn);
+  }
+
+  const series: SerieEvolucionProducto[] = [];
+  for (const producto of PRODUCTOS) {
+    const porFecha = porProducto.get(producto);
+    if (!porFecha || porFecha.size === 0) continue;
+    const fechas = [...porFecha.keys()].sort();
+    let acumulado = 0;
+    const puntos: PuntoEvolucion[] = fechas.map((fecha) => {
+      acumulado = redondear(acumulado + (porFecha.get(fecha) ?? 0));
+      return { fecha, acumulado };
+    });
+    series.push({ producto, puntos });
+  }
+  return series;
 }
 
 // ============================================================================

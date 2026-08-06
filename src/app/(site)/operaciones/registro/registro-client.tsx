@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Link from "next/link";
 import type { GranoCurva } from "@/lib/curva-types";
 import { PRODUCTO_LABEL, GRANO_PRODUCTO, type Operacion, type OperacionLogEntry } from "@/lib/operaciones/tipos";
 import type { PrecioResuelto } from "@/lib/operaciones/registro";
-import { construirNetoDelDia } from "@/lib/operaciones/posicion";
-import { matrizAColumnas, matrizAFilas, esFilaTotal, columnasSignoDe, COLUMNA_ESTADO } from "@/lib/operaciones/matriz-vista";
-import { ChartTabla } from "@/components/chart-tabla";
 import { FiltroGrano, type GranoFiltroValue } from "@/components/filtro-grano";
 import { RegistroForm } from "./registro-form";
 import { RegistroFila } from "./registro-fila";
@@ -36,15 +34,16 @@ function descargarCsvDia(operaciones: Operacion[], fecha: string) {
 
 /**
  * Registro diario (§5.6, docs/PLAN_OPERACIONES_CLIENTES.md §8): orquesta el
- * formulario de carga/edición, los listados de compras/ventas del día y el neto
- * del día. Todo el estado de interacción (qué operación se edita, filtro de
- * grano, mostrar anuladas) vive acá; los datos ya vienen resueltos del server.
+ * formulario de carga/edición y los listados de compras/ventas del día — solo
+ * lo que se va realizando, sin tablas de posición (pedido de Lautaro
+ * 06/08/2026: el neto/posición vive en /operaciones, acá se CARGA). Todo el
+ * estado de interacción (qué operación se edita/duplica, filtro de grano,
+ * mostrar anuladas) vive acá; los datos ya vienen resueltos del server.
  */
 export function RegistroClient({
   empresaId,
   empresas,
   fecha,
-  hoy,
   operaciones,
   historial,
   precios,
@@ -54,7 +53,6 @@ export function RegistroClient({
   empresaId: string;
   empresas: { id: string; nombre: string }[] | null;
   fecha: string;
-  hoy: string;
   operaciones: Operacion[];
   historial: Record<string, OperacionLogEntry[]>;
   precios: Record<string, PrecioResuelto>;
@@ -63,32 +61,56 @@ export function RegistroClient({
 }) {
   const [filtro, setFiltro] = useState<GranoFiltroValue>("todos");
   const [editando, setEditando] = useState<Operacion | null>(null);
+  const [plantilla, setPlantilla] = useState<Operacion | null>(null);
   const [mostrarAnuladas, setMostrarAnuladas] = useState(false);
+  const formWrapRef = useRef<HTMLDivElement>(null);
 
   const visibles = filtro === "todos" ? operaciones : operaciones.filter((o) => GRANO_PRODUCTO[filtro] === o.producto);
   const compras = visibles.filter((o) => o.lado === "compra" && (mostrarAnuladas || !o.anulada));
   const ventas = visibles.filter((o) => o.lado === "venta" && (mostrarAnuladas || !o.anulada));
-  const productoFiltro = filtro === "todos" ? undefined : GRANO_PRODUCTO[filtro];
 
-  const neto = construirNetoDelDia(operaciones, hoy);
+  // Editar y duplicar arrancan desde una fila de las listas de abajo, pero el
+  // formulario vive arriba — sin este scroll el click parecía no hacer nada.
+  function irAlForm() {
+    formWrapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function editar(o: Operacion) {
+    setPlantilla(null);
+    setEditando(o);
+    irAlForm();
+  }
+  function duplicar(o: Operacion) {
+    setEditando(null);
+    setPlantilla(o);
+    irAlForm();
+  }
 
   return (
     <>
       <div className="op-controles">
         <FechaNav fecha={fecha} empresaId={empresas ? empresaId : undefined} />
         {empresas && <EmpresaSelector empresas={empresas} empresaId={empresaId} fecha={fecha} />}
+        <Link href={empresas ? `/operaciones?empresa=${empresaId}` : "/operaciones"} className="op-nav-link">
+          Ver mi posición →
+        </Link>
       </div>
       <FiltroGrano value={filtro} onChange={setFiltro} />
 
-      <RegistroForm
-        key={editando?.id ?? "nueva"}
-        empresaId={empresaId}
-        fecha={fecha}
-        campanias={campanias}
-        curva={curva}
-        operacion={editando}
-        onDone={() => setEditando(null)}
-      />
+      <div ref={formWrapRef}>
+        <RegistroForm
+          key={editando?.id ?? (plantilla ? `dup-${plantilla.id}` : "nueva")}
+          empresaId={empresaId}
+          fecha={fecha}
+          campanias={campanias}
+          curva={curva}
+          operacion={editando}
+          plantilla={plantilla}
+          onDone={() => {
+            setEditando(null);
+            setPlantilla(null);
+          }}
+        />
+      </div>
 
       <div className="op-listas-hd">
         <label className="op-check">
@@ -111,7 +133,8 @@ export function RegistroClient({
                 operacion={o}
                 precio={precios[o.id]!}
                 historial={historial[o.id] ?? []}
-                onEditar={() => setEditando(o)}
+                onEditar={() => editar(o)}
+                onDuplicar={() => duplicar(o)}
               />
             ))}
           </ul>
@@ -126,22 +149,14 @@ export function RegistroClient({
                 operacion={o}
                 precio={precios[o.id]!}
                 historial={historial[o.id] ?? []}
-                onEditar={() => setEditando(o)}
+                onEditar={() => editar(o)}
+                onDuplicar={() => duplicar(o)}
               />
             ))}
           </ul>
         </div>
       </div>
 
-      <h3 className="op-matriz-tit">Neto del día (físico)</h3>
-      <ChartTabla
-        columnas={matrizAColumnas(neto)}
-        filas={matrizAFilas(neto, productoFiltro)}
-        destacada={esFilaTotal}
-        exportCsv={`neto-del-dia-${fecha}`}
-        columnasSigno={columnasSignoDe(neto)}
-        columnasEstado={COLUMNA_ESTADO}
-      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { ChartTablaColumna, ChartTablaFila } from "@/components/chart-tabla";
 import { fmtNeto } from "./matriz-vista";
-import type { FuturoValorizado } from "./futuros-valorizados";
+import type { FuturoAcumulado, FuturoValorizado } from "./futuros-valorizados";
 import { totalesPorProducto, totalGeneral } from "./futuros-valorizados";
 import { PRODUCTO_LABEL, PRODUCTOS_CON_FUTURO, type OperacionProducto } from "./tipos";
 
@@ -103,4 +103,80 @@ export function futurosValorizadosAFilas(
 export function futuroEsFilaDestacada(fila: ChartTablaFila): boolean {
   const pos = String(fila.posicion ?? "");
   return pos === "TOTAL" || pos.startsWith("Subtotal ");
+}
+
+// ============================================================================
+// Vista de la posición de futuros ACUMULADA (pedido de Lautaro 06/08/2026):
+// una fila por producto × posición, con neto, precio promedio ponderado y
+// valorización — mismo esquema de subtotales/TOTAL que la tabla por operación.
+// ============================================================================
+
+export function futurosAcumuladosAColumnas(): ChartTablaColumna[] {
+  return [
+    { key: "posicion", label: "Posición", align: "left" },
+    { key: "ops", label: "Ops." },
+    { key: "neto", label: "Neto (tn)" },
+    { key: "promedio", label: "Precio prom. (USD)" },
+    { key: "ajuste", label: "Ajuste hoy (USD)" },
+    { key: "resultado", label: "Resultado (USD)" },
+    { key: "estado", label: "Estado", align: "left" },
+  ];
+}
+
+export function futurosAcumuladosAFilas(filas: FuturoAcumulado[], filtro?: OperacionProducto): ChartTablaFila[] {
+  const base = filtro ? filas.filter((f) => f.producto === filtro) : filas;
+  const rows: ChartTablaFila[] = [];
+
+  const productos = filtro ? [filtro] : PRODUCTOS_CON_FUTURO;
+  for (const p of productos) {
+    const deEsteProducto = base.filter((f) => f.producto === p);
+    if (deEsteProducto.length === 0) continue;
+
+    let subtotal = 0;
+    let subtotalValorizado = false;
+    for (const f of deEsteProducto) {
+      if (f.estado === "valorizado" && f.resultadoUsd != null) {
+        subtotal += f.resultadoUsd;
+        subtotalValorizado = true;
+      }
+      rows.push({
+        posicion: f.moneda === "usd" ? f.posicionA3 : `${f.posicionA3} ($)`,
+        ops: String(f.operaciones),
+        neto: fmtNeto(f.netoTn) === "—" ? "0,00" : fmtNeto(f.netoTn),
+        promedio: fmtMoneda(f.precioPromedio),
+        ajuste: fmtMoneda(f.ajusteHoy),
+        resultado: f.estado === "valorizado" ? fmtNeto(f.resultadoUsd ?? 0) : "—",
+        estado:
+          f.estado === "valorizado" && f.netoTn === 0 ? "Cerrada (resultado fijado)" : ESTADO_LABEL[f.estado],
+      });
+    }
+
+    if (!filtro && productos.length > 1) {
+      rows.push({
+        posicion: `Subtotal ${PRODUCTO_LABEL[p]}`,
+        ops: "",
+        neto: "",
+        promedio: "",
+        ajuste: "",
+        resultado: subtotalValorizado ? fmtNeto(subtotal) : "—",
+        estado: "",
+      });
+    }
+  }
+
+  if (base.length > 0) {
+    const valorizadas = base.filter((f) => f.estado === "valorizado" && f.resultadoUsd != null);
+    const total = valorizadas.reduce((a, f) => a + (f.resultadoUsd ?? 0), 0);
+    rows.push({
+      posicion: "TOTAL",
+      ops: "",
+      neto: "",
+      promedio: "",
+      ajuste: "",
+      resultado: valorizadas.length > 0 ? fmtNeto(total) : "—",
+      estado: "",
+    });
+  }
+
+  return rows;
 }

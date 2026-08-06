@@ -2159,6 +2159,7 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-futuro { display:flex; flex-direction:column; gap:8px; grid-column:1 / -1; }
 .op-form-foot { display:flex; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
 .op-form-ok { color:var(--pos); font-size:var(--fs-sm); }
+.op-form-modo { margin:0 0 10px; font-size:var(--fs-sm); font-weight:700; color:var(--gold-text); }
 .op-form-err { color:var(--neg); font-size:var(--fs-sm); }
 
 .op-listas-hd { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 4px; }
@@ -2193,3 +2194,20 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-hm-neg { background:var(--neg); }
 .op-hm-neu { background:var(--panel-3); border:1px dashed var(--line); }
 .op-heatmap-nota { font-size:var(--fs-2xs); color:var(--ink-3); margin-top:8px; }
+
+/* Resumen ejecutivo (KPIs) de Mi posición — mismo lenguaje visual que .lu-kpi de puertos */
+.op-kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; margin:6px 0 16px; }
+.op-kpi { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+  display:flex; flex-direction:column; gap:3px; }
+.op-kpi-l { font-size:var(--fs-2xs); color:var(--ink-2); text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+.op-kpi-v { font-family:var(--font-mono); font-size:22px; font-weight:800; color:var(--ink);
+  font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+.op-kpi-v small { font-size:var(--fs-xs); font-weight:600; color:var(--ink-2); }
+.op-kpi-estado { font-size:var(--fs-xs); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.op-kpi-sub { font-size:var(--fs-2xs); color:var(--ink-3); }
+.op-kpi-alerta { color:var(--warn, #b45309); font-weight:700; }
+
+/* Links de navegación cruzada registro ↔ posición */
+.op-nav-link { margin-left:auto; font-size:var(--fs-sm); font-weight:700; color:var(--gold-text);
+  text-decoration:none; }
+.op-nav-link:hover, .op-nav-link:focus-visible { text-decoration:underline; }

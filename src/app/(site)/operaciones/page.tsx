@@ -5,15 +5,19 @@ import { getOperaciones, getEmpresasParaSelector } from "@/lib/operaciones/datos
 import {
   construirMatrizFisico,
   construirMatrizFuturos,
+  construirMatrizPricing,
+  construirMatrizDia,
+  campaniasFisicasPresentes,
+  construirMatrizFisicoDeCampania,
   combinarMatrices,
   construirHeatmap,
   filtrarHasta,
 } from "@/lib/operaciones/posicion";
-import { valorizarFuturos, claveAjuste, type AjusteLookup } from "@/lib/operaciones/futuros-valorizados";
+import { valorizarFuturos, acumularFuturos, claveAjuste, type AjusteLookup } from "@/lib/operaciones/futuros-valorizados";
+import { resumenPosicion } from "@/lib/operaciones/resumen";
 import { getCierresGranos } from "@/lib/futuros";
 import { hoyCordobaISO } from "@/lib/dates";
 import { PageHead } from "@/components/page-head";
-import { Panel, PanelHead } from "@/components/panel";
 import { PosicionClient } from "./posicion-client";
 
 /**
@@ -45,7 +49,7 @@ function armarAjusteLookup(cierres: Awaited<ReturnType<typeof getCierresGranos>>
 export default async function OperacionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ empresa?: string; fecha?: string }>;
+  searchParams: Promise<{ empresa?: string; fecha?: string; dia?: string }>;
 }) {
   await requireSeccion("operaciones", "/operaciones");
   const sp = await searchParams;
@@ -78,21 +82,53 @@ export default async function OperacionesPage({
 
   const hoy = hoyCordobaISO();
   const fechaCorte = sp.fecha && FECHA_RE.test(sp.fecha) && sp.fecha !== hoy ? sp.fecha : null;
+  const dia = sp.dia && FECHA_RE.test(sp.dia) && sp.dia <= hoy ? sp.dia : hoy;
 
   const [operaciones, cierres] = await Promise.all([getOperaciones(empresaId), getCierresGranos()]);
+  const ajustes = armarAjusteLookup(cierres);
 
-  // Las 3 matrices SÍ respetan "Posición al [fecha]" (§5.1: filtrar fecha <= corte);
-  // el heatmap y el panel de futuros valorizado quedan siempre relativos a HOY
-  // (el heatmap es "el patrón de los últimos N días" y el ajuste de mercado de
-  // los futuros solo existe para hoy — no hay un "mark-to-market pasado" sin
-  // guardar historial de ajustes, fuera de v1).
+  // POSICIÓN DEL DÍA (pedido de Lautaro 06/08/2026): pricing del día elegido
+  // (posición inicial = lo acumulado A PRECIO hasta el día anterior — pricing
+  // sigue sumando TODAS las campañas juntas, es exposición en $, no identidad
+  // de grano) + futuros del día valorizados con el ajuste de HOY (no hay
+  // mark-to-market pasado sin historial de ajustes). Integridad por
+  // construcción: inicial + neto del día = acumulado al cierre de ese día,
+  // testeado también contra el camino independiente en posicion.test.ts.
+  const pricingDia = construirMatrizDia(operaciones, dia, hoy, construirMatrizPricing);
+  const futurosDia = valorizarFuturos(operaciones.filter((o) => o.fecha === dia), ajustes);
+
+  // POSICIÓN ACUMULADA: pricing con el mismo criterio, respetando "Posición al
+  // [fecha]"; la posición de futuros acumulada (neteo + precio promedio +
+  // valorización) queda siempre relativa a HOY, como el ajuste.
   const operacionesParaMatriz = fechaCorte ? filtrarHasta(operaciones, fechaCorte) : operaciones;
-  const fisico = construirMatrizFisico(operacionesParaMatriz, hoy);
-  const futuros = construirMatrizFuturos(operacionesParaMatriz, hoy);
-  const total = combinarMatrices(fisico, futuros);
+  const pricingAcum = construirMatrizPricing(operacionesParaMatriz, hoy);
+  const futurosAcum = acumularFuturos(operaciones, ajustes);
+
+  // FÍSICO SEGMENTADO POR CAMPAÑA (pedido de Lautaro 06/08/2026): "no hace
+  // falta que todo se calce en la misma campaña — solo para la física sí, el
+  // pricing no". Una tabla por campaña presente en los datos (nunca se
+  // netea 25/26 contra 26/27: no es la misma mercadería), tanto para el día
+  // como para lo acumulado.
+  const campaniasDia = campaniasFisicasPresentes(operaciones);
+  const fisicoDiaPorCampania = campaniasDia.map((campania) => ({
+    campania,
+    matriz: construirMatrizDia(operaciones, dia, hoy, construirMatrizFisicoDeCampania(campania)),
+  }));
+  const campaniasAcum = campaniasFisicasPresentes(operacionesParaMatriz);
+  const fisicoAcumPorCampania = campaniasAcum.map((campania) => ({
+    campania,
+    matriz: construirMatrizFisicoDeCampania(campania)(operacionesParaMatriz, hoy),
+  }));
 
   const heatmap = construirHeatmap(operaciones, hoy, HEATMAP_VENTANA_MAX);
-  const futurosValorizados = valorizarFuturos(operaciones, armarAjusteLookup(cierres));
+
+  // El resumen ejecutivo (KPIs) es un encabezado, no un libro mayor: suma el
+  // físico de TODAS las campañas a propósito (misma razón que el pricing) —
+  // el detalle campaña por campaña vive en las tablas de abajo.
+  const fisicoAcumGlobal = construirMatrizFisico(operacionesParaMatriz, hoy);
+  const futurosValorizados = valorizarFuturos(operaciones, ajustes);
+  const futurosMatriz = construirMatrizFuturos(operacionesParaMatriz, hoy);
+  const resumen = resumenPosicion(fisicoAcumGlobal, combinarMatrices(fisicoAcumGlobal, futurosMatriz), futurosValorizados);
 
   return (
     <main className="wrap">
@@ -102,21 +138,23 @@ export default async function OperacionesPage({
           title="Mis operaciones"
           lede="Producto por período de entrega, siempre relativo a hoy."
         />
-        <Panel id="op-posicion">
-          <PanelHead title="Posición" sub="acumulada, desde la primera operación cargada" />
-          <PosicionClient
-            empresaId={empresaId}
-            empresas={acceso.esAdmin ? empresas : null}
-            hoy={hoy}
-            fechaCorte={fechaCorte}
-            fisico={fisico}
-            futuros={futuros}
-            total={total}
-            heatmap={heatmap}
-            futurosValorizados={futurosValorizados}
-            esAdmin={acceso.esAdmin}
-          />
-        </Panel>
+        <PosicionClient
+          empresaId={empresaId}
+          empresas={acceso.esAdmin ? empresas : null}
+          hoy={hoy}
+          dia={dia}
+          fechaCorte={fechaCorte}
+          pricingDia={pricingDia}
+          fisicoDiaPorCampania={fisicoDiaPorCampania}
+          futurosDia={futurosDia}
+          pricingAcum={pricingAcum}
+          fisicoAcumPorCampania={fisicoAcumPorCampania}
+          futurosAcum={futurosAcum}
+          heatmap={heatmap}
+          resumen={resumen}
+          sinOperaciones={operaciones.length === 0}
+          esAdmin={acceso.esAdmin}
+        />
       </div>
     </main>
   );

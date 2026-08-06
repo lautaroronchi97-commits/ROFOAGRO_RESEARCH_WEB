@@ -1,3 +1,4 @@
+import { vtoDePosicion } from "@/lib/dates";
 import {
   PRODUCTO_GRANO,
   PRODUCTOS_CON_FUTURO,
@@ -106,6 +107,108 @@ export function valorizarFuturos(operaciones: Operacion[], ajustes: AjusteLookup
       multiploDeContrato: o.volumen_tn % CONTRATO_GRANO_TN === 0,
     };
   });
+}
+
+// ============================================================================
+// Posición de futuros ACUMULADA (pedido de Lautaro 06/08/2026): agrupa todas
+// las operaciones vivas por producto × posición, netea el volumen, calcula el
+// precio promedio ponderado DE LA POSICIÓN NETA y valoriza contra el ajuste de
+// hoy. El promedio se define como Σ(signo·vol·precio) / Σ(signo·vol) — con esa
+// definición, (ajuste − promedio) × neto ≡ Σ[(ajuste − precio_i) × vol_i ×
+// signo_i]: la valorización acumulada es EXACTAMENTE la suma de las
+// valorizaciones por operación que Lautaro ya confirmó (§5.5), sin fórmula
+// nueva. Si el neto quedó en 0, el promedio no existe ("—") pero el resultado
+// sí: es el resultado CERRADO de la posición (compraste y vendiste el mismo
+// volumen a precios distintos), que ya no depende del ajuste.
+// ============================================================================
+
+export type FuturoAcumulado = {
+  producto: OperacionProducto;
+  posicionA3: string;
+  moneda: Moneda;
+  operaciones: number;
+  netoTn: number;
+  /** Promedio ponderado del neto; `null` si el neto es 0. */
+  precioPromedio: number | null;
+  ajusteHoy: number | null;
+  resultadoUsd: number | null;
+  estado: EstadoFuturoValorizado;
+};
+
+export function acumularFuturos(operaciones: Operacion[], ajustes: AjusteLookup): FuturoAcumulado[] {
+  const vivas = operaciones.filter(
+    (o): o is Operacion & { posicion_a3: string; precio: number; moneda: Moneda } =>
+      !o.anulada &&
+      o.tipo === "futuro_a3" &&
+      o.posicion_a3 != null &&
+      o.precio != null &&
+      o.moneda != null &&
+      PRODUCTOS_CON_FUTURO.includes(o.producto),
+  );
+
+  // Moneda incluida en la clave: un futuro cargado en $ (permitido por el DDL
+  // aunque A3 cotice en USD) no se puede promediar con los de USD sin inventar
+  // un TC — queda como grupo aparte en estado `moneda_no_usd`, mismo criterio
+  // de degradación honesta que `valorizarFuturos`.
+  const grupos = new Map<string, (typeof vivas)[number][]>();
+  for (const o of vivas) {
+    const clave = `${o.producto}|${o.posicion_a3}|${o.moneda}`;
+    const lista = grupos.get(clave);
+    if (lista) lista.push(o);
+    else grupos.set(clave, [o]);
+  }
+
+  const filas: FuturoAcumulado[] = [];
+  for (const ops of grupos.values()) {
+    const primera = ops[0]!;
+    let netoTn = 0;
+    let sumaSignada = 0; // Σ signo·vol·precio
+    for (const o of ops) {
+      const signo = o.lado === "compra" ? 1 : -1;
+      netoTn += signo * o.volumen_tn;
+      sumaSignada += signo * o.volumen_tn * o.precio;
+    }
+    netoTn = redondear(netoTn);
+    const precioPromedio = netoTn !== 0 ? redondear(sumaSignada / netoTn) : null;
+
+    const grano = PRODUCTO_GRANO[primera.producto];
+    const ajusteHoy = ajustes.get(claveAjuste(grano, primera.posicion_a3)) ?? null;
+
+    let estado: EstadoFuturoValorizado;
+    let resultadoUsd: number | null = null;
+    if (primera.moneda !== "usd") {
+      estado = "moneda_no_usd";
+    } else if (netoTn === 0) {
+      // Posición cerrada: el resultado quedó fijado al calzarla, no depende del ajuste.
+      estado = "valorizado";
+      resultadoUsd = redondear(-sumaSignada);
+    } else if (ajusteHoy == null) {
+      estado = "sin_ajuste_vigente";
+    } else {
+      estado = "valorizado";
+      resultadoUsd = redondear(ajusteHoy * netoTn - sumaSignada);
+    }
+
+    filas.push({
+      producto: primera.producto,
+      posicionA3: primera.posicion_a3,
+      moneda: primera.moneda,
+      operaciones: ops.length,
+      netoTn,
+      precioPromedio,
+      ajusteHoy,
+      resultadoUsd,
+      estado,
+    });
+  }
+
+  // Orden estable: producto (orden del catálogo) y posición por vencimiento real.
+  filas.sort(
+    (a, b) =>
+      PRODUCTOS_CON_FUTURO.indexOf(a.producto) - PRODUCTOS_CON_FUTURO.indexOf(b.producto) ||
+      vtoDePosicion(a.posicionA3).localeCompare(vtoDePosicion(b.posicionA3)),
+  );
+  return filas;
 }
 
 /** Total valorizado por producto (solo `estado: "valorizado"`; `null` si ningún contrato del producto valorizó). */

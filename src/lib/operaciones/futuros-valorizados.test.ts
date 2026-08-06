@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { valorizarFuturos, totalesPorProducto, totalGeneral, claveAjuste } from "./futuros-valorizados";
+import { valorizarFuturos, acumularFuturos, totalesPorProducto, totalGeneral, claveAjuste } from "./futuros-valorizados";
 import type { Operacion } from "./tipos";
 
 const HOY = "2026-08-05";
@@ -121,5 +121,81 @@ describe("totalesPorProducto / totalGeneral", () => {
     const ajustes = new Map<string, number | null>();
     const filas = valorizarFuturos([op({})], ajustes);
     expect(totalGeneral(filas)).toBeNull();
+  });
+});
+
+describe("acumularFuturos (pedido 06/08/2026 — precio promedio + valorización)", () => {
+  const ajustes = new Map<string, number | null>([[claveAjuste("SOJ", "NOV26"), 347.9]]);
+
+  it("netea por posición con promedio ponderado y valoriza igual que la suma por operación", () => {
+    const ops = [
+      op({ lado: "compra", volumen_tn: 300, precio: 320 }),
+      op({ lado: "compra", volumen_tn: 100, precio: 330 }),
+    ];
+    const [fila] = acumularFuturos(ops, ajustes);
+    expect(fila).toMatchObject({ posicionA3: "NOV26", operaciones: 2, netoTn: 400 });
+    expect(fila!.precioPromedio).toBe(322.5); // (300×320 + 100×330) / 400
+    // (347,9 − 322,5) × 400 = 10.160 — idéntico a sumar (347,9−320)×300 + (347,9−330)×100
+    expect(fila!.resultadoUsd).toBe(10160);
+    const porOperacion = totalGeneral(valorizarFuturos(ops, ajustes));
+    expect(fila!.resultadoUsd).toBe(porOperacion);
+  });
+
+  it("con compras y ventas mezcladas el promedio es del NETO", () => {
+    const ops = [
+      op({ lado: "compra", volumen_tn: 300, precio: 320 }),
+      op({ lado: "venta", volumen_tn: 100, precio: 340 }),
+    ];
+    const [fila] = acumularFuturos(ops, ajustes);
+    expect(fila!.netoTn).toBe(200);
+    expect(fila!.precioPromedio).toBe(310); // (300×320 − 100×340) / 200
+    expect(fila!.resultadoUsd).toBe(7580); // (347,9 − 310) × 200
+  });
+
+  it("posición cerrada (neto 0): sin promedio, resultado FIJADO que no depende del ajuste", () => {
+    const ops = [
+      op({ lado: "compra", volumen_tn: 200, precio: 320 }),
+      op({ lado: "venta", volumen_tn: 200, precio: 335 }),
+    ];
+    const [fila] = acumularFuturos(ops, ajustes);
+    expect(fila!.netoTn).toBe(0);
+    expect(fila!.precioPromedio).toBeNull();
+    expect(fila!.resultadoUsd).toBe(3000); // (335 − 320) × 200, cerrado
+    expect(fila!.estado).toBe("valorizado");
+    const sinAjuste = acumularFuturos(ops, new Map());
+    expect(sinAjuste[0]!.resultadoUsd).toBe(3000); // idéntico sin ajuste vigente
+  });
+
+  it("sin ajuste vigente con neto abierto: no inventa valorización", () => {
+    const [fila] = acumularFuturos([op({ lado: "compra", volumen_tn: 100, precio: 320 })], new Map());
+    expect(fila!.estado).toBe("sin_ajuste_vigente");
+    expect(fila!.resultadoUsd).toBeNull();
+    expect(fila!.precioPromedio).toBe(320);
+  });
+
+  it("moneda $ queda como grupo aparte sin valorizar (sin inventar TC)", () => {
+    const ops = [
+      op({ lado: "compra", volumen_tn: 100, precio: 320 }),
+      op({ lado: "compra", volumen_tn: 100, precio: 450000, moneda: "ars" }),
+    ];
+    const filas = acumularFuturos(ops, ajustes);
+    expect(filas).toHaveLength(2);
+    const enPesos = filas.find((f) => f.moneda === "ars")!;
+    expect(enPesos.estado).toBe("moneda_no_usd");
+    expect(enPesos.resultadoUsd).toBeNull();
+  });
+
+  it("agrupa por posición separada y ordena por vencimiento", () => {
+    const ops = [
+      op({ lado: "compra", volumen_tn: 100, precio: 330, posicion_a3: "MAY27" }),
+      op({ lado: "compra", volumen_tn: 100, precio: 320, posicion_a3: "NOV26" }),
+    ];
+    const filas = acumularFuturos(ops, new Map());
+    expect(filas.map((f) => f.posicionA3)).toEqual(["NOV26", "MAY27"]);
+  });
+
+  it("las anuladas no acumulan", () => {
+    const filas = acumularFuturos([op({ anulada: true })], ajustes);
+    expect(filas).toEqual([]);
   });
 });

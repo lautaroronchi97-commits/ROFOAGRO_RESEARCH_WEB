@@ -19,7 +19,86 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 06/08/2026 — 🚨 fix login roto: migración de permisos por ítem aplicada)
+## Ahora (última actualización: 06/08/2026 — 🧱 mejora de "Mis operaciones": resumen ejecutivo + carga en serie + reestructura pricing/físico/día/acumulado + % calzado + físico por campaña + evolución + mobile, HECHO — 3 vueltas)
+
+**🧱 MEJORA DE "MIS OPERACIONES" — HECHA, EN 3 VUELTAS EN LA MISMA SESIÓN — rama
+`claude/mis-operaciones-mejora-yj2t38`, PR #147.** Pedido de Lautaro: mejorar C31 (recién cerrado el
+05/08), "la sección más importante para nuestros clientes". **Vuelta 1** (autopropuesta antes de
+recibir más precisión): resumen ejecutivo de KPIs arriba de las matrices (`resumen.ts`, condensa
+físico/futuros/total por producto + resultado de futuros a hoy, cero fórmula nueva) · carga en
+serie en el registro (botón **Duplicar** por fila + tras guardar se limpia solo volumen/contraparte/
+observaciones con foco en volumen, el resto queda listo para el siguiente negocio parecido) ·
+navegación cruzada registro↔posición + empty state para una empresa sin operaciones.
+
+**Vuelta 2 — reestructura pedida explícitamente por Lautaro a mitad de sesión.** El registro diario
+pasa a ser **solo carga** (se sacó la tabla "Neto del día": *"solamente debe poder completarse lo
+que se va realizando"*) · **condición "A fijar" fuerza precio "Sin precio"** (un a-fijar no puede
+tener precio — validado en `registro.ts` y espejado en el form) · **`/operaciones` reestructurada
+en 2 bloques**: **Posición del día** (selector `?dia=`, con **Pricing del día** —físicos a precio/
+pizarra + fijaciones + futuros A3, TODO lo que ya tiene precio, `construirMatrizPricing` nueva—,
+**Físico del día** —la totalidad física, a precio y a fijar, sin futuros ni fijaciones— y **Futuros
+del día** valorizados, cada tabla con su **posición inicial** = lo acumulado hasta el día anterior
+con el MISMO criterio; heatmap al final) y **Posición acumulada** (mismo pricing/físico separados +
+**posición de futuros acumulada** nueva —`acumularFuturos`—: netea por producto×posición, calcula
+**precio promedio ponderado** y valoriza, con una posición cerrada mostrando su resultado ya
+fijado). **Integridad matemática por construcción** (pedido explícito "validemos la integridad...
+que no se pueda romper entre tablas"): la posición inicial del día sale del MISMO builder que la
+matriz del día → inicial + neto del día = total, siempre, y ese total coincide EXACTO con la matriz
+acumulada independiente (testeado con los 2 caminos comparados); el promedio ponderado se definió
+para que `(ajuste−promedio)×neto` dé exacto lo mismo que sumar la valorización operación por
+operación (también testeado cruzado). Verde/rojo en Total y Estado en las 4 tablas nuevas.
+
+**Verificado**: lint/tsc/**578 tests** (18 nuevos)/build ✅ · bypass temporal de sesión (mismo
+patrón de C31, revertido en su totalidad) con datos sintéticos reales por SQL cubriendo 5 días
+distintos, un futuro con 2 cargas a la misma posición (promedio ponderado), fijación, forward a
+fijar sin precio, futuro vencido sin ajuste — **números cotejados a mano, exactos**: pricing
+inicial +540,00 → neto día −20,00 → total +520,00 = pricing acumulado · físico inicial +140,00 →
++100,00 → +240,00 = físico acumulado · futuro NOV26 300@320+100@330 → promedio 322,50 exacto →
+resultado +10.160,00 = suma de las 2 valorizaciones por separado. Playwright real claro/oscuro/
+mobile, cero errores de consola, cero scroll horizontal. Datos sintéticos y bypass revertidos sin
+residuo (`count=0` confirmado por SQL, `git diff` limpio en `dal.ts`/`server.ts`); sin sesión real,
+`/operaciones` y `/operaciones/registro` siguen 307→`/ingresar`.
+
+**Vuelta 3 — 9 mejoras propuestas por texto ("solo propuestas, no código"), Lautoro contestó las 9
+y pidió construir las aceptadas.** **% de calzado en el resumen ejecutivo** (`calcularCobertura()`
+nueva en `resumen.ts`): físico y futuros en sentido OPUESTO = cobertura real (% con tope 100%,
+`sobre_cubierto` si el futuro excede el físico); MISMO sentido = exposición que se suma, no
+cobertura → alerta visual explícita ("Sin cobertura — misma dirección") en vez de un % engañoso.
+**Físico segmentado por campaña** (precisión de Lautoro: *"no hace falta que todo se calce en la
+misma campaña. Solo para la mercadería física sí. El pricing no."*): `campaniasFisicasPresentes()`
++ `construirMatrizFisicoDeCampania()` nuevas — una compra 25/26 y una venta 26/27 ya NO se netean
+entre sí en el físico (no es la misma mercadería); una tabla de físico por campaña presente, tanto
+en el día como en lo acumulado — **el pricing y el resumen ejecutivo siguen sumando todas las
+campañas juntas a propósito** (exposición en $, no identidad de grano). **Evolución de la posición,
+página nueva `/operaciones/evolucion`** (pedido "en otra solapa, no quiero landings interminables de
+scroll"): curva del físico acumulado por producto en el tiempo (`evolucionFisico()` nueva), una
+campaña por vez (selector propio), RfChart + tabla pivot para doble lectura, sumada a la sidebar.
+**Mobile del registro verificado y confirmado ya usable** (Playwright real 390px con `tap()`, cero
+overflow) más un fix real (`inputMode="decimal"` en los 4 inputs numéricos, convención que ya
+usaba el resto del sitio y le faltaba acá). **Descartado por Lautoro**: saldo a fijar/control de
+sobre-fijación ("el cliente lo hace en su sistema"), historial de ajustes de futuros ("no hace
+falta"), import de Excel ("que tengan el duplicar"). **Agendado, no ahora**: valorización del
+físico ("lo vamos a hacer en otro momento"), posición inicial ("en algún momento") — los 5 quedan
+registrados en `PLAN_OPERACIONES_CLIENTES.md` §10 con la razón de cada decisión.
+
+**Sugerencia propia no construida** (dicha en el chat al cierre de la vuelta 2, sigue sin código):
+un canario en runtime que compare el total de la posición del día contra la matriz acumulada
+independiente y alerte si alguna vez difieren — hoy la garantía es 100% estructural (mismo
+builder), esto detectaría una regresión futura sin que nadie la note visualmente.
+
+**Verificado (las 3 vueltas)**: lint/tsc/**592 tests** (32 nuevos)/build ✅ · bypass temporal de
+sesión (mismo patrón de C31, revertido en su totalidad 3 veces, `git diff` limpio confirmado cada
+vez) con datos sintéticos reales por SQL — números cotejados a mano en cada vuelta, exactos
+(pricing/físico inicial+día=acumulado · futuro NOV26 300@320+100@330 → promedio ponderado 322,50
+exacto → resultado +10.160,00 · KPI de soja con físico+futuros mismo signo mostrando la alerta de
+cobertura correcta · curva de evolución 200→140→100 tn cruzada a mano). Playwright real claro/
+oscuro/desktop/mobile (incl. `isMobile`/`hasTouch`/`tap()` real), cero errores de consola, cero
+scroll horizontal en ninguna combinación. Datos sintéticos y bypass revertidos sin residuo
+(`count=0` por SQL) las 3 veces; sin sesión real, `/operaciones`, `/operaciones/registro` y
+`/operaciones/evolucion` siguen 307→`/ingresar`. Detalle:
+[`sesiones/2026-08-06-mejora-mis-operaciones.md`](sesiones/2026-08-06-mejora-mis-operaciones.md).
+
+## Anterior (06/08/2026 — 🚨 fix login roto: migración de permisos por ítem aplicada)
 
 **🚨 FIX: LOGIN ROTO PARA TODOS LOS USUARIOS (migración de "permisos por ítem" pendiente de
 aplicar) — HECHO — rama `claude/gmail-login-approval-fk347n`, PR #_.** Lautaro reportó no poder

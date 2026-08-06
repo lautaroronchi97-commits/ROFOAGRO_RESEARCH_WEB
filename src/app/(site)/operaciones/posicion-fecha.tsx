@@ -1,20 +1,22 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 /**
- * "Posición al [fecha]" (§5.6 item 6, Fase 2): reconstruye la matriz a un
- * cierre pasado. Sin fecha en la URL = posición completa de hoy (comportamiento
- * de la Fase 1, sin cambios). Conserva `?empresa=` si un admin la eligió.
+ * "Posición al [fecha]" (§5.6 item 6, Fase 2): reconstruye la matriz acumulada
+ * a un cierre pasado. Sin fecha en la URL = posición completa de hoy. Conserva
+ * el resto de los parámetros (`empresa` de admin, `dia` del bloque diario)
+ * copiando la query actual.
  */
-export function PosicionFecha({ fecha, hoy, empresaId }: { fecha: string | null; hoy: string; empresaId?: string }) {
+export function PosicionFecha({ fecha, hoy }: { fecha: string | null; hoy: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   function ir(nuevaFecha: string | null) {
-    const qs = new URLSearchParams();
+    const qs = new URLSearchParams(searchParams.toString());
     if (nuevaFecha) qs.set("fecha", nuevaFecha);
-    if (empresaId) qs.set("empresa", empresaId);
+    else qs.delete("fecha");
     const query = qs.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }
