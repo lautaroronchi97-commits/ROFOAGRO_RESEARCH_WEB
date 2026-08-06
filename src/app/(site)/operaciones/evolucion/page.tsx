@@ -30,7 +30,7 @@ export default async function EvolucionPage({
 }: {
   searchParams: Promise<{ empresa?: string; campania?: string }>;
 }) {
-  await requireSeccion("operaciones");
+  await requireSeccion("operaciones", "/operaciones/evolucion");
   const sp = await searchParams;
   const acceso = await getAcceso();
   if (!acceso) redirect("/ingresar");
