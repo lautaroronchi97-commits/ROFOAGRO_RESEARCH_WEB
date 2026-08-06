@@ -2177,6 +2177,7 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-form-ok { color:var(--pos); font-size:var(--fs-sm); }
 .op-form-modo { margin:0 0 10px; font-size:var(--fs-sm); font-weight:700; color:var(--gold-text); }
 .op-form-err { color:var(--neg); font-size:var(--fs-sm); }
+.op-form-hint { grid-column:1 / -1; margin:-6px 0 0; font-size:var(--fs-xs); color:var(--ink-2); }
 
 .op-listas-hd { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 4px; }
 .op-check { display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); color:var(--ink-2); cursor:pointer; }

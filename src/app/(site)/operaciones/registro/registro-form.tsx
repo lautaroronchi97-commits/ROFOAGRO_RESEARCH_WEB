@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { crearOperacion, editarOperacion, type OperacionFormState } from "../actions";
 import { CurvaPicker } from "@/components/curva-picker";
+import { precioModoDeCondicion } from "@/lib/operaciones/registro";
 import type { GranoCurva } from "@/lib/curva-types";
 import {
   PRODUCTOS,
@@ -11,7 +12,7 @@ import {
   PRODUCTOS_CON_FUTURO,
   TIPO_LABEL,
   CONDICION_LABEL,
-  PRECIO_MODO_LABEL,
+  CONDICIONES_POR_TIPO,
   type Operacion,
   type OperacionCondicion,
   type OperacionProducto,
@@ -56,8 +57,9 @@ export function RegistroForm({
   const [producto, setProducto] = useState<OperacionProducto>(base?.producto ?? "soja");
   const [tipo, setTipo] = useState<OperacionTipo>(base?.tipo ?? "disponible");
   const [condicion, setCondicion] = useState<OperacionCondicion | "">(base?.condicion ?? "");
-  const [precioModo, setPrecioModo] = useState<PrecioModo>(base?.precio_modo ?? "manual");
   const [volumenUnidad, setVolumenUnidad] = useState<"tn" | "kg">("tn");
+  const [entregaDesde, setEntregaDesde] = useState(base?.entrega_desde ?? "");
+  const [esCanje, setEsCanje] = useState(base?.es_canje ?? false);
   const [futuro, setFuturo] = useState<{ posicion: string; precio: number } | null>(
     base?.tipo === "futuro_a3" && base.posicion_a3 ? { posicion: base.posicion_a3, precio: base.precio ?? 0 } : null,
   );
@@ -91,16 +93,27 @@ export function RegistroForm({
   }, [st, esEdicion, onDone]);
 
   const tieneFuturo = PRODUCTOS_CON_FUTURO.includes(producto);
-  const soloManual = tipo === "fijacion" || tipo === "futuro_a3";
-  // Condición "a fijar" en un físico ⇒ SIEMPRE "sin precio" (pedido de Lautaro
-  // 06/08/2026: el precio llega después, con la fijación) — espejo de la regla
-  // de `validarOperacion`.
-  const soloSinPrecio = !soloManual && condicion === "a_fijar";
-  // Fijación y futuro A3 siempre tienen precio manual (constraint del DDL): se
-  // deriva en el render en vez de sincronizar con un efecto — evita el cascading
-  // render y además preserva la elección previa del usuario si vuelve a un tipo
-  // que sí admite pizarra/sin precio.
-  const precioModoEfectivo: PrecioModo = soloManual ? "manual" : soloSinPrecio ? "sin_precio" : precioModo;
+
+  // Condición: qué admite el tipo elegido (pedido de Lautoro 06/08/2026,
+  // CONDICIONES_POR_TIPO) — futuro A3 no usa condición (array vacío, campo
+  // oculto); fijación solo pizarra/a precio; disponible/forward las 4. Se
+  // deriva en el render (no un efecto): si el usuario cambia de tipo y la
+  // condición ya elegida deja de ser válida, el <select> vuelve solo a "—"
+  // sin romper el resto del formulario.
+  const condicionesPermitidas = CONDICIONES_POR_TIPO[tipo];
+  const requiereCondicion = condicionesPermitidas.length > 0;
+  const condicionEfectiva: OperacionCondicion | "" =
+    requiereCondicion && condicionesPermitidas.includes(condicion as OperacionCondicion) ? condicion : "";
+
+  // El Precio ya no se elige a mano: sale de la condición (o siempre manual en
+  // futuro A3, que no usa condición) — mismo criterio que `validarOperacion`.
+  const precioModoEfectivo: PrecioModo | null =
+    tipo === "futuro_a3" ? "manual" : condicionEfectiva ? precioModoDeCondicion(condicionEfectiva) : null;
+
+  // Fijación: período (desde/hasta) — el "desde" sugiere el inicio de entrega
+  // (forward) o la fecha de la operación (disponible, entrega inmediata); el
+  // usuario lo puede editar libre. El "hasta" queda libre/abierto.
+  const fijacionDesdeSugerida = tipo === "forward" ? entregaDesde : (base?.fecha ?? fecha);
 
   return (
     <form ref={formRef} action={action} className="op-form">
@@ -166,22 +179,25 @@ export function RegistroForm({
           </select>
         </label>
 
-        <label className="admin-field">
-          <span>Condición</span>
-          <select
-            name="condicion"
-            value={condicion}
-            onChange={(e) => setCondicion(e.target.value as OperacionCondicion | "")}
-            className="admin-input"
-          >
-            <option value="">—</option>
-            {Object.entries(CONDICION_LABEL).map(([k, label]) => (
-              <option key={k} value={k}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {requiereCondicion && (
+          <label className="admin-field">
+            <span>Condición</span>
+            <select
+              name="condicion"
+              value={condicionEfectiva}
+              onChange={(e) => setCondicion(e.target.value as OperacionCondicion | "")}
+              required
+              className="admin-input"
+            >
+              <option value="">—</option>
+              {condicionesPermitidas.map((k) => (
+                <option key={k} value={k}>
+                  {CONDICION_LABEL[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="admin-field">
           <span>Campaña</span>
@@ -228,23 +244,18 @@ export function RegistroForm({
           </label>
         </div>
 
-        <label className="admin-field">
-          <span>Precio</span>
-          <select
-            name="precio_modo"
-            value={precioModoEfectivo}
-            onChange={(e) => setPrecioModo(e.target.value as PrecioModo)}
-            className="admin-input"
+        <div className="admin-field">
+          <span>Es canje</span>
+          <button
+            type="button"
+            className={`admin-btn ${esCanje ? "admin-btn-ok" : "admin-btn-ghost"}`}
+            aria-pressed={esCanje}
+            onClick={() => setEsCanje((v) => !v)}
           >
-            {Object.entries(PRECIO_MODO_LABEL)
-              .filter(([k]) => (soloManual ? k === "manual" : soloSinPrecio ? k === "sin_precio" : true))
-              .map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-          </select>
-        </label>
+            {esCanje ? "Sí" : "No"}
+          </button>
+          <input type="hidden" name="es_canje" value={esCanje ? "1" : "0"} />
+        </div>
 
         {precioModoEfectivo === "manual" && (
           <label className="admin-field">
@@ -262,7 +273,7 @@ export function RegistroForm({
             />
           </label>
         )}
-        {precioModoEfectivo !== "sin_precio" && (
+        {precioModoEfectivo && precioModoEfectivo !== "sin_precio" && (
           <label className="admin-field">
             <span>Moneda</span>
             <select name="moneda" defaultValue={base?.moneda ?? "usd"} className="admin-input">
@@ -270,6 +281,15 @@ export function RegistroForm({
               <option value="ars">$</option>
             </select>
           </label>
+        )}
+        {precioModoEfectivo === "pizarra" && (
+          <p className="op-form-hint">La pizarra se completa sola al día siguiente (cron de scraping) — no hay precio para cargar hoy.</p>
+        )}
+        {precioModoEfectivo === "sin_precio" && (
+          <p className="op-form-hint">Sin precio — se completa después, con la fijación.</p>
+        )}
+        {requiereCondicion && !condicionEfectiva && (
+          <p className="op-form-hint">Elegí la condición para saber cómo se completa el precio.</p>
         )}
 
         <label className="admin-field">
@@ -307,7 +327,8 @@ export function RegistroForm({
               <input
                 type="date"
                 name="entrega_desde"
-                defaultValue={base?.entrega_desde ?? ""}
+                value={entregaDesde}
+                onChange={(e) => setEntregaDesde(e.target.value)}
                 required
                 className="admin-input"
               />
@@ -315,6 +336,26 @@ export function RegistroForm({
             <label className="admin-field">
               <span>Entrega hasta (opcional)</span>
               <input type="date" name="entrega_hasta" defaultValue={base?.entrega_hasta ?? ""} className="admin-input" />
+            </label>
+          </>
+        )}
+
+        {condicionEfectiva === "a_fijar" && (
+          <>
+            <label className="admin-field">
+              <span>Fijación desde</span>
+              <input
+                type="date"
+                name="fijacion_desde"
+                key={`fijdesde-${fijacionDesdeSugerida}`}
+                defaultValue={base?.fijacion_desde ?? fijacionDesdeSugerida}
+                required
+                className="admin-input"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Fijación hasta (opcional — libre si queda vacío)</span>
+              <input type="date" name="fijacion_hasta" defaultValue={base?.fijacion_hasta ?? ""} className="admin-input" />
             </label>
           </>
         )}

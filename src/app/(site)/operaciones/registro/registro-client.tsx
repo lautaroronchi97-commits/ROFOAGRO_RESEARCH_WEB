@@ -12,14 +12,15 @@ import { FechaNav } from "./fecha-nav";
 import { EmpresaSelector } from "../empresa-selector";
 
 function descargarCsvDia(operaciones: Operacion[], fecha: string) {
-  const cols = ["Lado", "Producto", "Tipo", "Condición", "Campaña", "Volumen (TN)", "Precio", "Moneda", "Entrega desde", "Entrega hasta", "Posición A3", "Contraparte", "N° Ctto", "Observaciones", "Anulada"];
+  const cols = ["Lado", "Producto", "Tipo", "Condición", "Campaña", "Volumen (TN)", "Precio", "Moneda", "Entrega desde", "Entrega hasta", "Fijación desde", "Fijación hasta", "Posición A3", "Canje", "Contraparte", "N° Ctto", "Observaciones", "Anulada"];
   const esc = (v: string | number | null | undefined) => {
     const s = v === null || v === undefined ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const filas = operaciones.map((o) => [
     o.lado, PRODUCTO_LABEL[o.producto], o.tipo, o.condicion ?? "", o.campania, o.volumen_tn,
-    o.precio ?? "", o.moneda ?? "", o.entrega_desde ?? "", o.entrega_hasta ?? "", o.posicion_a3 ?? "",
+    o.precio ?? "", o.moneda ?? "", o.entrega_desde ?? "", o.entrega_hasta ?? "",
+    o.fijacion_desde ?? "", o.fijacion_hasta ?? "", o.posicion_a3 ?? "", o.es_canje ? "sí" : "no",
     o.contraparte ?? "", o.nro_contrato ?? "", o.observaciones ?? "", o.anulada ? "sí" : "no",
   ]);
   const lineas = [cols.map(esc).join(","), ...filas.map((f) => f.map(esc).join(","))];
