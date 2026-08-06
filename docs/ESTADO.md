@@ -19,10 +19,10 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 06/08/2026 — 🧱 mejora de "Mis operaciones": resumen ejecutivo + carga en serie + reestructura pricing/físico/día/acumulado, HECHO)
+## Ahora (última actualización: 06/08/2026 — 🧱 mejora de "Mis operaciones": resumen ejecutivo + carga en serie + reestructura pricing/físico/día/acumulado + % calzado + físico por campaña + evolución + mobile, HECHO — 3 vueltas)
 
-**🧱 MEJORA DE "MIS OPERACIONES" — HECHA, EN 2 VUELTAS EN LA MISMA SESIÓN — rama
-`claude/mis-operaciones-mejora-yj2t38`, PR #_.** Pedido de Lautaro: mejorar C31 (recién cerrado el
+**🧱 MEJORA DE "MIS OPERACIONES" — HECHA, EN 3 VUELTAS EN LA MISMA SESIÓN — rama
+`claude/mis-operaciones-mejora-yj2t38`, PR #147.** Pedido de Lautaro: mejorar C31 (recién cerrado el
 05/08), "la sección más importante para nuestros clientes". **Vuelta 1** (autopropuesta antes de
 recibir más precisión): resumen ejecutivo de KPIs arriba de las matrices (`resumen.ts`, condensa
 físico/futuros/total por producto + resultado de futuros a hoy, cero fórmula nueva) · carga en
@@ -59,10 +59,43 @@ mobile, cero errores de consola, cero scroll horizontal. Datos sintéticos y byp
 residuo (`count=0` confirmado por SQL, `git diff` limpio en `dal.ts`/`server.ts`); sin sesión real,
 `/operaciones` y `/operaciones/registro` siguen 307→`/ingresar`.
 
-**Sugerencia propia no construida** (dicha en el chat, "escucho otra mejora que propongas"): un
-canario en runtime que compare el total de la posición del día contra la matriz acumulada
+**Vuelta 3 — 9 mejoras propuestas por texto ("solo propuestas, no código"), Lautoro contestó las 9
+y pidió construir las aceptadas.** **% de calzado en el resumen ejecutivo** (`calcularCobertura()`
+nueva en `resumen.ts`): físico y futuros en sentido OPUESTO = cobertura real (% con tope 100%,
+`sobre_cubierto` si el futuro excede el físico); MISMO sentido = exposición que se suma, no
+cobertura → alerta visual explícita ("Sin cobertura — misma dirección") en vez de un % engañoso.
+**Físico segmentado por campaña** (precisión de Lautoro: *"no hace falta que todo se calce en la
+misma campaña. Solo para la mercadería física sí. El pricing no."*): `campaniasFisicasPresentes()`
++ `construirMatrizFisicoDeCampania()` nuevas — una compra 25/26 y una venta 26/27 ya NO se netean
+entre sí en el físico (no es la misma mercadería); una tabla de físico por campaña presente, tanto
+en el día como en lo acumulado — **el pricing y el resumen ejecutivo siguen sumando todas las
+campañas juntas a propósito** (exposición en $, no identidad de grano). **Evolución de la posición,
+página nueva `/operaciones/evolucion`** (pedido "en otra solapa, no quiero landings interminables de
+scroll"): curva del físico acumulado por producto en el tiempo (`evolucionFisico()` nueva), una
+campaña por vez (selector propio), RfChart + tabla pivot para doble lectura, sumada a la sidebar.
+**Mobile del registro verificado y confirmado ya usable** (Playwright real 390px con `tap()`, cero
+overflow) más un fix real (`inputMode="decimal"` en los 4 inputs numéricos, convención que ya
+usaba el resto del sitio y le faltaba acá). **Descartado por Lautoro**: saldo a fijar/control de
+sobre-fijación ("el cliente lo hace en su sistema"), historial de ajustes de futuros ("no hace
+falta"), import de Excel ("que tengan el duplicar"). **Agendado, no ahora**: valorización del
+físico ("lo vamos a hacer en otro momento"), posición inicial ("en algún momento") — los 5 quedan
+registrados en `PLAN_OPERACIONES_CLIENTES.md` §10 con la razón de cada decisión.
+
+**Sugerencia propia no construida** (dicha en el chat al cierre de la vuelta 2, sigue sin código):
+un canario en runtime que compare el total de la posición del día contra la matriz acumulada
 independiente y alerte si alguna vez difieren — hoy la garantía es 100% estructural (mismo
-builder), esto detectaría una regresión futura sin que nadie la note visualmente. Detalle:
+builder), esto detectaría una regresión futura sin que nadie la note visualmente.
+
+**Verificado (las 3 vueltas)**: lint/tsc/**592 tests** (32 nuevos)/build ✅ · bypass temporal de
+sesión (mismo patrón de C31, revertido en su totalidad 3 veces, `git diff` limpio confirmado cada
+vez) con datos sintéticos reales por SQL — números cotejados a mano en cada vuelta, exactos
+(pricing/físico inicial+día=acumulado · futuro NOV26 300@320+100@330 → promedio ponderado 322,50
+exacto → resultado +10.160,00 · KPI de soja con físico+futuros mismo signo mostrando la alerta de
+cobertura correcta · curva de evolución 200→140→100 tn cruzada a mano). Playwright real claro/
+oscuro/desktop/mobile (incl. `isMobile`/`hasTouch`/`tap()` real), cero errores de consola, cero
+scroll horizontal en ninguna combinación. Datos sintéticos y bypass revertidos sin residuo
+(`count=0` por SQL) las 3 veces; sin sesión real, `/operaciones`, `/operaciones/registro` y
+`/operaciones/evolucion` siguen 307→`/ingresar`. Detalle:
 [`sesiones/2026-08-06-mejora-mis-operaciones.md`](sesiones/2026-08-06-mejora-mis-operaciones.md).
 
 ## Anterior (06/08/2026 — 🚨 fix login roto: migración de permisos por ítem aplicada)

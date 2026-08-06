@@ -29,8 +29,25 @@ function fmtUsd(n: number): string {
   return `${n > 0 ? "+" : n < 0 ? "−" : ""}${abs}`;
 }
 
+/** Texto de cobertura (% calzado) para mostrar junto al desglose físico/futuros — `null` si no aplica. */
+function textoCobertura(p: ResumenProducto): { texto: string; alerta: boolean } | null {
+  switch (p.coberturaEstado) {
+    case "cubierto":
+      return { texto: `Calzado ${p.pctCalzado}%`, alerta: false };
+    case "sobre_cubierto":
+      return { texto: `Sobre-cubierto (${p.pctCalzado}%)`, alerta: true };
+    case "sin_cobertura":
+      // Solo alerta si hay futuros en la MISMA dirección que el físico (exposición
+      // que se suma en vez de cubrirse) — si no hay futuros, no hay nada que decir acá.
+      return p.futurosTn !== 0 ? { texto: "Sin cobertura — misma dirección", alerta: true } : null;
+    case "sin_fisico":
+      return null;
+  }
+}
+
 function KpiProducto({ p }: { p: ResumenProducto }) {
   const hayDesglose = p.futurosTn !== 0;
+  const cobertura = textoCobertura(p);
   return (
     <div className="op-kpi">
       <span className="op-kpi-l">{PRODUCTO_LABEL[p.producto]}</span>
@@ -42,6 +59,9 @@ function KpiProducto({ p }: { p: ResumenProducto }) {
         <span className="op-kpi-sub">
           Físico {fmtNeto(p.fisicoTn)} · Futuros {fmtNeto(p.futurosTn)}
         </span>
+      )}
+      {cobertura && (
+        <span className={`op-kpi-sub${cobertura.alerta ? " op-kpi-alerta" : ""}`}>{cobertura.texto}</span>
       )}
     </div>
   );

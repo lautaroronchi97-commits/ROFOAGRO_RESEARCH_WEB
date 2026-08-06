@@ -7,6 +7,8 @@ import {
   construirMatrizFuturos,
   construirMatrizPricing,
   construirMatrizDia,
+  campaniasFisicasPresentes,
+  construirMatrizFisicoDeCampania,
   combinarMatrices,
   construirHeatmap,
   filtrarHasta,
@@ -85,31 +87,48 @@ export default async function OperacionesPage({
   const [operaciones, cierres] = await Promise.all([getOperaciones(empresaId), getCierresGranos()]);
   const ajustes = armarAjusteLookup(cierres);
 
-  // POSICIÓN DEL DÍA (pedido de Lautaro 06/08/2026): pricing y físico del día
-  // elegido, cada uno con su posición inicial (lo acumulado hasta el día
-  // anterior, mismo criterio de tabla) — integridad por construcción: inicial +
-  // neto del día = acumulado al cierre de ese día, testeado también contra el
-  // camino independiente en posicion.test.ts. Los futuros del día se valorizan
-  // con el ajuste de HOY (no hay mark-to-market pasado sin historial de ajustes).
+  // POSICIÓN DEL DÍA (pedido de Lautaro 06/08/2026): pricing del día elegido
+  // (posición inicial = lo acumulado A PRECIO hasta el día anterior — pricing
+  // sigue sumando TODAS las campañas juntas, es exposición en $, no identidad
+  // de grano) + futuros del día valorizados con el ajuste de HOY (no hay
+  // mark-to-market pasado sin historial de ajustes). Integridad por
+  // construcción: inicial + neto del día = acumulado al cierre de ese día,
+  // testeado también contra el camino independiente en posicion.test.ts.
   const pricingDia = construirMatrizDia(operaciones, dia, hoy, construirMatrizPricing);
-  const fisicoDia = construirMatrizDia(operaciones, dia, hoy, construirMatrizFisico);
   const futurosDia = valorizarFuturos(operaciones.filter((o) => o.fecha === dia), ajustes);
 
-  // POSICIÓN ACUMULADA: pricing y físico con el mismo criterio, respetando
-  // "Posición al [fecha]"; la posición de futuros acumulada (neteo + precio
-  // promedio + valorización) queda siempre relativa a HOY, como el ajuste.
+  // POSICIÓN ACUMULADA: pricing con el mismo criterio, respetando "Posición al
+  // [fecha]"; la posición de futuros acumulada (neteo + precio promedio +
+  // valorización) queda siempre relativa a HOY, como el ajuste.
   const operacionesParaMatriz = fechaCorte ? filtrarHasta(operaciones, fechaCorte) : operaciones;
   const pricingAcum = construirMatrizPricing(operacionesParaMatriz, hoy);
-  const fisicoAcum = construirMatrizFisico(operacionesParaMatriz, hoy);
   const futurosAcum = acumularFuturos(operaciones, ajustes);
+
+  // FÍSICO SEGMENTADO POR CAMPAÑA (pedido de Lautaro 06/08/2026): "no hace
+  // falta que todo se calce en la misma campaña — solo para la física sí, el
+  // pricing no". Una tabla por campaña presente en los datos (nunca se
+  // netea 25/26 contra 26/27: no es la misma mercadería), tanto para el día
+  // como para lo acumulado.
+  const campaniasDia = campaniasFisicasPresentes(operaciones);
+  const fisicoDiaPorCampania = campaniasDia.map((campania) => ({
+    campania,
+    matriz: construirMatrizDia(operaciones, dia, hoy, construirMatrizFisicoDeCampania(campania)),
+  }));
+  const campaniasAcum = campaniasFisicasPresentes(operacionesParaMatriz);
+  const fisicoAcumPorCampania = campaniasAcum.map((campania) => ({
+    campania,
+    matriz: construirMatrizFisicoDeCampania(campania)(operacionesParaMatriz, hoy),
+  }));
 
   const heatmap = construirHeatmap(operaciones, hoy, HEATMAP_VENTANA_MAX);
 
-  // El resumen ejecutivo condensa la posición acumulada completa (físico +
-  // futuros por producto) y el resultado de futuros a hoy.
+  // El resumen ejecutivo (KPIs) es un encabezado, no un libro mayor: suma el
+  // físico de TODAS las campañas a propósito (misma razón que el pricing) —
+  // el detalle campaña por campaña vive en las tablas de abajo.
+  const fisicoAcumGlobal = construirMatrizFisico(operacionesParaMatriz, hoy);
   const futurosValorizados = valorizarFuturos(operaciones, ajustes);
   const futurosMatriz = construirMatrizFuturos(operacionesParaMatriz, hoy);
-  const resumen = resumenPosicion(fisicoAcum, combinarMatrices(fisicoAcum, futurosMatriz), futurosValorizados);
+  const resumen = resumenPosicion(fisicoAcumGlobal, combinarMatrices(fisicoAcumGlobal, futurosMatriz), futurosValorizados);
 
   return (
     <main className="wrap">
@@ -126,10 +145,10 @@ export default async function OperacionesPage({
           dia={dia}
           fechaCorte={fechaCorte}
           pricingDia={pricingDia}
-          fisicoDia={fisicoDia}
+          fisicoDiaPorCampania={fisicoDiaPorCampania}
           futurosDia={futurosDia}
           pricingAcum={pricingAcum}
-          fisicoAcum={fisicoAcum}
+          fisicoAcumPorCampania={fisicoAcumPorCampania}
           futurosAcum={futurosAcum}
           heatmap={heatmap}
           resumen={resumen}

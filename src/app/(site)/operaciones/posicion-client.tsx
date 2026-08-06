@@ -32,13 +32,16 @@ import { PosicionResumen } from "./posicion-resumen";
  * bloques:
  *  - **Posición del día**: pricing del día (todo lo que YA tiene precio,
  *    fijaciones y futuros A3 incluidos — solo quedan afuera los negocios a
- *    fijar) con su POSICIÓN INICIAL desde lo acumulado a precio · físico del
- *    día (la totalidad de los negocios físicos, a precio y a fijar, sin
- *    futuros) con la inicial del físico acumulado · futuros del día
- *    valorizados · heatmap al final.
- *  - **Posición acumulada**: mismo criterio — pricing por un lado, físico por
- *    el otro — más la posición de futuros acumulada (neteo + precio promedio
- *    ponderado + valorización), con el selector "Posición al [fecha]".
+ *    fijar) con su POSICIÓN INICIAL desde lo acumulado a precio, SUMANDO todas
+ *    las campañas (es exposición en $, no identidad de grano) · físico del día
+ *    **segmentado por campaña** (una tabla por campaña presente — una compra
+ *    25/26 y una venta 26/27 no son la misma mercadería, así que nunca se
+ *    netean entre sí) con la inicial del físico acumulado de ESA campaña ·
+ *    futuros del día valorizados · heatmap al final.
+ *  - **Posición acumulada**: mismo criterio — pricing global por un lado,
+ *    físico por campaña por el otro — más la posición de futuros acumulada
+ *    (neteo + precio promedio ponderado + valorización), con el selector
+ *    "Posición al [fecha]".
  * Verde = comprado / rojo = vendido en todas las columnas numéricas y Estado.
  */
 export function PosicionClient({
@@ -48,10 +51,10 @@ export function PosicionClient({
   dia,
   fechaCorte,
   pricingDia,
-  fisicoDia,
+  fisicoDiaPorCampania,
   futurosDia,
   pricingAcum,
-  fisicoAcum,
+  fisicoAcumPorCampania,
   futurosAcum,
   heatmap,
   resumen,
@@ -64,10 +67,10 @@ export function PosicionClient({
   dia: string;
   fechaCorte: string | null;
   pricingDia: MatrizDia;
-  fisicoDia: MatrizDia;
+  fisicoDiaPorCampania: { campania: string; matriz: MatrizDia }[];
   futurosDia: FuturoValorizado[];
   pricingAcum: Matriz;
-  fisicoAcum: Matriz;
+  fisicoAcumPorCampania: { campania: string; matriz: Matriz }[];
   futurosAcum: FuturoAcumulado[];
   heatmap: Heatmap;
   resumen: ResumenPosicionData;
@@ -129,16 +132,21 @@ export function PosicionClient({
           nota="Posición inicial = pricing acumulado hasta el día anterior. Incluye fijaciones y físicos a precio o pizarra; los negocios a fijar no suman hasta fijarse."
         />
 
-        <h3 className="op-matriz-tit">Físico del día (todos los negocios, a precio y a fijar)</h3>
-        <ChartTabla
-          columnas={matrizDiaAColumnas(fisicoDia)}
-          filas={matrizDiaAFilas(fisicoDia, productoFiltro)}
-          destacada={esFilaTotal}
-          exportCsv={`fisico-dia-${dia}`}
-          columnasSigno={columnasSignoDia(fisicoDia)}
-          columnasEstado={COLUMNA_ESTADO}
-          nota="Posición inicial = físico acumulado hasta el día anterior. Incluye disponible y forward (a precio y a fijar); no incluye futuros A3 ni fijaciones (la fijación pone precio, no mueve mercadería)."
-        />
+        {fisicoDiaPorCampania.map(({ campania, matriz }) => (
+          <div key={campania}>
+            <h3 className="op-matriz-tit">Físico del día — campaña {campania} (todos los negocios, a precio y a fijar)</h3>
+            <ChartTabla
+              columnas={matrizDiaAColumnas(matriz)}
+              filas={matrizDiaAFilas(matriz, productoFiltro)}
+              destacada={esFilaTotal}
+              exportCsv={`fisico-dia-${campania.replace("/", "-")}-${dia}`}
+              columnasSigno={columnasSignoDia(matriz)}
+              columnasEstado={COLUMNA_ESTADO}
+              nota="Posición inicial = físico acumulado de ESTA campaña hasta el día anterior. Incluye disponible y forward (a precio y a fijar); no incluye futuros A3 ni fijaciones. Cada campaña se calza por separado — no es la misma mercadería."
+            />
+          </div>
+        ))}
+        {fisicoDiaPorCampania.length === 0 && <p className="dim">Sin negocios físicos cargados todavía.</p>}
 
         <h3 className="op-matriz-tit">Futuros A3 del día (valorizados)</h3>
         {futurosDia.length === 0 ? (
@@ -173,15 +181,21 @@ export function PosicionClient({
           columnasEstado={COLUMNA_ESTADO}
         />
 
-        <h3 className="op-matriz-tit">Físico acumulado (todos los negocios, a precio y a fijar)</h3>
-        <ChartTabla
-          columnas={matrizAColumnas(fisicoAcum)}
-          filas={matrizAFilas(fisicoAcum, productoFiltro)}
-          destacada={esFilaTotal}
-          exportCsv="fisico-acumulado"
-          columnasSigno={columnasSignoDe(fisicoAcum)}
-          columnasEstado={COLUMNA_ESTADO}
-        />
+        {fisicoAcumPorCampania.map(({ campania, matriz }) => (
+          <div key={campania}>
+            <h3 className="op-matriz-tit">Físico acumulado — campaña {campania} (todos los negocios, a precio y a fijar)</h3>
+            <ChartTabla
+              columnas={matrizAColumnas(matriz)}
+              filas={matrizAFilas(matriz, productoFiltro)}
+              destacada={esFilaTotal}
+              exportCsv={`fisico-acumulado-${campania.replace("/", "-")}`}
+              columnasSigno={columnasSignoDe(matriz)}
+              columnasEstado={COLUMNA_ESTADO}
+              nota="Cada campaña se calza por separado — una compra 25/26 y una venta 26/27 no son la misma mercadería."
+            />
+          </div>
+        ))}
+        {fisicoAcumPorCampania.length === 0 && <p className="dim">Sin negocios físicos cargados todavía.</p>}
 
         <h3 className="op-matriz-tit">Posición de futuros acumulada (precio promedio y valorización)</h3>
         {futurosAcum.length === 0 ? (

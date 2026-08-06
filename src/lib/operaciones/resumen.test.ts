@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { construirMatrizFisico, construirMatrizFuturos, combinarMatrices } from "./posicion";
 import { valorizarFuturos, claveAjuste, type AjusteLookup } from "./futuros-valorizados";
-import { resumenPosicion } from "./resumen";
+import { resumenPosicion, calcularCobertura } from "./resumen";
 import type { Operacion } from "./tipos";
 
 const HOY = "2026-08-05";
@@ -79,7 +79,17 @@ describe("resumenPosicion", () => {
     expect(soja.futurosTn).toBe(300);
     expect(soja.totalTn).toBe(440);
     expect(soja.estado).toBe("COMPRADOS");
-    expect(r.productos[1]).toMatchObject({ producto: "trigo", totalTn: -50, estado: "VENDIDOS" });
+    // físico +140 y futuros +300: MISMO signo → no es cobertura, es exposición sumada.
+    expect(soja.coberturaEstado).toBe("sin_cobertura");
+    expect(soja.pctCalzado).toBe(0);
+    // trigo: físico −50 sin ningún futuro (futurosTn=0, no es "sentido opuesto") → sin cobertura.
+    expect(r.productos[1]).toMatchObject({
+      producto: "trigo",
+      totalTn: -50,
+      estado: "VENDIDOS",
+      coberturaEstado: "sin_cobertura",
+      pctCalzado: 0,
+    });
     // (347,40 − 320,00) × 300 = +8.220,00 — el mismo ejemplo confirmado del plan §5.5
     expect(r.resultadoFuturosUsd).toBe(8220);
     expect(r.futurosSinValorizar).toBe(0);
@@ -125,5 +135,35 @@ describe("resumenPosicion", () => {
   it("las anuladas no cuentan actividad", () => {
     const r = armar([op({ producto: "girasol", volumen_tn: 80, anulada: true })]);
     expect(r.productos).toEqual([]);
+  });
+});
+
+describe("calcularCobertura (% calzado, pedido 06/08/2026)", () => {
+  it("sin físico: nada que cubrir", () => {
+    expect(calcularCobertura(0, 300)).toEqual({ pct: null, estado: "sin_fisico" });
+    expect(calcularCobertura(0, 0)).toEqual({ pct: null, estado: "sin_fisico" });
+  });
+
+  it("mismo signo (compra física + compra futuro): exposición sumada, no cobertura", () => {
+    expect(calcularCobertura(200, 100)).toEqual({ pct: 0, estado: "sin_cobertura" });
+    expect(calcularCobertura(-200, -100)).toEqual({ pct: 0, estado: "sin_cobertura" });
+  });
+
+  it("físico sin ningún futuro: sin cobertura", () => {
+    expect(calcularCobertura(200, 0)).toEqual({ pct: 0, estado: "sin_cobertura" });
+  });
+
+  it("sentido opuesto, cobertura parcial: pct = futuros/físico", () => {
+    // comprado físico 200, vendido futuro 100 → 50% cubierto
+    expect(calcularCobertura(200, -100)).toEqual({ pct: 50, estado: "cubierto" });
+  });
+
+  it("sentido opuesto, cobertura exacta 100%: cubierto, no sobre_cubierto", () => {
+    expect(calcularCobertura(200, -200)).toEqual({ pct: 100, estado: "cubierto" });
+    expect(calcularCobertura(-150, 150)).toEqual({ pct: 100, estado: "cubierto" });
+  });
+
+  it("sentido opuesto, futuros superan el físico: sobre_cubierto, pct tope 100", () => {
+    expect(calcularCobertura(100, -250)).toEqual({ pct: 100, estado: "sobre_cubierto" });
   });
 });

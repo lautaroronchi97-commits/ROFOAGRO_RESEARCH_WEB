@@ -531,14 +531,29 @@ mismas filas, y el panel de futuros contra el ejemplo numérico confirmado de §
 ## 10. Backlog derivado (NO es v1 — se registra, no se construye)
 
 - **Posición inicial / carga de stock de arranque** por producto-período (§1.12, "en algún
-  momento").
-- **Valorización del físico**: promedio ponderado de compras vs ventas, spread del calce,
-  equivalentes de moneda con TC (fórmulas de Lautaro mediante).
+  momento") — reconfirmado por Lautaro el 06/08/2026 ("en algún momento vamos a cargar la
+  posición inicial de verdad"). Mientras tanto, todas las tablas de "Mi posición" arrancan en
+  cero para una empresa nueva — la posición inicial de un cliente que ya venía operando antes de
+  usar la web va a estar incompleta hasta que se construya esto.
+- **Valorización del físico** (precio promedio ponderado de compras vs ventas, spread del calce,
+  mark-to-market contra la pizarra del día): **agendado por Lautaro el 06/08/2026** ("lo vamos a
+  hacer en otro momento") — es la contraparte natural de la valorización de futuros que ya existe
+  (`futuros-valorizados.ts`/`acumularFuturos`), necesita las fórmulas de Lautaro con un ejemplo
+  numérico antes de codear.
 - **Export `.xlsx` real** (con formato y varias hojas) si el CSV queda corto (§7.6).
 - **Alertas de descalce** (§1.28) — hoy explícitamente no.
-- **Umbral/banda de "calzado"** configurable (§1.29).
-- **Carga multi-fila / import de la planilla** para clientes que vienen de Excel.
+- **Umbral/banda de "calzado"** configurable (§1.29) — el % de calzado del resumen ejecutivo
+  (06/08/2026, `calcularCobertura` en `resumen.ts`) ya da la lectura de un vistazo; una alerta
+  configurable por umbral sigue sin construirse.
+- **Saldo a fijar + control de sobre-fijación** (físico − pricing físico, por producto/campaña,
+  con aviso si las fijaciones cargadas superan el volumen a fijar pendiente): propuesto el
+  06/08/2026, **descartado por Lautaro** — "el cliente lo hace en su sistema".
+- **Historial de ajustes diarios de futuros** (habilitaría "Posición al [fecha]" valorizando
+  también a esa fecha pasada, no solo a hoy): propuesto el 06/08/2026, **descartado por Lautaro**
+  — "no hace falta".
+- **Carga multi-fila / import de la planilla** para clientes que vienen de Excel: propuesto de
+  nuevo el 06/08/2026, **descartado por Lautaro** — "que tengan el Duplicar" (el botón Duplicar
+  del registro diario, mejora del mismo día, alcanza para cargar negocios parecidos en serie sin
+  reimplementar un importador de Excel).
 - **Scoring de clientes** (`negocio/03`, P12): estos datos son exactamente su insumo — cuando se
   retome, ya hay libro por empresa con historial.
-- **Mobile-first de la carga** si algún cliente empieza a cargar desde el celular (§1.24 dice PC
-  por ahora).

@@ -205,6 +205,7 @@ export function RegistroForm({
             <span>Volumen</span>
             <input
               type="number"
+              inputMode="decimal"
               name="volumen"
               step="0.01"
               min="0.01"
@@ -250,6 +251,7 @@ export function RegistroForm({
             <span>{tipo === "futuro_a3" ? "Precio de ejecución" : "Precio"}</span>
             <input
               type="number"
+              inputMode="decimal"
               name="precio"
               key={`precio-${futuro?.precio ?? "x"}`}
               step="0.01"
@@ -274,6 +276,7 @@ export function RegistroForm({
           <span>Descuento %</span>
           <input
             type="number"
+            inputMode="decimal"
             name="descuento_pct"
             step="0.01"
             min="0"
@@ -287,6 +290,7 @@ export function RegistroForm({
           <span>Descuento monto</span>
           <input
             type="number"
+            inputMode="decimal"
             name="descuento_monto"
             step="0.01"
             min="0"

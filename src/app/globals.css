@@ -2205,6 +2205,7 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-kpi-v small { font-size:var(--fs-xs); font-weight:600; color:var(--ink-2); }
 .op-kpi-estado { font-size:var(--fs-xs); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .op-kpi-sub { font-size:var(--fs-2xs); color:var(--ink-3); }
+.op-kpi-alerta { color:var(--warn, #b45309); font-weight:700; }
 
 /* Links de navegación cruzada registro ↔ posición */
 .op-nav-link { margin-left:auto; font-size:var(--fs-sm); font-weight:700; color:var(--gold-text);
