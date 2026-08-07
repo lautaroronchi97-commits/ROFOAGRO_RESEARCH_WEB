@@ -85,7 +85,7 @@ export async function getPizarrasCandidatas(
     .from("pizarra_historico")
     .select("fecha,precio_ars,precio_usd")
     .eq("grano", producto)
-    .gt("fecha", desdeISO)
+    .gte("fecha", desdeISO)
     .lte("fecha", hastaISO)
     .order("fecha", { ascending: true });
   if (error || !data) return [];
