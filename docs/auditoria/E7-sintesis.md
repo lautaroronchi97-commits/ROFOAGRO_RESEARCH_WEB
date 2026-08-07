@@ -211,6 +211,23 @@ en la tabla «Fase 2» de cada informe). Los únicos abiertos están en la matri
 - [x] **A7. Decidir H12 y girasol/sorgo** — ✅ decidido 22/07 (§7): H12 no por ahora · girasol/sorgo sí.
 - [x] ~~**A8. Re-evaluar Leaked password protection**~~ → **descartado por ahora, 24/07** (Lautaro:
   "descartalo"). Se retoma solo si algún día se decide upgradear Supabase a Pro ($25/mes).
+- [ ] **A9. Generar y cargar una `USDA_FAS_API_KEY` válida** — agendado 07/08/2026 (auditoría de la
+  web). La actual da 403 `API_KEY_INVALID` (confirmado con `curl` real). La skill
+  `interpretaciones` degrada honesto sin ella (Export Sales de USDA queda sin interpretar) — no
+  bloquea, pero es una fuente menos. Pasos: (1) Lautaro genera una key nueva en
+  `https://api.fas.usda.gov` (o confirma si la actual solo venció) · (2) la carga en el entorno
+  donde corre la Routine "ROFO AGRO — Interpretaciones" (`env_0142SqGThQtrTmAet3C3hYpG`, desde la
+  sección de Rutinas/entorno de claude.ai/code — ninguna sesión de código tiene un tool para
+  escribir variables de entorno ahí). `sesiones/2026-08-07-auditoria-web-djve-resumen.md`.
+- [ ] **A10. Verificar un dominio propio en Resend + setear `RESEND_FROM`** — agendado 07/08/2026
+  (auditoría de la web). `rofoagro.com.ar` no tiene ningún registro DNS de Resend (confirmado por
+  DNS-over-HTTPS: sin TXT/DKIM/MX de verificación) — hoy el mail sale del sender de prueba
+  `onboarding@resend.dev`, que solo entrega al dueño de la cuenta (funciona para los avisos a
+  Lautaro; no serviría si algún día se le manda un mail a un cliente nuevo). Pasos: (1) Lautaro
+  agrega el dominio (o un subdominio tipo `send.rofoagro.com.ar`) en el dashboard de Resend · (2)
+  carga los registros DNS que Resend pida donde tiene delegado el DNS del dominio (mismo lugar que
+  usó para conectarlo a Vercel) · (3) espera la verificación · (4) recién ahí setear `RESEND_FROM`
+  en Vercel y en el entorno de las Routines. `sesiones/2026-08-07-auditoria-web-djve-resumen.md`.
 
 ### B. Quick wins restantes (fixes chicos, se pueden juntar en una sola sesión)
 
