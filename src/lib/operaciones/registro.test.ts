@@ -12,6 +12,7 @@ import {
   aplicarDescuentos,
   resolverPrecio,
   precioMonedaSospechoso,
+  debeResetearMonedaAPesos,
   type OperacionInputRaw,
 } from "./registro";
 
@@ -424,5 +425,23 @@ describe("resolverPrecio", () => {
       pizarra,
     );
     expect(r).toEqual({ estado: "pizarra_resuelta", base: 320, valor: 288, fechaPizarra: "2026-08-06" });
+  });
+});
+
+describe("debeResetearMonedaAPesos (pedido de Lautoro 07/08/2026: pizarra por default en pesos)", () => {
+  it("resetea al entrar a pizarra desde manual", () => {
+    expect(debeResetearMonedaAPesos("manual", "pizarra")).toBe(true);
+  });
+  it("resetea al entrar a pizarra desde nada elegido todavía", () => {
+    expect(debeResetearMonedaAPesos(null, "pizarra")).toBe(true);
+  });
+  it("NO resetea dentro de una racha de pizarras seguidas — respeta la elección explícita", () => {
+    expect(debeResetearMonedaAPesos("pizarra", "pizarra")).toBe(false);
+  });
+  it("NO resetea al salir de pizarra hacia otro modo", () => {
+    expect(debeResetearMonedaAPesos("pizarra", "manual")).toBe(false);
+  });
+  it("NO resetea entre modos que no son pizarra", () => {
+    expect(debeResetearMonedaAPesos("manual", "sin_precio")).toBe(false);
   });
 });
