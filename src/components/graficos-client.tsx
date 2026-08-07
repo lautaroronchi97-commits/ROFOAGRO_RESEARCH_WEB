@@ -627,7 +627,7 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
         <PataSelector legend="Pata A" idx={idx} pata={a} onChange={(p) => p && setA(p)} />
         <button type="button" className="gx-swap" title="Intercambiar patas" aria-label="Intercambiar patas"
           onClick={() => { if (b) { const t = a; setA(b); setB(t); } }}>⇄</button>
-        <PataSelector legend="Pata B" idx={idx} pata={b} onChange={setB} allowNone />
+        <PataSelector legend="Pata B" idx={idx} pata={b} onChange={setB} allowNone granosPermitidos={[a.grano]} />
 
         <div className="gx-pata">
           <span className="gx-pata-lbl">Métrica</span>
@@ -823,6 +823,9 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
         <b> Banda</b> = sombra min–máx + mediana de las campañas históricas, con la vigente gruesa encima;
         el <b>percentil</b> ubica el valor de hoy contra esas campañas a la misma altura.
         Datos de cierre desde 2020 · Matba Rofex, Chicago (USD/tn) y pizarra.
+        La pata B del selector manual se acota al mismo grano de la pata A (cualquier mercado);
+        los cruces entre productos distintos (ej. maíz vs soja) solo están disponibles como
+        presets curados arriba, para no armar comparaciones sin sentido.
       </p>
     </div>
   );
@@ -831,17 +834,26 @@ export function GraficosClient({ catalogo }: { catalogo: SerieCat[] }) {
 /* ---------------- selector de pata ---------------- */
 
 function PataSelector({
-  legend, idx, pata, onChange, allowNone = false,
+  legend, idx, pata, onChange, allowNone = false, granosPermitidos,
 }: {
   legend: string;
   idx: Idx;
   pata: Pata | null;
   onChange: (p: Pata | null) => void;
   allowNone?: boolean;
+  /** Fix 07/08/2026 ("verifica los cruces... no quiero que los gráficos deliren, solo que
+   *  se pueda comparar lo comparable"): si se pasa, el select de grano se acota a esta lista
+   *  (siempre incluye el grano actual, para no romper una selección ya hecha por preset) — el
+   *  resto de combinaciones libres entre productos quedan solo en los presets curados
+   *  (`PARES_LIBRES`), no en el selector manual. */
+  granosPermitidos?: string[];
 }) {
   const fuentes: Fuente[] = ["a3", "cbot", "pizarra"];
   const p = pata;
-  const granos = p ? idx.granosPorFuente[p.fuente] : [];
+  const granosDisponibles = p ? idx.granosPorFuente[p.fuente] : [];
+  const granos = granosPermitidos && p
+    ? granosDisponibles.filter((g) => granosPermitidos.includes(g) || g === p.grano)
+    : granosDisponibles;
   const mons = p && p.fuente !== "pizarra" ? (idx.monsPorGF.get(`${p.fuente}:${p.grano}`) ?? []) : [];
 
   return (
@@ -868,7 +880,12 @@ function PataSelector({
               value={p.fuente}
               onChange={(e) => {
                 const fuente = e.target.value as Fuente;
-                const g = idx.granosPorFuente[fuente][0] ?? "soja";
+                // Al cambiar de fuente, preferir mantenerse en el MISMO grano si esa fuente lo
+                // tiene (evita saltar a un grano distinto — y potencialmente prohibido por
+                // `granosPermitidos` — solo por cambiar A3→CBOT/pizarra).
+                const disponibles = idx.granosPorFuente[fuente];
+                const preferido = p && disponibles.includes(p.grano) ? p.grano : disponibles[0];
+                const g = preferido ?? "soja";
                 const ms = fuente === "pizarra" ? [] : idx.monsPorGF.get(`${fuente}:${g}`) ?? [];
                 onChange({ fuente, grano: g, mon: fuente === "pizarra" ? null : ms[0] ?? null });
               }}
