@@ -347,12 +347,18 @@ describe("sumarDiasISO", () => {
 
 describe("elegirPizarraSiguiente (§5.4/§7.3)", () => {
   const candidatas = [
-    { fecha: "2026-08-05", precio_ars: 100, precio_usd: 10 }, // mismo día: NUNCA aplica
-    { fecha: "2026-08-06", precio_ars: 101, precio_usd: 10.1 }, // el día siguiente: la buena
+    { fecha: "2026-08-04", precio_ars: 99, precio_usd: 9.9 }, // anterior a la operación: nunca aplica
+    { fecha: "2026-08-05", precio_ars: 100, precio_usd: 10 }, // mismo día: la buena (07/08/2026, caso real)
+    { fecha: "2026-08-06", precio_ars: 101, precio_usd: 10.1 },
     { fecha: "2026-08-10", precio_ars: 105, precio_usd: 10.5 },
   ];
-  it("elige la primera con fecha posterior a la operación", () => {
+  it("elige la del mismo día si ya está cargada, no una posterior", () => {
     const r = elegirPizarraSiguiente("2026-08-05", candidatas);
+    expect(r?.fecha).toBe("2026-08-05");
+  });
+  it("sin la del mismo día, elige la primera posterior dentro de la ventana", () => {
+    const sinMismoDia = candidatas.filter((c) => c.fecha !== "2026-08-05");
+    const r = elegirPizarraSiguiente("2026-08-05", sinMismoDia);
     expect(r?.fecha).toBe("2026-08-06");
   });
   it("respeta el tope de 7 días — más allá, queda pendiente", () => {

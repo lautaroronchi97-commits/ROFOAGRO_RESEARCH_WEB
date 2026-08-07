@@ -316,10 +316,16 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
 }
 
 // ============================================================================
-// Precio "pizarra": resolución en LECTURA, cero proceso manual (§5.4). La
-// referencia es la pizarra del DÍA SIGUIENTE a la operación (decisión de
-// Lautoro §7.3: "la pizarra refleja el mercado del día anterior"), con un tope
-// de 7 días corridos para no agarrar una pizarra lejana si el cron no corrió.
+// Precio "pizarra": resolución en LECTURA, cero proceso manual (§5.4). La fila
+// de `pizarra_historico` está fechada por el DÍA DE MERCADO que refleja, no por
+// el día en que CAC la publica — CAC suele publicarla recién a la mañana
+// siguiente (de ahí "la pizarra refleja el mercado del día anterior" §7.3: lo
+// que sale publicado hoy es la de ayer). Aclarado con Lautoro 07/08/2026 sobre
+// un caso real: un negocio del 06/08 resuelve con la fila fecha=2026-08-06 en
+// cuanto esa fila se carga (aunque eso pase recién la mañana del 07/08) — NO
+// con una fila fechada 07/08. Tope de 7 días corridos hacia adelante para
+// cubrir el caso borde de que falte el día exacto (fin de semana/feriado de
+// mercado) sin agarrar una pizarra lejana si el cron no corrió.
 // ============================================================================
 
 const TOPE_DIAS_PIZARRA = 7;
@@ -334,15 +340,16 @@ export function sumarDiasISO(fechaISO: string, dias: number): string {
 export type PizarraFila = { fecha: string; precio_ars: number | null; precio_usd: number | null };
 
 /**
- * Primera pizarra con fecha POSTERIOR a la de la operación, dentro de los 7 días
- * corridos siguientes. `null` si ninguna aplica todavía (fin de semana/feriado
- * largo, o el cron de hoy no corrió) — el caller muestra "Pizarra (pendiente)",
+ * Primera pizarra con fecha IGUAL o posterior a la de la operación, dentro de
+ * los 7 días corridos siguientes — preferí siempre la del mismo día si ya está
+ * cargada. `null` si ninguna aplica todavía (CAC no publicó ni ese día ni uno
+ * posterior dentro de la ventana) — el caller muestra "Pizarra (pendiente)",
  * nunca inventa un valor lejano.
  */
 export function elegirPizarraSiguiente(fechaOperacion: string, candidatas: PizarraFila[]): PizarraFila | null {
   const limite = sumarDiasISO(fechaOperacion, TOPE_DIAS_PIZARRA);
   const validas = candidatas
-    .filter((p) => p.fecha > fechaOperacion && p.fecha <= limite)
+    .filter((p) => p.fecha >= fechaOperacion && p.fecha <= limite)
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
   return validas[0] ?? null;
 }
