@@ -19,17 +19,57 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 07/08/2026 — 🩺 auditoría de la web + `djve_resumen` a matview, HECHO)
+## Ahora (última actualización: 07/08/2026 — 📝 feedback del Word de 32 puntos sobre toda la web, HECHO)
+
+**📝 FEEDBACK DEL WORD DE 32 PUNTOS SOBRE TODA LA WEB — HECHO — rama
+`claude/cambios-implementar-qc29k3`, PR #_.** Lautaro relevó la web entera (Word con 32
+puntos numerados + 2 capturas) y pidió pensarlo con el mejor modelo (4 agentes de research
+en paralelo, sin tocar código, ancladas archivo:línea) y después construirlo con Sonnet. De
+los 32: 11 ya estaban OK, 4 quedaron agendados para revisar en detalle con Lautoro (13
+camiones · 16 señal física · 17 mesa de embarque · 18 calor de mercadería), 1 es solo
+explicación conversacional (20, módulo comercio exterior) y **20 llevaron código**, en 4
+commits temáticos:
+
+**Transversal**: `ChartTabla` ya soportaba `colapsable` (arranca cerrada) — cableado en los
+~15 charts principales de `/dolar/{oficial,implicitas,cambiario}`, `/comercio/negociado`,
+`/graficos`, `/produccion/{estimaciones,zonas,condicion}` + wrapper nuevo
+`tabla-colapsable.tsx` para las tablas "a mano" (puntos 7/9/11/19/27/29/30/31).
+
+**Puntuales**: pases con pares FIJOS por mes en soja/maíz (SEP/NOV/MAY/JUL · SEP/DIC/ABR/JUL,
+trigo sin tocar) · mejor-caja con Disponible/Futuro visibles + `updatedAt` en vivo · **signo
+de "A fijar" invertido, encontrado y corregido** (`fijar.ts:48` — "compro a fijar" ahora
+pierde cuando el futuro sube, como corresponde) · capacidad de pago: FOB oficial de aceite/
+pellets de girasol homologado (real, verificado con requests en vivo) pero "Nuestro Industria"
+de girasol **degrada honesto** (sin rindes/DEX propios confirmados — no se inventó el número,
+nota visible en el panel) · implícitas sin "dólar futuro" (tasa en pesos) + "Granos" por
+posición identificada · cambiario sin marca manual/API · DJVE columnas centradas + bloque
+"DJVE del día" nuevo · line-up con columnas reordenadas (producto/empresa/zona primero) +
+totales Up River (no existían) · empresas con filtro por producto individual (antes familia,
+no dejaba aislar harina/aceite de soja) · negociado con toggle "solo campaña activa" + fecha +
+orden desc · gráficos: **fix del bug reportado con captura** (posición vencida "delirando" el
+spread por el forward-fill del join — ahora cada línea corta en su vencimiento), default de
+Período pasa a solo la posición más próxima (+ botón "Ninguna"), y Pata B del modo Campañas
+acotada al mismo grano de Pata A (cruces entre productos solo via presets curados).
+
+**Verificado**: lint/tsc/**650 tests**/build ✅ en cada uno de los 4 commits. **Sin
+verificar**: navegador (sandbox sin credenciales de Supabase) — pendiente el Preview del PR.
+**Pendiente**: que Lautaro confirme rindes/DEX propios de girasol para completar la industria
+· 2 preguntas abiertas (¿sintéticos también salen de implícitas? · el punto 29 del Word quedó
+con una frase cortada). Detalle:
+[`sesiones/2026-08-07-feedback-web-word-32-puntos.md`](sesiones/2026-08-07-feedback-web-word-32-puntos.md).
+
+## Anterior (07/08/2026 — 🩺 auditoría de la web + `djve_resumen` a matview, HECHO)
 
 **🩺 AUDITORÍA DE LA WEB (sin tocar código) + FIX DE LATENCIA DE `djve_resumen` — HECHO — rama
-`claude/web-audit-testing-p0l6aa`, PR #_.** Lautaro pidió auditar que todo lo hecho funcione bien
-(explícitamente sin modificar código) — corrida completa sin cambios: `lint`/`tsc`/**650 tests**/
-`build` ✅ · producción (`rofoagro.com.ar`) respondiendo bien (públicas 200, gateadas 307→
-`/ingresar`) · los 4 crons/Routines de informes produciendo (diario/semanal enviados, view e
-interpretaciones corriendo) · healthcheck de frescura 23/24 en verde · Playwright real 23 rutas ×
-desktop/mobile sin scroll horizontal ni errores de consola. **Confirma que la migración de aceite
-de soja de la entrada de abajo (06/08) YA está aplicada**: el view del 07/08 trajo los 4 granos
-(`soja`/`maiz`/`trigo`/`aceite_soja`) — el pendiente de esa entrada queda resuelto.
+`claude/web-audit-testing-p0l6aa`, PR #159 (mergeado).** Lautaro pidió auditar que todo lo hecho
+funcione bien (explícitamente sin modificar código) — corrida completa sin cambios:
+`lint`/`tsc`/**650 tests**/`build` ✅ · producción (`rofoagro.com.ar`) respondiendo bien (públicas
+200, gateadas 307→`/ingresar`) · los 4 crons/Routines de informes produciendo (diario/semanal
+enviados, view e interpretaciones corriendo) · healthcheck de frescura 23/24 en verde · Playwright
+real 23 rutas × desktop/mobile sin scroll horizontal ni errores de consola. **Confirma que la
+migración de aceite de soja de la entrada de abajo (06/08) YA está aplicada**: el view del 07/08
+trajo los 4 granos (`soja`/`maiz`/`trigo`/`aceite_soja`) — el pendiente de esa entrada queda
+resuelto.
 
 **Encontrado y arreglado el mismo día, a pedido de Lautaro tras ver la auditoría**: `djve_resumen`
 (vista consumida por `/comercio/djve` + el JSON de los informes) tardaba ~2s por request (scan
@@ -53,7 +93,7 @@ el dominio en el dashboard de Resend, cargue los registros DNS que pida, y reci�
 setear `RESEND_FROM`. Detalle completo:
 [`sesiones/2026-08-07-auditoria-web-djve-resumen.md`](sesiones/2026-08-07-auditoria-web-djve-resumen.md).
 
-## Anterior (última actualización: 07/08/2026 — 🎯 primer feedback real del view destilado + plazo 7-14 días + voz humanizada, HECHO)
+## Anterior (07/08/2026 — 🎯 primer feedback real del view destilado + plazo 7-14 días + voz humanizada, HECHO)
 
 **🎯 PRIMER FEEDBACK REAL DEL VIEW (los 4 del 07/08) DESTILADO + PLAZO 7-14 DÍAS + VOZ
 HUMANIZADA — HECHO — rama `claude/weekly-view-skill-feedback-6a6hx7`, PR #_.** Lautaro
