@@ -3,9 +3,10 @@
 import * as React from "react";
 
 /**
- * Tabla de datos del gráfico: muestra, SIEMPRE visible debajo de cada chart,
- * los datos que lo componen (decisión de Lautaro: doble lectura gráfico + tabla,
- * sin toggle).
+ * Tabla de datos del gráfico: muestra, debajo de cada chart, los datos que lo
+ * componen (decisión de Lautaro: doble lectura gráfico + tabla). Colapsable por
+ * default en los charts principales (feedback 07/08/2026: no ocupar pantalla con
+ * datos que no siempre hacen falta — ver prop `colapsable`).
  *
  * Contrato (integradores):
  *   - El FORMATEO de números lo hace el caller (cada chart ya tiene sus

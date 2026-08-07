@@ -1,4 +1,4 @@
-import { getDolarFuturo, getDolarLinked } from "@/lib/market";
+import { getDolarLinked } from "@/lib/market";
 import { getSinteticos } from "@/lib/market/sinteticos";
 import { getArbitrajes } from "@/lib/arbitrajes-cierres";
 import { nfmt } from "@/lib/format";
@@ -25,63 +25,64 @@ function IconLayers() {
 }
 
 export async function ImplicitasPanel() {
-  const [fut, link, sint, arb] = await Promise.all([
-    getDolarFuturo(),
-    getDolarLinked(),
-    getSinteticos(),
-    getArbitrajes(),
-  ]);
+  const [link, sint, arb] = await Promise.all([getDolarLinked(), getSinteticos(), getArbitrajes()]);
 
-  const problemas = [...fut.meta.problemas, ...link.meta.problemas, ...sint.meta.problemas, ...arb.meta.problemas];
+  const problemas = [...link.meta.problemas, ...sint.meta.problemas, ...arb.meta.problemas];
   const meta = {
-    source: "MAE · Mercado de deuda local · Matba Rofex",
-    updatedAt: Math.max(fut.meta.updatedAt ?? 0, link.meta.updatedAt ?? 0) || null,
+    source: "Mercado de deuda local · Matba Rofex",
+    updatedAt: Math.max(link.meta.updatedAt ?? 0, arb.meta.updatedAt ?? 0) || null,
     status: problemas.length === 0 ? ("real" as const) : ("parcial" as const),
     problemas,
   };
 
-  const futPts = fut.posiciones
-    .filter((p) => p.tnaPct != null && p.dias != null)
-    .map((p) => ({ x: p.dias as number, y: p.tnaPct as number }));
+  type Pt = { x: number; y: number; pos?: string };
 
-  const linkPts = link.bonos
+  const linkPts: Pt[] = link.bonos
     .filter((b) => b.tnaPct != null && b.dias != null)
     .map((b) => ({ x: b.dias as number, y: b.tnaPct as number }));
 
-  const sintPts = sint.rows
+  const sintPts: Pt[] = sint.rows
     .filter((r) => r.tnaPct != null && r.dias != null)
     .map((r) => ({ x: r.dias as number, y: r.tnaPct as number }));
 
-  const granosPts = arb.granos.flatMap((g) =>
-    g.rows
-      .filter((r) => r.tna != null && r.dias != null)
-      .map((r) => ({ x: r.dias as number, y: r.tna as number })),
-  );
+  // Una serie POR GRANO (no una nube "Granos" con todo mezclado, feedback 07/08/2026: "el
+  // maíz, soja y trigo tienen tasas diferentes, deben estar todas" e "indicar a qué posición
+  // corresponde cada tasa") — cada punto lleva `pos` con la posición (ej. "NOV26") para el
+  // tooltip y la tabla.
+  const granosSeries = arb.granos
+    .map((g) => ({
+      name: g.nombre,
+      points: g.rows
+        .filter((r) => r.tna != null && r.dias != null)
+        .map((r): Pt => ({ x: r.dias as number, y: r.tna as number, pos: r.pos })),
+    }))
+    .filter((s) => s.points.length > 0);
 
-  // Todas las tasas disponibles en dólares (relevamiento web, punto 35) — se SUMAN
-  // sintéticos y granos, no se reemplaza ninguna de las dos que ya estaban.
+  // Se saca "Dólar futuro" (feedback 07/08/2026): es tasa en PESOS (carry oficial→futuro),
+  // no una tasa en dólares — no es comparable con las demás series de esta página.
   const series = [
-    { name: "Dólar futuro", points: futPts },
     { name: "Dólar linked", points: linkPts },
     { name: "Sintéticos", points: sintPts },
-    { name: "Granos", points: granosPts },
+    ...granosSeries,
   ];
 
-  // Tabla de datos del gráfico: una fila por plazo (días), una columna por serie.
-  // Mismos puntos y mismo formato que el tooltip del chart; "—" donde la serie
-  // no tiene punto en ese plazo.
+  // Tabla de datos del gráfico: una fila por plazo (días), una columna por serie. Para
+  // granos, la celda incluye la posición ("NOV26 · 27,4%") — antes, con la nube única
+  // "Granos", dos granos en el mismo plazo se concatenaban sin poder distinguirse.
   const plazos = [...new Set(series.flatMap((s) => s.points.map((p) => p.x)))].sort((a, b) => a - b);
   const tablaFilas: ChartTablaFila[] = plazos.map((x) => {
     const fila: ChartTablaFila = { plazo: `${x}d` };
     for (const s of series) {
-      const vals = s.points.filter((p) => p.x === x).map((p) => `${nfmt(p.y, 1)}%`);
+      const vals = s.points
+        .filter((p) => p.x === x)
+        .map((p) => (p.pos ? `${p.pos} · ${nfmt(p.y, 1)}%` : `${nfmt(p.y, 1)}%`));
       fila[s.name] = vals.length > 0 ? vals.join(" · ") : null;
     }
     return fila;
   });
   const tablaColumnas = [
     { key: "plazo", label: "Plazo", align: "left" as const },
-    ...series.map((s) => ({ key: s.name, label: s.name })),
+    ...series.map((s) => ({ key: s.name, label: s.name, align: "left" as const })),
   ];
 
   return (
@@ -89,7 +90,7 @@ export async function ImplicitasPanel() {
       <PanelHead
         glyph={<IconLayers />}
         title="Implícitas combinadas"
-        sub="TNA USD por plazo — dólar futuro · linked · sintéticos · granos"
+        sub="TNA USD por plazo — dólar linked · sintéticos · granos (soja/maíz/trigo)"
         stamp={<SourceStamp meta={meta} revalidateSeg={60} />}
       />
       <ImplicitasChart series={series} />
@@ -98,12 +99,13 @@ export async function ImplicitasPanel() {
           titulo="Datos del gráfico"
           columnas={tablaColumnas}
           filas={tablaFilas}
-          nota="TNA en % según días al vencimiento."
+          nota="TNA en % según días al vencimiento. Los granos indican la posición (ej. NOV26)."
+          colapsable
         />
       )}
       <QueEsEsto
-        paraQue="Junta en un solo gráfico las tasas en dólares que se pueden sacar por distintos caminos (dólar futuro y dólar linked), para comparar cuál rinde más a cada plazo."
-        comoSeCalcula="Para cada instrumento calcula la tasa anual en dólares y la ubica según los días que faltan hasta el vencimiento: el eje horizontal son los días al vencimiento y el vertical, la tasa anual."
+        paraQue="Junta en un solo gráfico las tasas en dólares que se pueden sacar por distintos caminos (dólar linked, sintéticos LECAP/BONCAP y el arbitraje futuro-vs-pizarra de cada grano), para comparar cuál rinde más a cada plazo. El dólar futuro no entra: es una tasa en pesos, no en dólares."
+        comoSeCalcula="Para cada instrumento calcula la tasa anual en dólares y la ubica según los días que faltan hasta el vencimiento: el eje horizontal son los días al vencimiento y el vertical, la tasa anual. Los granos muestran una serie por producto (soja/maíz/trigo), con la posición de cada punto."
       />
     </Panel>
   );

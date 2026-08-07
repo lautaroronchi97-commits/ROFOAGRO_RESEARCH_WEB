@@ -111,7 +111,7 @@ export function VolumenPanel({
           ],
         }}
       />
-      <ChartTabla titulo="Datos de volumen/OI" columnas={columnas} filas={filas} exportCsv={exportName} />
+      <ChartTabla titulo="Datos de volumen/OI" columnas={columnas} filas={filas} exportCsv={exportName} colapsable />
     </div>
   );
 }

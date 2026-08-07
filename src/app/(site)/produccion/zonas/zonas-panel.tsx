@@ -16,6 +16,7 @@ import {
 import { useTheme } from "next-themes";
 import { Panel, PanelHead } from "@/components/panel";
 import { ChartTabla, type ChartTablaColumna, type ChartTablaFila } from "@/components/chart-tabla";
+import { TablaColapsable } from "@/components/tabla-colapsable";
 import { RfChart } from "@/charts/RfChart";
 import { paletteFor } from "@/charts/rofoTheme";
 
@@ -47,40 +48,42 @@ function FotoTabla({ filas, grano, campania }: { filas: FilaZonaDB[]; grano: str
       {!foto.campaniaAnterior && (
         <p className="lu-nota">Primera campaña con dato para {GRANO_ZONA_LABEL[grano as GranoZona] ?? grano}: sin campaña anterior para comparar.</p>
       )}
-      <div className="table-scroll">
-        <table className="tbl" style={{ minWidth: 820 }}>
-          <thead>
-            <tr>
-              <th className="l" scope="col">Zona</th>
-              <th scope="col">Sembrado (ha)</th>
-              <th scope="col">Perdido (ha)</th>
-              <th scope="col">Cosechado (ha)</th>
-              <th scope="col">Producción (t)</th>
-              <th scope="col">Rinde (t/ha)</th>
-              <th scope="col">% del total</th>
-              <th scope="col" title="Δárea · rinde de la campaña anterior">Efecto área (t)</th>
-              <th scope="col" title="Δrinde · área de esta campaña">Efecto rinde (t)</th>
-              <th scope="col" title="Δ producción de la zona / TOTAL de la campaña anterior">Contrib. (pp)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filasTabla.map((z) => (
-              <tr key={z.zona} style={z.zona === "TOTAL" ? { fontWeight: 700 } : undefined}>
-                <td className="l sym">{z.zona}</td>
-                <td>{z.sembrado_ha == null ? "—" : nfmt(z.sembrado_ha, 0)}</td>
-                <td>{z.perdido_ha == null ? "—" : nfmt(z.perdido_ha, 0)}</td>
-                <td>{z.cosechado_ha == null ? "—" : nfmt(z.cosechado_ha, 0)}</td>
-                <td>{z.produccion_tn == null ? "—" : nfmt(z.produccion_tn, 0)}</td>
-                <td>{z.rinde_tn_ha == null ? "—" : nfmt(z.rinde_tn_ha, 2)}</td>
-                <td>{z.pctDelTotal == null ? "—" : `${nfmt(z.pctDelTotal, 1)}%`}</td>
-                <td className={signCls(z.efectoAreaTn)}>{z.efectoAreaTn == null ? "—" : sfmt(z.efectoAreaTn, 0)}</td>
-                <td className={signCls(z.efectoRindeTn)}>{z.efectoRindeTn == null ? "—" : sfmt(z.efectoRindeTn, 0)}</td>
-                <td className={signCls(z.contribucionPp)}>{z.contribucionPp == null ? "—" : sfmt(z.contribucionPp, 2)}</td>
+      <TablaColapsable titulo="Foto de campaña por zona">
+        <div className="table-scroll">
+          <table className="tbl" style={{ minWidth: 820 }}>
+            <thead>
+              <tr>
+                <th className="l" scope="col">Zona</th>
+                <th scope="col">Sembrado (ha)</th>
+                <th scope="col">Perdido (ha)</th>
+                <th scope="col">Cosechado (ha)</th>
+                <th scope="col">Producción (t)</th>
+                <th scope="col">Rinde (t/ha)</th>
+                <th scope="col">% del total</th>
+                <th scope="col" title="Δárea · rinde de la campaña anterior">Efecto área (t)</th>
+                <th scope="col" title="Δrinde · área de esta campaña">Efecto rinde (t)</th>
+                <th scope="col" title="Δ producción de la zona / TOTAL de la campaña anterior">Contrib. (pp)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filasTabla.map((z) => (
+                <tr key={z.zona} style={z.zona === "TOTAL" ? { fontWeight: 700 } : undefined}>
+                  <td className="l sym">{z.zona}</td>
+                  <td>{z.sembrado_ha == null ? "—" : nfmt(z.sembrado_ha, 0)}</td>
+                  <td>{z.perdido_ha == null ? "—" : nfmt(z.perdido_ha, 0)}</td>
+                  <td>{z.cosechado_ha == null ? "—" : nfmt(z.cosechado_ha, 0)}</td>
+                  <td>{z.produccion_tn == null ? "—" : nfmt(z.produccion_tn, 0)}</td>
+                  <td>{z.rinde_tn_ha == null ? "—" : nfmt(z.rinde_tn_ha, 2)}</td>
+                  <td>{z.pctDelTotal == null ? "—" : `${nfmt(z.pctDelTotal, 1)}%`}</td>
+                  <td className={signCls(z.efectoAreaTn)}>{z.efectoAreaTn == null ? "—" : sfmt(z.efectoAreaTn, 0)}</td>
+                  <td className={signCls(z.efectoRindeTn)}>{z.efectoRindeTn == null ? "—" : sfmt(z.efectoRindeTn, 0)}</td>
+                  <td className={signCls(z.contribucionPp)}>{z.contribucionPp == null ? "—" : sfmt(z.contribucionPp, 2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </TablaColapsable>
     </>
   );
 }
@@ -117,7 +120,10 @@ function EvolucionParticipacionChart({ filas, grano }: { filas: FilaZonaDB[]; gr
           // min:0 explícito: es un % del total, arrancar en 0 es lo honesto para no
           // exagerar visualmente diferencias chicas de participación (RfChart por
           // defecto hace zoom al rango real de los datos en charts de solo líneas).
-          yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: (v: number) => `${nfmt(v, 0)}%` } },
+          // SIN max:100 (feedback 07/08/2026: con datos reales que llegan a ~30%, un
+          // techo fijo en 100 aplastaba todas las líneas contra el eje X) — el techo
+          // queda libre para autoescalar al rango real, ECharts ya deja margen arriba.
+          yAxis: { type: "value", min: 0, axisLabel: { formatter: (v: number) => `${nfmt(v, 0)}%` } },
           series: series.map((s) => ({
             name: s.zona,
             type: "line",
@@ -131,7 +137,14 @@ function EvolucionParticipacionChart({ filas, grano }: { filas: FilaZonaDB[]; gr
           })),
         }}
       />
-      <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={`pas-zonas-participacion-${grano}`} nota="% de la producción TOTAL de esa campaña; top-6 zonas por participación media de las últimas 5 campañas, el resto agregado en 'Resto'." />
+      <ChartTabla
+        columnas={columnas}
+        filas={filasTabla}
+        exportCsv={`pas-zonas-participacion-${grano}`}
+        nota="% de la producción TOTAL de esa campaña; top-6 zonas por participación media de las últimas 5 campañas, el resto agregado en 'Resto'."
+        orden="desc"
+        colapsable
+      />
     </>
   );
 }

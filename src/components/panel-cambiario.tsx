@@ -7,6 +7,7 @@ import { Panel, PanelHead } from "./panel";
 import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
 import { BcraMulcChart } from "./bcra-mulc-chart";
+import { TablaColapsable } from "./tabla-colapsable";
 
 function IconFx() {
   return (
@@ -67,51 +68,53 @@ export async function PanelCambiario() {
           <span className="v mono">{fmtNominal(data.volumenLinkedNominal)} M (nominal)</span>
         </span>
       </div>
-      <div className="table-scroll">
-        <table className="tbl" style={{ minWidth: 460 }}>
-          <thead>
-            <tr>
-              <th className="l" scope="col">Segmento</th>
-              <th scope="col">Vol. (M USD)</th>
-              <th className="l" scope="col" style={{ width: "44%" }}>Participación</th>
-            </tr>
-          </thead>
-          <tbody>
-            {byGrupo.map((g) => (
-              <React.Fragment key={g.grupo}>
-                <tr className="grp">
-                  <td className="l" colSpan={3}>
-                    <span className="grp-cell">
-                      <span className="gname">{g.grupo}</span>
-                    </span>
-                  </td>
-                </tr>
-                {g.items.map((c) => (
-                  <tr key={c.nombre}>
-                    <td className="l sym">{c.nombre}</td>
-                    <td>{nfmt(c.volumenUsd / 1e6, 0)}</td>
-                    <td className="l">
-                      <span className="volcell">
-                        <span className="vbar" aria-hidden="true">
-                          <i style={{ width: `${Math.min(100, c.share)}%`, background: barColor() }} />
-                        </span>
-                        <span className="vpct">{nfmt(c.share, 1)}%</span>
+      <TablaColapsable titulo="Volumen por segmento">
+        <div className="table-scroll">
+          <table className="tbl" style={{ minWidth: 460 }}>
+            <thead>
+              <tr>
+                <th className="l" scope="col">Segmento</th>
+                <th scope="col">Vol. (M USD)</th>
+                <th className="l" scope="col" style={{ width: "44%" }}>Participación</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byGrupo.map((g) => (
+                <React.Fragment key={g.grupo}>
+                  <tr className="grp">
+                    <td className="l" colSpan={3}>
+                      <span className="grp-cell">
+                        <span className="gname">{g.grupo}</span>
                       </span>
                     </td>
                   </tr>
-                ))}
-              </React.Fragment>
-            ))}
-            {data.cats.length === 0 && (
-              <tr>
-                <td className="l dim" colSpan={3}>
-                  Sin datos de MAE en este momento.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                  {g.items.map((c) => (
+                    <tr key={c.nombre}>
+                      <td className="l sym">{c.nombre}</td>
+                      <td>{nfmt(c.volumenUsd / 1e6, 0)}</td>
+                      <td className="l">
+                        <span className="volcell">
+                          <span className="vbar" aria-hidden="true">
+                            <i style={{ width: `${Math.min(100, c.share)}%`, background: barColor() }} />
+                          </span>
+                          <span className="vpct">{nfmt(c.share, 1)}%</span>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+              {data.cats.length === 0 && (
+                <tr>
+                  <td className="l dim" colSpan={3}>
+                    Sin datos de MAE en este momento.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </TablaColapsable>
 
       <h3 className="lu-h3">Compras netas BCRA (MULC)</h3>
       {bcra.ultimo === null ? (
@@ -123,9 +126,7 @@ export async function PanelCambiario() {
           <div className="lu-kpis">
             <div className="lu-kpi">
               <span className="lu-kpi-v">{fmtMusd(bcra.ultimo.montoMusd)}</span>
-              <span className="lu-kpi-l">
-                M USD el {ddmm(bcra.ultimo.fecha)}{bcra.ultimo.fuente === "manual" ? " (manual)" : ""}
-              </span>
+              <span className="lu-kpi-l">M USD el {ddmm(bcra.ultimo.fecha)}</span>
             </div>
             <div className="lu-kpi">
               <span className="lu-kpi-v">{fmtMusd(bcra.acumuladoMes)}</span>
@@ -136,7 +137,7 @@ export async function PanelCambiario() {
               <span className="lu-kpi-l">acumulado del año ({bcra.filasAnio} {bcra.filasAnio === 1 ? "día" : "días"})</span>
             </div>
           </div>
-          <BcraMulcChart serie={bcra.serie} />
+          <BcraMulcChart serie={bcra.serie} colapsable />
         </>
       )}
 
