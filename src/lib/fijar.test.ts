@@ -24,17 +24,17 @@ describe("fijar.ts — ficha E2 1.2", () => {
     expect(fila.precioTasa).toBeCloseTo(348.22277260273967, 6);
   });
 
-  it("compro: resultado = futuro - disponible", () => {
+  it("compro: resultado = disponible - futuro (fix 07/08/2026 — futuro más caro = pierdo)", () => {
     const fila = primera(evaluarFijar(DISPONIBLE, "compro", 10, CURVA, HOY_MS, VTO_MS));
-    expect(fila.resultado).toBeCloseTo(12.34, 6);
-    expect(fila.favorable).toBe(true);
+    expect(fila.resultado).toBeCloseTo(-12.34, 6);
+    expect(fila.favorable).toBe(false);
   });
 
   it("vendo invierte el signo del resultado, no del delta", () => {
     const fila = primera(evaluarFijar(DISPONIBLE, "vendo", 10, CURVA, HOY_MS, VTO_MS));
     expect(fila.delta).toBeCloseTo(-12.34, 6);
-    expect(fila.resultado).toBeCloseTo(-12.34, 6);
-    expect(fila.favorable).toBe(false);
+    expect(fila.resultado).toBeCloseTo(12.34, 6);
+    expect(fila.favorable).toBe(true);
   });
 
   it("borde: vto no resuelto por vtoMs → días=0, tna/precioTasa NaN, delta se sigue mostrando", () => {

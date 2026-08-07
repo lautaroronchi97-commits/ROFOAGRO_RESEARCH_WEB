@@ -64,12 +64,15 @@ function FilaResultado({
   fasBcr,
   fasNuestro,
   pizarra,
+  nota,
 }: {
   nombre: string;
   glyph: React.ReactNode;
   fasBcr: number | null;
   fasNuestro: number | null;
   pizarra: number | null;
+  /** Aclaración inline junto al nombre (hoy solo Girasol: BCR-industria vs Nuestro-grano). */
+  nota?: string;
 }) {
   const diffBcr = diferencialVsPizarra(pizarra, fasBcr);
   const diffNuestro = diferencialVsPizarra(pizarra, fasNuestro);
@@ -79,6 +82,11 @@ function FilaResultado({
         <span className="grp-cell">
           {glyph}
           <span className="gname">{nombre}</span>
+          {nota && (
+            <InfoTip term="⚠">
+              {nota}
+            </InfoTip>
+          )}
         </span>
       </td>
       <td>{fasBcr != null ? nfmt(fasBcr, 2) : "—"}</td>
@@ -193,6 +201,11 @@ export function CapacidadEditable({ granos, industria }: { granos: CapGranoClien
                   fasBcr={g.fasBcr}
                   fasNuestro={fasNuestro}
                   pizarra={g.pizarra}
+                  nota={
+                    g.underlying === "GIR"
+                      ? "BCR usa la metodología de industria (aceite + harina/pellets, casi toda la producción se cruza); Nuestro sigue en la metodología de grano sin procesar — no son directamente comparables. Ya está homologado el FOB oficial de aceite y pellets de girasol; falta confirmar los rindes de molienda y alícuotas propios de girasol para calcular Nuestro con la misma metodología."
+                      : undefined
+                  }
                 />
                 {/* Industria pegada debajo de soja común, no al final de la tabla
                     (relevamiento 29/07, punto 28). */}
