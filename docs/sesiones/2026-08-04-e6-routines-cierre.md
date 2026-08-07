@@ -179,3 +179,32 @@ del secret de nota 1-tap ya no menciona el link que dejó de existir).
 
 **Verificado**: lint/tsc/**488 tests**/build ✅ (sin tests nuevos — es solo remover un camino, sin
 lógica nueva que testear).
+
+## Follow-up (07/08/2026, otro día): la Routine de interpretaciones quedó mal creada — se
+## auto-vinculaba a esta misma sesión en vez de disparar una sesión nueva
+
+La Routine "ROFO AGRO — Interpretaciones" (creada en este mismo hito, ver tabla de arriba) se
+creó con `create_trigger` **sin** `create_new_session_on_fire: true` — quedó en el modo por
+defecto (mode 1: "fires into THIS SESSION"). Efecto real, visto en producción: **cada disparo del
+cron de las 9:00 ART, y cada despertador de `send_later` del día (§8.2), resumía esta misma
+conversación** en vez de abrir una sesión nueva — a diferencia de las otras 3 Routines
+(informe-diario/semanal/view-mercado), que sí generan una sesión fresca por corrida (confirmado
+por sus `git_info.branches` distintos en cada fire histórico). Lautoro lo notó ("porque esta
+sesion esta activa?") y pidió que funcione igual que las otras 3.
+
+**Fix**: `delete_trigger` de la Routine mal configurada (`trig_01Nb8cSuqyNpKQosjk2kZMT1`) +
+`create_trigger` de nuevo, mismo nombre/cron/prompt, con `create_new_session_on_fire: true`
+(nuevo id `trig_0146kwiLjCunZWvDiEiYpYhB`). El prompt no necesitó cambios — ya era autocontenido
+(no asumía contexto previo), como corresponde al modo 3. Los despertadores de `send_later` que
+esta sesión ya tenía agendados para HOY (cierre 18:20 ART) siguen apuntando a esta sesión sin
+problema — `send_later` siempre agenda sobre la sesión que lo llama, independiente del modo de la
+Routine — así que el cierre de la corrida de hoy se completa acá con normalidad; recién el
+próximo disparo del cron base (lunes 10/08, `next_run_at` confirmado) abre sesión nueva.
+
+**Trampa para la próxima vez**: al crear una Routine que va a auto-reprogramarse con
+`send_later` durante el día (§8.2), el DEFAULT de `create_trigger` (mode 1, self-bind) es fácil
+de dejar puesto sin querer — y es indistinguible a simple vista de mode 3 hasta que se nota que
+la sesión "no se cierra nunca". Para una Routine diaria que no necesita picking-up manual de
+Lautoro, `create_new_session_on_fire: true` es casi siempre lo correcto — comparar contra cómo
+están armadas las Routines ya existentes (`list_triggers`) antes de crear una nueva, no asumir el
+default.
