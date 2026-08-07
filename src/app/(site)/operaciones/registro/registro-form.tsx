@@ -328,7 +328,7 @@ export function RegistroForm({
           </label>
         )}
         {precioModoEfectivo === "pizarra" && (
-          <p className="op-form-hint">La pizarra se completa sola al día siguiente (cron de scraping) — no hay precio para cargar hoy.</p>
+          <p className="op-form-hint">La pizarra se completa sola en cuanto CAC la publique (normalmente recién al día siguiente) — no hay precio para cargar hoy.</p>
         )}
         {precioModoEfectivo === "sin_precio" && (
           <p className="op-form-hint">Sin precio — se completa después, con la fijación.</p>

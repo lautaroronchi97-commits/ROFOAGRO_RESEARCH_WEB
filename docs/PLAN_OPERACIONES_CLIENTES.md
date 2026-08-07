@@ -330,23 +330,29 @@ contrato no dice).
 ### 5.4 Precio pizarra: resolución en lectura (cero proceso manual)
 
 Una operación `precio_modo = 'pizarra'` **no guarda precio**: al mostrar, se resuelve contra
-`pizarra_historico` (Rosario/CAC, único origen ingestado). **La referencia es la pizarra del DÍA
-SIGUIENTE a la fecha de la operación** — decisión de Lautaro (§7.3, textual: "los negocios del
-día 05/08 van con la pizarra del día 06/08, siempre la pizarra refleja el mercado del día
-anterior"). Implementación robusta a fines de semana y feriados: **la primera fila de
-`pizarra_historico` con `fecha > fecha de la operación`** (grano = producto, moneda elegida en
-`precio_ars`/`precio_usd`), con tope de búsqueda de 7 días corridos — más allá de eso sigue
+`pizarra_historico` (Rosario/CAC, único origen ingestado). **La referencia es la fila de
+`pizarra_historico` fechada IGUAL a la fecha de la operación** — cada fila representa el DÍA DE
+MERCADO que refleja, no el día en que CAC la publica (que suele ser recién a la mañana
+siguiente — de ahí "la pizarra refleja el mercado del día anterior" §7.3: lo que sale publicado
+hoy es la de ayer). **Corregido 07/08/2026** sobre un caso real con Lautoro: la primera redacción
+de esta sección decía "pizarra del día siguiente" y así había quedado implementado
+(`fecha > fecha de la operación`) — un negocio del 06/08 esperaba entonces la fila `fecha=07/08`
+en vez de resolver apenas se cargaba la fila `fecha=06/08` (que CAC publica, y el cron ingesta,
+recién a la mañana del 07/08). Implementación robusta a fines de semana y feriados: **la primera
+fila de `pizarra_historico` con `fecha >= fecha de la operación`** (grano = producto, moneda
+elegida en `precio_ars`/`precio_usd`) — preferí siempre la del mismo día si ya está cargada, y
+si no, la primera posterior —, con tope de búsqueda de 7 días corridos — más allá de eso sigue
 "pendiente" en vez de agarrar cualquier pizarra lejana. El precio final aplica los descuentos en
 orden: `precio = base × (1 − descuento_pct/100) − descuento_monto`.
 
-Mientras esa pizarra no exista todavía (el mismo día del negocio nunca existe, por definición),
+Mientras esa pizarra no exista todavía (CAC no la publicó, o el cron no corrió todavía ese día),
 la fila muestra **"Pizarra (pendiente)"** — y cuenta como "con precio" en el pricing del día
-(§1.8). Apenas el cron la ingesta al día siguiente (corre 10:30/10:45/11:05/18:06 ART), el precio
-aparece solo, sin que nadie complete nada — cumple la regla del proyecto "Lautaro no corre
-procesos a mano", y vale también para los clientes. Si la pizarra real difiere de lo pactado,
-cualquier usuario de la empresa (o un admin) **la pisa editando la operación a modo manual**
-(queda en el historial §4.3). Girasol y sorgo también tienen pizarra CAC (`CLASES` de
-`pizarra.ts:22` ya trae GIR y SOR).
+(§1.8). Apenas el cron la ingesta (corre 10:30/10:45/11:05/18:06 ART, normalmente recién al día
+siguiente del negocio porque CAC publica tarde), el precio aparece solo, sin que nadie complete
+nada — cumple la regla del proyecto "Lautaro no corre procesos a mano", y vale también para los
+clientes. Si la pizarra real difiere de lo pactado, cualquier usuario de la empresa (o un admin)
+**la pisa editando la operación a modo manual** (queda en el historial §4.3). Girasol y sorgo
+también tienen pizarra CAC (`CLASES` de `pizarra.ts:22` ya trae GIR y SOR).
 
 ### 5.5 Panel "Posición de futuros" valorizada (Fase 2 — ✅ fórmula CONFIRMADA por Lautaro, 05/08/2026)
 
@@ -415,8 +421,11 @@ scoring de clientes (aunque estos datos son su insumo futuro — `negocio/03`).
    alternativa sin migración.
 3. **Pizarra de referencia → la del DÍA SIGUIENTE a la operación** (textual: "los negocios del
    día 05/08 van con la pizarra del día 06/08, siempre la pizarra refleja el mercado del día
-   anterior"). Rosario (CAC). Implementación: primera pizarra con fecha posterior, tope 7 días
-   (§5.4).
+   anterior"). Rosario (CAC). Implementación original: primera pizarra con fecha posterior, tope
+   7 días (§5.4). **Corregido 07/08/2026**: "pizarra del día 06/08" se interpretó mal como "la
+   fila fechada 06/08" — es la fila fechada **05/08** (el negocio del 05/08 resuelve con la
+   pizarra que refleja SU PROPIO día, publicada recién a la mañana del 06/08). Implementación
+   corregida: primera pizarra con fecha ≥ la de la operación, tope 7 días — ver §5.4.
 4. **Descuento → % y monto fijo COMBINABLES** en la misma operación (ej. "pizarra −10% y además
    −38.000 $ concepto flete"), monto en la moneda de la operación ($ o USD). Orden de
    aplicación: primero %, después monto (§4.2/§5.4).
