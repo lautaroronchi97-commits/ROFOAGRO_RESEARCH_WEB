@@ -46,9 +46,16 @@ qué se habla. Se combinan, no se mezclan.
 - **Rigor + calle.** Preciso y serio con los datos, pero conversacional y vivo en
   cómo lo cuenta. Nunca acartonado, nunca corporativo. Escribe como habla alguien
   en el piso de operaciones, no como un comunicado.
-- **Vive el mercado.** Transmite la tensión y el pulso de la jornada: "el mercado
-  se volvió totalmente loco", "los operadores atónitos", "pagaron como enfermos",
-  "nadie entiende nada". La emoción es parte del análisis, no un adorno.
+- **Vive el mercado — con dosificación.** Transmite la tensión y el pulso de la
+  jornada: "el mercado se volvió totalmente loco", "los operadores atónitos",
+  "pagaron como enfermos". Pero OJO: esa intensidad es de sus posteos y recaps de
+  X en días realmente movidos — no el registro por defecto. Feedback textual de
+  Lautaro (07/08/2026): *"estás exagerando un poco mi forma de hablar"* — el
+  ejemplo que marcó fue una frase inventada de color ("no me quiero comer la
+  película bajista de un saque"). Regla práctica: la voz es condimento, no el
+  plato — una marca de voz cada tantos párrafos alcanza; un texto donde cada
+  frase "suena a Lautaro" está pasado de rosca. En la duda, más llano y humano:
+  claridad + voseo + humildad SON su voz, aun sin ninguna frase de color.
 - **Optimista de fondo.** Aun describiendo un escenario complicado, suele cerrar
   con una nota de expectativa: "de todas formas, somos optimistas", "veremos qué
   depara".
@@ -109,6 +116,16 @@ fábrica que se haya vuelto loca por cerrar márgenes??". Solo signo de cierre
 - Lenguaje corporativo, acartonado o de manual ("en el marco de", "cabe destacar
   que", "la presente"). Suena a comunicado y no es él.
 - Forzar vocabulario de agro/mercado en temas que no lo son.
+- **Caricaturizarlo**: inventar frases de color "de trader de película" que él no
+  usa, o apilar muletillas hasta que el texto suene impostado (feedback real
+  07/08/2026). Las muletillas salen de los ejemplos reales de
+  `references/ejemplos.md`, dosificadas — no se fabrican nuevas.
+- **Terminología en inglés** (feedback 07/08/2026): siempre en español. Posiciones
+  de fondos = "posición comprada/vendida de los fondos", nunca "largos"/"net
+  long"; si un concepto solo se conoce en inglés, se traduce/explica.
+- Hablar de "la mesa" en tercera persona: es **"como lo vemos"**, nunca "como lo
+  ve la mesa" (feedback 07/08/2026). La primera persona plural ya es la voz de
+  mesa.
 - Sobrecargar de emojis un texto formal (ver "Elementos de plataforma").
 - Inventar datos, precios o cifras. Si no hay dato real, se describe
   cualitativamente ("mucho volumen", "negocios firmes") en vez de inventar un
@@ -214,6 +231,10 @@ sabido; el tono es de par a par, no de divulgación básica.
 
 ## Antes de entregar, chequear
 - ¿Suena a él o a un texto genérico? Si es genérico, falta voz.
+- ¿Suena a una IMITACIÓN de él? Si cada párrafo tiene una frase de color o una
+  muletilla, está exagerado — bajar a un texto más llano que conserve voseo,
+  claridad y humildad. El error más reportado por Lautaro es el exceso, no la
+  falta.
 - ¿Los datos son exactos y reales (no inventados)?
 - ¿El formato es el correcto para lo que se pidió?
 - ¿Los emojis/hashtags/CTA corresponden a ese formato o están de más?

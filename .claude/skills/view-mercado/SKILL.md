@@ -213,14 +213,21 @@ hallazgos con pasaporte firme que 10 flojos — devolver vacío es válido.
    Indonesia — sustituto que más pesa en la demanda mundial de vegoils) y mandatos de
    biodiésel (RFS de EEUU, corte obligatorio en Argentina) — el driver central de su
    view, no un correlato de paso.
-2. **Sudamérica/clima**: Brasil (Canal Rural RSS, complementa CONAB propio — los
-   números de producción SIEMPRE de `estimaciones`, esto es solo color/día a día),
-   clima Argentina (SMN JSON) y EEUU (NOAA CPC / Drought Monitor), bajante del Paraná
-   si aplica esta semana.
+2. **Sudamérica/clima/bolsas locales**: Brasil (Canal Rural RSS, complementa CONAB
+   propio — los números de producción SIEMPRE de `estimaciones`, esto es solo color/día
+   a día), clima Argentina (SMN JSON) y EEUU (NOAA CPC / Drought Monitor), bajante del
+   Paraná si aplica esta semana. **Y los informes de las bolsas locales** (feedback
+   07/08/2026 — "la de Rosario tiene muchísima información"): la prosa de BCR (GEA
+   semanal, informes de mercado propios) y BCBA más allá de los números que ya ingesta
+   `estimaciones` — qué están diciendo del avance de cosecha/siembra, condición y
+   comercialización esta semana, con pasaporte como todo el anillo 2.
 
    **Calendario de ventanas críticas por cultivo (E5, §7.3)** — subí la prioridad del
-   research de clima si la semana cae dentro de una de estas ventanas (fuera de ellas,
-   el clima es color, no driver):
+   research de clima si la semana cae dentro de una de estas ventanas. Fuera de ellas,
+   el clima es color, no driver — **con una excepción real** (feedback 07/08/2026): el
+   clima que traba la COSECHA o la logística (ej. maíz que no se podía cosechar por
+   lluvias) es driver local aunque no haya ventana de crecimiento abierta — frena la
+   oferta física de corto y se nota en camiones/negociado; si aparece, citalo:
 
    | Cultivo | Siembra | Ventana crítica |
    |---|---|---|
@@ -345,11 +352,16 @@ se deja una cita sin chequear.
   eso SÍ se explica en `tesis_md`, aunque `relacion_previa` siga siendo `confirma`.
 - **confianza**: 1-5 (5 = señales alineadas; 2 = tesis con contras fuertes; 1 no se usa
   salvo caos total).
-- **horizonte**: ej. "próximas 4-8 semanas".
+- **horizonte**: **"próximos 7-14 días"** (feedback de Lautaro, 07/08/2026 — antes decía
+  "4-8 semanas": como el view se rehace cada semana, un horizonte más largo no tenía
+  sentido; la tesis se escribe y se mide a 7-14 días como máximo, y el scorecard
+  (`views-scorecard.ts`) mide exactamente esas dos ventanas).
 - **argumentos** (JSON): `{ "a_favor": [{"titulo","dato"}…3-5], "en_contra":
   [{"titulo","dato"}…], "accion": "2 líneas en idioma mesa" }` — cada `dato` con
-  número exacto y origen, ej. `"gap de cobertura maíz pctl 39 (índice MESA 65 FIRME) —
-  /comercio/temperatura"`.
+  número exacto, ej. `"gap de cobertura maíz pctl 39 (índice MESA 65 FIRME)"`.
+  **Sin nombrar la fuente** (feedback 07/08/2026): ni la página de la propia web ni el
+  medio externo aparecen en el texto visible — la trazabilidad del research externo va
+  en `evidencia_externa` (estructurada, no prosa), y los datos propios no llevan ruta.
 - **tesis_md**: con la voz de Lautaro (leé la skill `voz-lautaro` + `references/
   ejemplos.md` — registro "informe largo": voseo, humildad, datos exactos, emojis casi
   nulos); cierra con la nota humilde. **Sin tope de largo (N10)**: 2-4 párrafos sigue

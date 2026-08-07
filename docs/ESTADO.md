@@ -19,7 +19,50 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 06/08/2026 — 🛢️ view semanal: aceite de soja como 4º grano, HECHO — migración sin aplicar)
+## Ahora (última actualización: 07/08/2026 — 🎯 primer feedback real del view destilado + plazo 7-14 días + voz humanizada, HECHO)
+
+**🎯 PRIMER FEEDBACK REAL DEL VIEW (los 4 del 07/08) DESTILADO + PLAZO 7-14 DÍAS + VOZ
+HUMANIZADA — HECHO — rama `claude/weekly-view-skill-feedback-6a6hx7`, PR #_.** Lautaro
+calificó por primera vez los 4 views en `/granos/view` (soja 3 · maíz 4 · trigo 4 ·
+aceite 4, todos con texto) y sumó 2 directivas por chat: **el plazo del view baja de
+"4-8 semanas" a "7-14 días como máximo"** ("si lo vamos rehaciendo semana a semana no
+tiene sentido") y **humanizar la skill de voz** ("toma tonos muy exagerados a veces").
+
+**Plazo 7-14 días**: `horizonte` de F6 fijo en "próximos 7-14 días"
+(`view-mercado/SKILL.md`) · `views-scorecard.ts` mide `[7, 14]` (antes `[7, 14, 28]`)
+con la ventana de **14 días como titular** del hit-rate/Brier/racha (antes 28) · UI de
+`/granos/view` y comentarios de semanal/route actualizados. Los views guardados
+conservan su horizonte viejo (registro histórico); rige desde la próxima corrida.
+
+**Feedback destilado** (esta sesión actuó de "sesión de mantenimiento" del loop —
+gate cumplido con 4 feedbacks + marca explícita): `view-mercado/references/
+aprendizajes.md` estrena reglas reales — soja con **FAS de la INDUSTRIA** (no poroto) ·
+posición de fondos siempre y en criollo ("posición comprada/vendida", nunca
+"largos"/"net long") · más research de **bolsas locales** (BCR/GEA, BCBA — también
+cableado en F1 del SKILL.md) · **clima que traba la cosecha = driver local** (el caso
+real del maíz) · trigo con más cosecha nueva + clima · "calor de mercadería" anotado
+como DUDA ABIERTA (Lautaro debe validar si refleja la realidad). El ejemplo de
+`argumentos` del SKILL.md ya no lleva la ruta de la web (regla nueva: **sin fuentes en
+el texto**). **Bloque común a los 4 productos** (pedido explícito: "algunos feedbacks
+son comunes para todos los informes") replicado en los `aprendizajes.md` de
+`informe-diario`/`informe-semanal`/`interpretaciones`: sin fuentes · español siempre ·
+fondos en criollo · "como lo vemos" (nunca "como lo ve la mesa") · no exagerar la voz.
+
+**Voz humanizada** (`voz-lautaro/SKILL.md`): "Vive el mercado" pasa a "con
+dosificación" (la intensidad es de posteos de X en días movidos, no el default; "la
+voz es condimento, no el plato", con el feedback textual citado como ancla) + NUNCA
+nuevos (caricaturizarlo con frases de color inventadas · terminología en inglés ·
+"la mesa" en 3ª persona) + chequeo espejo en el checklist ("¿suena a una IMITACIÓN?
+— el error más reportado es el exceso, no la falta").
+
+**Verificado**: lint/tsc/**650 tests** (los del scorecard reescritos a las ventanas
+nuevas)/build ✅ · feedback leído de la base real antes de destilar. **Sin verificar**:
+la primera corrida real de la Routine semanal con todo esto aplicado (el viernes que
+viene, post-merge). **Pendiente**: validación de Lautaro del índice "calor de
+mercadería" (quedó como duda abierta en aprendizajes). Detalle:
+[`sesiones/2026-08-07-feedback-views-plazo-7-14-dias.md`](sesiones/2026-08-07-feedback-views-plazo-7-14-dias.md).
+
+## Anterior (06/08/2026 — 🛢️ view semanal: aceite de soja como 4º grano, HECHO — migración sin aplicar)
 
 **🛢️ SKILL `view-mercado`: ACEITE DE SOJA COMO 4º GRANO — HECHO, migración SIN aplicar —
 rama `claude/weekly-view-soybean-oil-j5gftn`, PR #_.** Pedido de Lautaro: que el view

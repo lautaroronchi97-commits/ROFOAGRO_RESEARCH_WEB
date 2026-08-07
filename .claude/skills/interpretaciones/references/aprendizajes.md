@@ -19,11 +19,28 @@
 
 ## Reglas vigentes
 
-- (todavía sin feedback — skill creada el 04/08/2026, E2 de PLAN_INFORMES_V3.md; las reglas
-  aparecen acá cuando haya diffs reales para leer)
+### Redacción — comunes a los 4 productos (primer lote de feedback de Lautaro sobre los views del 07/08/2026, marcado por él como común "para todos los informes")
+
+- [2026-08-07] [feedback views 07/08] **Nunca nombres la fuente de un dato en el
+  texto** — ni la página/sección de nuestra propia web ni el medio externo. El número
+  va limpio en la prosa. (El organismo del informe que se interpreta sí se nombra —
+  es el tema de la interpretación, no "la fuente de un dato".)
+- [2026-08-07] [feedback views 07/08] **Terminología SIEMPRE en español** — cero
+  términos en inglés; si un concepto solo se conoce en inglés, traducilo/explicalo.
+- [2026-08-07] [feedback views 07/08] **Posición de fondos: "posición comprada/vendida
+  de los fondos"**, nunca "largos"/"largo cargado"/"net long". A Lautaro le gusta que
+  el dato aparezca — pero explicado en criollo.
+- [2026-08-07] [feedback views 07/08] **"como lo vemos", nunca "como lo ve la mesa"**
+  — no hablar de "la mesa" en tercera persona.
+- [2026-08-07] [feedback views + chat 07/08] **No exageres la voz de Lautaro** — nada
+  de color de piso de operaciones inventado ("no me quiero comer la película bajista
+  de un saque" fue el ejemplo que marcó como pasado de rosca). La voz es voseo,
+  claridad y humildad; en la duda, más llano. La jerga se explica la primera vez que
+  aparece.
 
 ## Historial de cambios
 
 | Fecha | Cambio | Origen |
 |---|---|---|
 | 2026-08-04 | Archivo creado (E2, rutina propia de interpretaciones — antes vivía como Paso 9 de `informe-diario`, sin `aprendizajes.md` propio) | E2, PLAN_INFORMES_V3.md |
+| 2026-08-07 | Bloque de redacción común (Lautaro marcó su feedback sobre los views como válido para todos los informes) | Feedback views 07/08/2026 + chat |

@@ -113,7 +113,7 @@ viernes no salió, la ventana se ensancha sola y cubre el hueco) y:
 | `pasCondicion` / `pasZonas` | Filas crudas de BCBA-PAS | Producción de cada producto (Δ de condición semana a semana, calculado por la plantilla) |
 | `viewsMercado` | View vigente por grano, con `relacion_previa` | "La semana según la mesa" de cada producto |
 | `interpretacionesSemana` | Interpretaciones publicadas ESTA semana, con `impacto` | idem |
-| `scorecard` | Hit-rate/racha a 4 semanas por grano | Cierre, 1 vez por mes (regla 5 del Paso 2) |
+| `scorecard` | Hit-rate/racha a 14 días por grano (horizonte del view desde el 07/08/2026) | Cierre, 1 vez por mes (regla 5 del Paso 2) |
 | `diariosSemana` | Título+prosa de los diarios enviados desde el último semanal | Hilo narrativo de la semana (no números) |
 | `dolarLinked` / `volatilidadDolar` / `comprasBcraSemana` | Tabla TNA/TEA por especie / vol. semanal+diaria / acumulado semanal BCRA | Dólar y macro local |
 | `pizarra` / `dolarFuturo` / `chicago` | Foto de HOY (no variación) | Contexto de nivel para tu prosa, no de cambio |

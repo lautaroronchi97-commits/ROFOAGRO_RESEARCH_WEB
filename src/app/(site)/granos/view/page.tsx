@@ -101,16 +101,16 @@ function Confianza({ n }: { n: number }) {
   );
 }
 
-/** Fila de scorecard del grano: hit-rate a 4 semanas, N medidos, racha (§5 UI del plan V1). */
+/** Fila de scorecard del grano: hit-rate a 14 días, N medidos, racha (§5 UI del plan V1). */
 function ScorecardFila({ r }: { r: ResumenGrano }) {
   if (r.nMedidos === 0) {
-    return <p className="dim vw-score">Scorecard: todavía sin views con 4 semanas de vida para medir.</p>;
+    return <p className="dim vw-score">Scorecard: todavía sin views con 14 días de vida para medir.</p>;
   }
   const pct = Math.round(r.hitRate! * 100);
   const rachaTxt = r.racha ? `racha de ${r.racha.largo} ${r.racha.tipo === "acierto" ? "aciertos" : "errores"}` : "—";
   return (
     <p className="vw-score">
-      <span className="k">Scorecard (4 semanas)</span> {pct}% de acierto sobre {r.nMedidos} view
+      <span className="k">Scorecard (14 días)</span> {pct}% de acierto sobre {r.nMedidos} view
       {r.nMedidos === 1 ? "" : "s"} medido{r.nMedidos === 1 ? "" : "s"} · {rachaTxt}
       {r.brier != null && <> · Brier {r.brier.toFixed(3)}</>}
     </p>
@@ -280,8 +280,9 @@ export default async function ViewMesaPage() {
                   Lo produce la sesión de research semanal (skill <code>view-mercado</code>, pipeline
                   F0→F6) usando SOLO datos que la web ya computa + research externo con pasaporte
                   verificado (URL + fecha + cita). Cada argumento cita su número exacto; nada se
-                  inventa. El scorecard mide el acierto real contra <code>futuros_cierres</code> a 1,
-                  2 y 4 semanas, con la posición fijada el día del view (nunca re-elegida).
+                  inventa. El scorecard mide el acierto real contra <code>futuros_cierres</code> a 7
+                  y 14 días — el mismo horizonte del view, que se rehace cada semana — con la
+                  posición fijada el día del view (nunca re-elegida).
                 </>
               }
             />

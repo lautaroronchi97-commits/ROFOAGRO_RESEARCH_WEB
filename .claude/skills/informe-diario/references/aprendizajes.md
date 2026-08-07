@@ -18,11 +18,27 @@
 
 ## Reglas vigentes
 
-- (todavía sin feedback — la placa "Research" con nota 1-tap por mail arrancó el 04/08/2026,
-  E3 de PLAN_INFORMES_V3.md; las reglas aparecen acá cuando haya notas/feedback reales)
+### Redacción — comunes a los 4 productos (primer lote de feedback de Lautaro sobre los views del 07/08/2026, marcado por él como común "para todos los informes")
+
+- [2026-08-07] [feedback views 07/08] **Nunca nombres la fuente de un dato en el
+  texto** — ni la página/sección de nuestra propia web ni el medio externo. El número
+  va limpio en la prosa.
+- [2026-08-07] [feedback views 07/08] **Terminología SIEMPRE en español** — cero
+  términos en inglés; si un concepto solo se conoce en inglés, traducilo/explicalo.
+- [2026-08-07] [feedback views 07/08] **Posición de fondos: "posición comprada/vendida
+  de los fondos"**, nunca "largos"/"largo cargado"/"net long". A Lautaro le gusta que
+  el dato aparezca — pero explicado en criollo.
+- [2026-08-07] [feedback views 07/08] **"como lo vemos", nunca "como lo ve la mesa"**
+  — no hablar de "la mesa" en tercera persona.
+- [2026-08-07] [feedback views + chat 07/08] **No exageres la voz de Lautaro** — nada
+  de color de piso de operaciones inventado ("no me quiero comer la película bajista
+  de un saque" fue el ejemplo que marcó como pasado de rosca). La voz es voseo,
+  claridad y humildad; en la duda, más llano. La jerga se explica la primera vez que
+  aparece.
 
 ## Historial de cambios
 
 | Fecha | Cambio | Origen |
 |---|---|---|
 | 2026-08-04 | Archivo creado (E3: nota 1-5/feedback + links 1-tap del mail, N15) | E3, PLAN_INFORMES_V3.md |
+| 2026-08-07 | Bloque de redacción común (Lautaro marcó su feedback sobre los views como válido para todos los informes) | Feedback views 07/08/2026 + chat |

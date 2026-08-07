@@ -12,8 +12,13 @@ import { vencKeyDePosicion, vtoDePosicion } from "./dates";
  * scorecard re-eligiera "la más cercana" en cada fecha de medición, el retorno mediría en parte el
  * salto de rolleo (contango/backwardation) entre contratos, no el movimiento que la tesis predijo.
  * Acá la posición se elige UNA VEZ en `fecha` del view (`elegirPosicionT0`) y todas las ventanas
- * (1/2/4 semanas) miden ESA MISMA posición; si venció antes de la ventana, esa ventana degrada a
+ * (7/14 días) miden ESA MISMA posición; si venció antes de la ventana, esa ventana degrada a
  * `null` con motivo "contrato_vencido" — nunca se sustituye por otra.
+ *
+ * Ventanas 7/14 días (feedback de Lautaro, 07/08/2026): el view se rehace cada semana, así que
+ * medirlo a 4 semanas no tenía sentido — el horizonte de la tesis pasó de "4-8 semanas" a
+ * "7-14 días" y el scorecard mide esas mismas dos ventanas, con la de 14 días como titular
+ * (antes 7/14/28 con titular a 28).
  */
 
 export type FuturoCierreRow = { underlying: string; posicion: string; fecha: string; settlement: number };
@@ -23,7 +28,7 @@ export type FuturoCierreRow = { underlying: string; posicion: string; fecha: str
  *  grano degrada siempre a `nMedidos: 0` en vez de mezclar el retorno de otro producto. */
 export const GRANO_UNDERLYING: Record<GranoView, string> = { soja: "SOJ", maiz: "MAI", trigo: "TRI", aceite_soja: "SOJACEITE" };
 
-const VENTANAS_DIAS = [7, 14, 28] as const;
+const VENTANAS_DIAS = [7, 14] as const;
 /** Umbral de "sin movimiento" para que un view NEUTRAL cuente como acierto — provisorio, a calibrar
  *  con Lautaro contra los primeros scorecards reales (no hay un umbral de negocio definido todavía). */
 const BANDA_NEUTRAL = 0.01;
@@ -53,13 +58,13 @@ export type Racha = { tipo: "acierto" | "error"; largo: number };
 
 export type ResumenGrano = {
   grano: GranoView;
-  /** Views con la ventana de 4 semanas efectivamente medida (no null). */
+  /** Views con la ventana de 14 días efectivamente medida (no null). */
   nMedidos: number;
-  /** Hit-rate a 4 semanas sobre los medidos. null si nMedidos === 0. */
+  /** Hit-rate a 14 días sobre los medidos. null si nMedidos === 0. */
   hitRate: number | null;
-  /** Brier promedio (confianza mapeada a probabilidad vs acierto), a 4 semanas. */
+  /** Brier promedio (confianza mapeada a probabilidad vs acierto), a 14 días. */
   brier: number | null;
-  /** Racha de aciertos/errores consecutivos, del más reciente hacia atrás (ventana 4 semanas). */
+  /** Racha de aciertos/errores consecutivos, del más reciente hacia atrás (ventana 14 días). */
   racha: Racha | null;
 };
 
@@ -191,24 +196,24 @@ export function calcularScorecardView(
 
 function resumirGrano(grano: GranoView, vistas: ScorecardView[]): ResumenGrano {
   const medidos = vistas
-    .map((v) => ({ v, w28: v.ventanas.find((w) => w.dias === 28) ?? null }))
-    .filter((x): x is { v: ScorecardView; w28: VentanaScorecard } => x.w28 !== null && x.w28.acierto !== null)
+    .map((v) => ({ v, w14: v.ventanas.find((w) => w.dias === 14) ?? null }))
+    .filter((x): x is { v: ScorecardView; w14: VentanaScorecard } => x.w14 !== null && x.w14.acierto !== null)
     .sort((a, b) => (a.v.fecha < b.v.fecha ? 1 : a.v.fecha > b.v.fecha ? -1 : 0)); // desc por fecha
 
   if (medidos.length === 0) return { grano, nMedidos: 0, hitRate: null, brier: null, racha: null };
 
-  const aciertos = medidos.filter((x) => x.w28.acierto).length;
+  const aciertos = medidos.filter((x) => x.w14.acierto).length;
   const hitRate = aciertos / medidos.length;
 
   const briers = medidos
-    .map((x) => brierDeVentana(x.v.direccion, x.v.confianza, x.w28.retorno))
+    .map((x) => brierDeVentana(x.v.direccion, x.v.confianza, x.w14.retorno))
     .filter((b): b is number => b !== null);
   const brier = briers.length > 0 ? briers.reduce((a, b) => a + b, 0) / briers.length : null;
 
-  const tipo: Racha["tipo"] = medidos[0]!.w28.acierto ? "acierto" : "error";
+  const tipo: Racha["tipo"] = medidos[0]!.w14.acierto ? "acierto" : "error";
   let largo = 0;
   for (const x of medidos) {
-    if ((tipo === "acierto") !== !!x.w28.acierto) break;
+    if ((tipo === "acierto") !== !!x.w14.acierto) break;
     largo++;
   }
 
