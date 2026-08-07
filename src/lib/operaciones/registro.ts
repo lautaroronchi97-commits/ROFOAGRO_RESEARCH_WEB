@@ -84,6 +84,8 @@ export type OperacionInputRaw = {
   moneda: string; // "" = sin moneda
   descuentoPct: number | null;
   descuentoMonto: number | null;
+  /** Comisión % del negocio (independiente del descuento — ej. mesa vs. flete/pizarra). */
+  comisionPct: number | null;
   entregaDesde: string; // "" = sin fecha
   entregaHasta: string; // "" = sin fecha
   /** Período de fijación (solo condición "a_fijar"). */
@@ -109,6 +111,7 @@ export type OperacionValidada = {
   moneda: Moneda | null;
   descuento_pct: number | null;
   descuento_monto: number | null;
+  comision_pct: number | null;
   entrega_desde: string | null;
   entrega_hasta: string | null;
   fijacion_desde: string | null;
@@ -204,6 +207,11 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
     return { ok: false, error: "El descuento en monto no puede ser negativo." };
   }
 
+  const comision_pct = input.comisionPct != null && input.comisionPct > 0 ? input.comisionPct : null;
+  if (comision_pct != null && (comision_pct < 0 || comision_pct > 100)) {
+    return { ok: false, error: "La comisión en % debe estar entre 0 y 100." };
+  }
+
   const entrega_desde: string | null = input.entregaDesde || null;
   const entrega_hasta: string | null = input.entregaHasta || null;
   if (entrega_desde && !FECHA_RE.test(entrega_desde)) return { ok: false, error: "Fecha de entrega (desde) inválida." };
@@ -265,6 +273,7 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
       moneda,
       descuento_pct,
       descuento_monto,
+      comision_pct,
       entrega_desde,
       entrega_hasta,
       fijacion_desde,
@@ -310,19 +319,31 @@ export function elegirPizarraSiguiente(fechaOperacion: string, candidatas: Pizar
   return validas[0] ?? null;
 }
 
-/** `base × (1 − pct/100) − monto` — primero el %, después el monto fijo (§7.4). */
-export function aplicarDescuentos(base: number, pct: number | null, monto: number | null): number {
+/** `base × (1 − pct/100) × (1 − comisiónPct/100) − monto` — descuento % y comisión %
+ *  se aplican como 2 reducciones independientes (§7.4), el monto fijo al final. */
+export function aplicarDescuentos(
+  base: number,
+  pct: number | null,
+  monto: number | null,
+  comisionPct: number | null = null,
+): number {
   const conPct = pct ? base * (1 - pct / 100) : base;
-  return monto ? conPct - monto : conPct;
+  const conComision = comisionPct ? conPct * (1 - comisionPct / 100) : conPct;
+  return monto ? conComision - monto : conComision;
 }
 
 export type PrecioResuelto =
-  | { estado: "manual"; valor: number }
-  | { estado: "pizarra_resuelta"; valor: number; fechaPizarra: string }
+  | { estado: "manual"; valor: number; base: number }
+  | { estado: "pizarra_resuelta"; valor: number; base: number; fechaPizarra: string }
   | { estado: "pizarra_pendiente" }
   | { estado: "sin_precio" };
 
-/** Precio final a mostrar de una operación, dado su modo y (si aplica) la pizarra siguiente ya elegida. */
+/**
+ * Precio final a mostrar de una operación, dado su modo y (si aplica) la pizarra
+ * siguiente ya elegida. Además del `valor` final (con descuento/comisión/monto ya
+ * aplicados), expone el `base` (precio sin tocar — manual o pizarra) para que la
+ * UI pueda mostrar el desglose completo (pedido de Lautoro 07/08/2026).
+ */
 export function resolverPrecio(
   op: {
     precio_modo: PrecioModo;
@@ -330,13 +351,18 @@ export function resolverPrecio(
     moneda: Moneda | null;
     descuento_pct: number | null;
     descuento_monto: number | null;
+    comision_pct: number | null;
   },
   pizarraSiguiente: PizarraFila | null,
 ): PrecioResuelto {
   if (op.precio_modo === "sin_precio") return { estado: "sin_precio" };
   if (op.precio_modo === "manual") {
     if (op.precio == null) return { estado: "sin_precio" };
-    return { estado: "manual", valor: aplicarDescuentos(op.precio, op.descuento_pct, op.descuento_monto) };
+    return {
+      estado: "manual",
+      base: op.precio,
+      valor: aplicarDescuentos(op.precio, op.descuento_pct, op.descuento_monto, op.comision_pct),
+    };
   }
   // pizarra
   if (!pizarraSiguiente) return { estado: "pizarra_pendiente" };
@@ -344,7 +370,8 @@ export function resolverPrecio(
   if (base == null) return { estado: "pizarra_pendiente" };
   return {
     estado: "pizarra_resuelta",
-    valor: aplicarDescuentos(base, op.descuento_pct, op.descuento_monto),
+    base,
+    valor: aplicarDescuentos(base, op.descuento_pct, op.descuento_monto, op.comision_pct),
     fechaPizarra: pizarraSiguiente.fecha,
   };
 }

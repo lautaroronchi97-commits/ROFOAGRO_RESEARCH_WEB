@@ -259,7 +259,7 @@ export function RegistroForm({
 
         {precioModoEfectivo === "manual" && (
           <label className="admin-field">
-            <span>{tipo === "futuro_a3" ? "Precio de ejecución" : "Precio"}</span>
+            <span>{tipo === "futuro_a3" ? "Precio de ejecución" : "Precio base"}</span>
             <input
               type="number"
               inputMode="decimal"
@@ -276,10 +276,26 @@ export function RegistroForm({
         {precioModoEfectivo && precioModoEfectivo !== "sin_precio" && (
           <label className="admin-field">
             <span>Moneda</span>
-            <select name="moneda" defaultValue={base?.moneda ?? "usd"} className="admin-input">
-              <option value="usd">USD</option>
+            <select name="moneda" defaultValue={base?.moneda ?? "ars"} className="admin-input">
               <option value="ars">$</option>
+              <option value="usd">USD</option>
             </select>
+          </label>
+        )}
+        {precioModoEfectivo && precioModoEfectivo !== "sin_precio" && (
+          <label className="admin-field">
+            <span>Comisión %</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              name="comision_pct"
+              step="0.01"
+              min="0"
+              max="100"
+              defaultValue={base?.comision_pct ?? ""}
+              className="admin-input"
+              placeholder="ej. comisión 1,5%"
+            />
           </label>
         )}
         {precioModoEfectivo === "pizarra" && (
@@ -303,7 +319,7 @@ export function RegistroForm({
             max="100"
             defaultValue={base?.descuento_pct ?? ""}
             className="admin-input"
-            placeholder="ej. 10"
+            placeholder="ej. pizarra -10%"
           />
         </label>
         <label className="admin-field">
