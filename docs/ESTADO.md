@@ -19,7 +19,41 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 07/08/2026 — 🎯 primer feedback real del view destilado + plazo 7-14 días + voz humanizada, HECHO)
+## Ahora (última actualización: 07/08/2026 — 🩺 auditoría de la web + `djve_resumen` a matview, HECHO)
+
+**🩺 AUDITORÍA DE LA WEB (sin tocar código) + FIX DE LATENCIA DE `djve_resumen` — HECHO — rama
+`claude/web-audit-testing-p0l6aa`, PR #_.** Lautaro pidió auditar que todo lo hecho funcione bien
+(explícitamente sin modificar código) — corrida completa sin cambios: `lint`/`tsc`/**650 tests**/
+`build` ✅ · producción (`rofoagro.com.ar`) respondiendo bien (públicas 200, gateadas 307→
+`/ingresar`) · los 4 crons/Routines de informes produciendo (diario/semanal enviados, view e
+interpretaciones corriendo) · healthcheck de frescura 23/24 en verde · Playwright real 23 rutas ×
+desktop/mobile sin scroll horizontal ni errores de consola. **Confirma que la migración de aceite
+de soja de la entrada de abajo (06/08) YA está aplicada**: el view del 07/08 trajo los 4 granos
+(`soja`/`maiz`/`trigo`/`aceite_soja`) — el pendiente de esa entrada queda resuelto.
+
+**Encontrado y arreglado el mismo día, a pedido de Lautaro tras ver la auditoría**: `djve_resumen`
+(vista consumida por `/comercio/djve` + el JSON de los informes) tardaba ~2s por request (scan
+completo de las ~335k filas de `djve`) — pasada a **matview** (migración
+`20260807140000_djve_resumen_matview.sql`, **aplicada**), mismo remedio ya usado en `djve_cobertura`
+(E2, 21/07). Refresh colgado de `refresh_lineup_visitas()` (ya la llama `ingest-lineup.mjs` 2×/día,
+no hizo falta cron nuevo) · `catalogo.ts` suma `djve_resumen` a `MATVIEWS` para que el healthcheck
+la vigile. **Verificado**: `EXPLAIN ANALYZE` 2.037ms→0,7ms · 88 filas idénticas por `curl` real ·
+lint/tsc/**650 tests**/build ✅.
+
+**2 hallazgos de la auditoría quedaron agendados en el backlog maestro (A9/A10,
+`auditoria/E7-sintesis.md` §4.A), genuinamente bloqueados sin código para commitear**:
+**`USDA_FAS_API_KEY`** inválida (403 confirmado con `curl` real) — Export Sales sin interpretar en
+la skill `interpretaciones`; hace falta que Lautaro genere una key nueva en `api.fas.usda.gov` y la
+cargue en el entorno de la Routine (ningún tool de esta sesión escribe variables de entorno, ni de
+Vercel ni de Claude Code Remote). **`RESEND_FROM`** sin dominio verificado — `rofoagro.com.ar` no
+tiene ningún registro DNS de Resend (confirmado por DNS-over-HTTPS); poner un remitente de ese
+dominio sin verificar haría que Resend RECHACE el envío (peor que hoy, que al menos entrega al
+dueño de la cuenta vía el sender de prueba `onboarding@resend.dev`) — requiere que Lautaro agregue
+el dominio en el dashboard de Resend, cargue los registros DNS que pida, y recién ahí se puede
+setear `RESEND_FROM`. Detalle completo:
+[`sesiones/2026-08-07-auditoria-web-djve-resumen.md`](sesiones/2026-08-07-auditoria-web-djve-resumen.md).
+
+## Anterior (última actualización: 07/08/2026 — 🎯 primer feedback real del view destilado + plazo 7-14 días + voz humanizada, HECHO)
 
 **🎯 PRIMER FEEDBACK REAL DEL VIEW (los 4 del 07/08) DESTILADO + PLAZO 7-14 DÍAS + VOZ
 HUMANIZADA — HECHO — rama `claude/weekly-view-skill-feedback-6a6hx7`, PR #_.** Lautaro
@@ -102,11 +136,10 @@ se tocó ninguna fórmula). **Sin verificar con datos reales**: no se corrió la
 punta a punta (requiere la migración aplicada + creds reales) — el primer view real de
 `aceite_soja` queda para la primera corrida de la Routine semanal post-merge.
 
-**Pendiente**: OK de Lautaro → aplicar la migración por MCP → confirmar en la primera
-corrida real que el POST a `views_mercado` con `grano='aceite_soja'` funciona. Si algún
-día se quiere que su scorecard mida contra un futuro real, hace falta persistir CBOT ZL
-(sumar a `ingest-cbot.mjs`/`cbot_cierres`) — decisión de infraestructura aparte, no
-pedida en esta sesión. Detalle:
+**✅ Migración aplicada y confirmada (07/08, auditoría) — el view del 07/08 ya trajo los 4
+granos incluido `aceite_soja`.** Si algún día se quiere que su scorecard mida contra un
+futuro real, hace falta persistir CBOT ZL (sumar a `ingest-cbot.mjs`/`cbot_cierres`) —
+decisión de infraestructura aparte, no pedida en esta sesión. Detalle:
 [`sesiones/2026-08-06-view-mercado-aceite-soja.md`](sesiones/2026-08-06-view-mercado-aceite-soja.md).
 
 ## Anterior (06/08/2026 — 🧱 mejora de "Mis operaciones", vuelta 4: feedback de Lautaro por Word — Posición diaria/acumulada en páginas separadas, HECHO)

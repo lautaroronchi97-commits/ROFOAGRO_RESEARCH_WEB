@@ -8,8 +8,9 @@ export { ORDEN_FAMILIAS, type Familia } from "./djve-familias";
 
 /**
  * DJVE — Declaraciones Juradas de Ventas al Exterior (Ley 21.453), desde MAGyP.
- * Se leen de la vista `djve_resumen` (agregado por producto: acumulado del año
- * en curso + ventanas de 7 y 30 días). Datos históricos guardados en Supabase.
+ * Se leen de la matview `djve_resumen` (agregado por producto: acumulado del año
+ * en curso + ventanas de 7 y 30 días; refrescada 2x/día por `refresh_lineup_visitas()`,
+ * ver 20260807140000_djve_resumen_matview.sql). Datos históricos guardados en Supabase.
  */
 
 export type DjveRow = {
