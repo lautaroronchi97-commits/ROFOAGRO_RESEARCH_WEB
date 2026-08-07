@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { crearOperacion, editarOperacion, type OperacionFormState } from "../actions";
 import { CurvaPicker } from "@/components/curva-picker";
-import { precioModoDeCondicion, precioMonedaSospechoso } from "@/lib/operaciones/registro";
+import { precioModoDeCondicion, precioMonedaSospechoso, debeResetearMonedaAPesos } from "@/lib/operaciones/registro";
 import type { GranoCurva } from "@/lib/curva-types";
 import {
   PRODUCTOS,
@@ -119,6 +119,15 @@ export function RegistroForm({
   // futuro A3, que no usa condición) — mismo criterio que `validarOperacion`.
   const precioModoEfectivo: PrecioModo | null =
     tipo === "futuro_a3" ? "manual" : condicionEfectiva ? precioModoDeCondicion(condicionEfectiva) : null;
+
+  // Default de moneda al entrar a modo pizarra — ver `debeResetearMonedaAPesos`.
+  const modoAnteriorRef = useRef<PrecioModo | null>(precioModoEfectivo);
+  useEffect(() => {
+    if (debeResetearMonedaAPesos(modoAnteriorRef.current, precioModoEfectivo)) {
+      setMonedaSel("ars");
+    }
+    modoAnteriorRef.current = precioModoEfectivo;
+  }, [precioModoEfectivo]);
 
   // Fijación: período (desde/hasta) — el "desde" sugiere el inicio de entrega
   // (forward) o la fecha de la operación (disponible, entrega inmediata); el
@@ -289,7 +298,7 @@ export function RegistroForm({
             <span>Moneda</span>
             <select
               name="moneda"
-              defaultValue={base?.moneda ?? "ars"}
+              value={monedaSel}
               onChange={(e) => setMonedaSel(e.target.value as Moneda)}
               className="admin-input"
             >

@@ -367,6 +367,22 @@ export function aplicarDescuentos(
   return monto ? conComision - monto : conComision;
 }
 
+/**
+ * ¿Hay que resetear la moneda del form a pesos al pasar de `anterior` a
+ * `nuevo` precio_modo efectivo? Pizarra por default en pesos (pedido de
+ * Lautoro 07/08/2026: "por default cuando se carga pizarra es moneda
+ * pesos") — un negocio real quedó en USD porque el selector de moneda del
+ * form es no controlado y la carga en serie no lo limpia entre operaciones:
+ * si la anterior (ej. un "a precio" manual) había quedado en USD, esa
+ * elección le quedaba pegada a la siguiente pizarra aunque nadie la
+ * tocara. Dispara SOLO en la transición HACIA pizarra — nunca dentro de
+ * una racha de pizarras seguidas (respeta una elección explícita del
+ * usuario) ni al editar una operación que YA es pizarra desde el vamos.
+ */
+export function debeResetearMonedaAPesos(anterior: PrecioModo | null, nuevo: PrecioModo | null): boolean {
+  return nuevo === "pizarra" && anterior !== "pizarra";
+}
+
 export type PrecioResuelto =
   | { estado: "manual"; valor: number; base: number }
   | { estado: "pizarra_resuelta"; valor: number; base: number; fechaPizarra: string }
