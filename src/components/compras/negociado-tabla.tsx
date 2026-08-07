@@ -38,11 +38,13 @@ function sumar(vals: (number | null)[]): number | null {
 export function NegociadoTabla({ filas, avance, fecha }: { filas: FilaSector[]; avance: Record<string, number>; fecha: string | null }) {
   const [sector, setSector] = useState("todos");
   const [producto, setProducto] = useState("todos");
+  const [soloActiva, setSoloActiva] = useState(false);
 
   const agregadas = useMemo<Agregada[]>(() => {
     const filtradas = filas
       .filter((f) => sector === "todos" || f.sector === sector)
-      .filter((f) => producto === "todos" || f.cod === producto);
+      .filter((f) => producto === "todos" || f.cod === producto)
+      .filter((f) => !soloActiva || f.activa);
     const porClave = new Map<string, FilaSector[]>();
     for (const f of filtradas) {
       const k = `${f.cod}|${f.campana}`;
@@ -70,9 +72,10 @@ export function NegociadoTabla({ filas, avance, fecha }: { filas: FilaSector[]; 
         saldoAFijar: sumar(grupo.map((g) => g.saldoAFijar)),
       });
     }
-    // El orden ya viene del server (producto → activa → campaña); se preserva por inserción.
-    return out;
-  }, [filas, avance, sector, producto]);
+    // Orden feedback 07/08/2026: "del dato más reciente al último" — fecha desc primero
+    // (antes se preservaba el orden del server: producto → activa → campaña asc).
+    return out.sort((a, b) => b.fecha.localeCompare(a.fecha) || b.campana.localeCompare(a.campana));
+  }, [filas, avance, sector, producto, soloActiva]);
 
   function exportarCsv() {
     const cols = ["Producto", "Campana", "Activa", "Ultimo_dato", "Semanal_t", "Delta_sem_t", "Acumulado_t", "Pct_cosecha", "Pct_priceado", "Saldo_a_fijar_t"];
@@ -119,6 +122,10 @@ export function NegociadoTabla({ filas, avance, fecha }: { filas: FilaSector[]; 
             <option value="INDUSTRIA">Industria</option>
           </select>
         </label>
+        <label className="lu-field lu-check">
+          <input type="checkbox" checked={soloActiva} onChange={(e) => setSoloActiva(e.target.checked)} />
+          <span>Solo campaña activa</span>
+        </label>
         <span className="lu-grow" />
         <button type="button" className="lu-csv" onClick={exportarCsv} disabled={agregadas.length === 0}>↓ CSV</button>
       </div>
@@ -133,6 +140,7 @@ export function NegociadoTabla({ filas, avance, fecha }: { filas: FilaSector[]; 
             <tr>
               <th className="l" scope="col">Producto</th>
               <th className="l" scope="col">Campaña</th>
+              <th className="l" scope="col" title="Fecha del último dato disponible">Fecha</th>
               <th scope="col" title="Compras de la última semana disponible">Semanal t</th>
               <th scope="col" title="Contra la semana anterior">Δ sem.</th>
               <th scope="col" title="Total comprado acumulado de la campaña">Acumulado t</th>
@@ -149,6 +157,7 @@ export function NegociadoTabla({ filas, avance, fecha }: { filas: FilaSector[]; 
                   {a.campana}
                   {a.activa && <span className="ng-activa" title="Campaña activa: la de mayor venta semanal">activa</span>}
                 </td>
+                <td className="l dim">{a.fecha ? `${a.fecha.slice(8, 10)}/${a.fecha.slice(5, 7)}` : "—"}</td>
                 <td>{a.semanal == null ? "—" : nfmt(a.semanal, 0)}</td>
                 <td className={a.delta == null ? "dim" : a.delta > 0 ? "pos" : a.delta < 0 ? "neg" : "dim"}>
                   {a.delta == null ? "—" : sfmt(a.delta, 0)}
@@ -160,7 +169,7 @@ export function NegociadoTabla({ filas, avance, fecha }: { filas: FilaSector[]; 
               </tr>
             ))}
             {agregadas.length === 0 && (
-              <tr><td className="l dim" colSpan={8}>Sin datos para este filtro.</td></tr>
+              <tr><td className="l dim" colSpan={9}>Sin datos para este filtro.</td></tr>
             )}
           </tbody>
         </table>

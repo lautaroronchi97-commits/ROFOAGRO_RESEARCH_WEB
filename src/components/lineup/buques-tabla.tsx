@@ -51,7 +51,8 @@ export function BuquesTabla({ buques, fecha }: { buques: BuqueRow[]; fecha: stri
   const porZona = useMemo(() => (hayFiltro ? totalesPorZona(filtradas) : []), [hayFiltro, filtradas]);
 
   function exportarCsv() {
-    const cols = ["Buque", "Empresa", "Producto", "Toneladas", "Zona", "Muelle", "Destino", "ETB"];
+    // Orden feedback 07/08/2026: producto/empresa/zona primero (lo que importa), buque al final.
+    const cols = ["Producto", "Empresa", "Zona", "Muelle", "Toneladas", "ETB", "Destino", "Buque"];
     const esc = (v: string | number | null) => {
       const s = v == null ? "" : String(v);
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -59,7 +60,7 @@ export function BuquesTabla({ buques, fecha }: { buques: BuqueRow[]; fecha: stri
     const lineas = [
       cols.join(","),
       ...filtradas.map((b) =>
-        [b.vessel, b.empresa, b.producto, b.toneladas ?? "", b.zona, b.muelle ?? "", b.destino ?? "", b.etb ?? ""]
+        [b.producto, b.empresa, b.zona, b.muelle ?? "", b.toneladas ?? "", b.etb ?? "", b.destino ?? "", b.vessel]
           .map(esc)
           .join(","),
       ),
@@ -126,27 +127,30 @@ export function BuquesTabla({ buques, fecha }: { buques: BuqueRow[]; fecha: stri
         <table className="tbl" style={{ minWidth: 820 }}>
           <thead>
             <tr>
-              <th className="l" scope="col">Buque</th>
-              <th className="l" scope="col">Empresa</th>
+              {/* Orden feedback 07/08/2026: "destacá el grano, el puerto y el comprador, no me
+                  importa tanto el nombre del buque" — producto/empresa/zona primero en peso
+                  normal, buque al final en `.dim`. */}
               <th className="l" scope="col">Producto</th>
-              <th scope="col">Toneladas</th>
+              <th className="l" scope="col">Empresa</th>
               <th className="l" scope="col">Zona</th>
               <th className="l" scope="col">Muelle</th>
-              <th className="l" scope="col">Destino</th>
+              <th scope="col">Toneladas</th>
               <th scope="col">ETB</th>
+              <th className="l" scope="col">Destino</th>
+              <th className="l" scope="col">Buque</th>
             </tr>
           </thead>
           <tbody>
             {filtradas.map((b, i) => (
               <tr key={`${b.vessel}-${b.producto}-${b.muelle ?? ""}-${i}`}>
-                <td className="l sym">{b.vessel}</td>
+                <td className="l sym">{b.producto}</td>
                 <td className="l">{b.empresa}</td>
-                <td className="l dim">{b.producto}</td>
-                <td>{nfmt(b.toneladas, 0)}</td>
-                <td className="l dim">{b.zona}</td>
+                <td className="l">{b.zona}</td>
                 <td className="l dim">{b.muelle ?? "—"}</td>
-                <td className="l dim">{b.destino ?? "—"}</td>
+                <td>{nfmt(b.toneladas, 0)}</td>
                 <td className="dim">{b.etb ? b.etb.slice(8, 10) + "/" + b.etb.slice(5, 7) : "—"}</td>
+                <td className="l dim">{b.destino ?? "—"}</td>
+                <td className="l dim">{b.vessel}</td>
               </tr>
             ))}
             {filtradas.length === 0 && (

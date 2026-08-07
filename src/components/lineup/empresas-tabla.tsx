@@ -11,14 +11,16 @@ import type { EmpresaRow } from "@/lib/lineup/empresas";
  * campaña, standing y ritmo vs lo normal. Filtrable por señal + producto + búsqueda,
  * con export CSV (el CSV lleva el detalle completo). Client: filtros en el navegador.
  *
- * El filtro de producto acota las EMPRESAS a las que operan ese complejo (según
+ * El filtro de producto acota las EMPRESAS a las que operan ese producto (según
  * porProducto); las columnas numéricas (standing/cobertura/señal) siguen siendo el
  * total de la empresa en todos los productos — no hay desglose de cobertura por
  * producto en esta tabla, solo en el detalle de porProducto/porZona del CSV.
+ *
+ * Fix 07/08/2026 (feedback: "no me estás mostrando harina de soja y aceite de soja"):
+ * el filtro pasó de FAMILIA (6 opciones, "Soja" agrupaba poroto+harina+aceite sin poder
+ * aislar uno) a PRODUCTO individual (10 opciones, `PRODUCTOS` de config.ts) — ahora se
+ * puede elegir puntualmente "Harina de soja" o "Aceite de soja".
  */
-
-const DISPLAY_TO_FAMILIA = new Map(PRODUCTOS.map((p) => [p.display, p.familia]));
-const FAMILIAS = [...new Set(PRODUCTOS.map((p) => p.familia))];
 
 function SenalBadge({ tag }: { tag: EmpresaRow["senal"]["tag"] }) {
   const cls = tag === "ALCISTA FAS" ? "sn-alcista" : tag === "BAJISTA" ? "sn-bajista" : "sn-neutro";
@@ -46,7 +48,7 @@ export function EmpresasTabla({ empresas, fecha }: { empresas: EmpresaRow[]; fec
     const needle = q.trim().toLowerCase();
     return empresas
       .filter((e) => senal === "todas" || e.senal.tag === senal)
-      .filter((e) => producto === "todas" || e.porProducto.some((p) => DISPLAY_TO_FAMILIA.get(p.display) === producto))
+      .filter((e) => producto === "todas" || e.porProducto.some((p) => p.display === producto))
       .filter((e) => !needle || e.empresa.toLowerCase().includes(needle));
   }, [empresas, senal, producto, q]);
 
@@ -91,8 +93,8 @@ export function EmpresasTabla({ empresas, fecha }: { empresas: EmpresaRow[]; fec
           <span>Producto</span>
           <select value={producto} onChange={(e) => setProducto(e.target.value)}>
             <option value="todas">Todos</option>
-            {FAMILIAS.map((f) => (
-              <option key={f} value={f}>{f}</option>
+            {PRODUCTOS.map((p) => (
+              <option key={p.codigo} value={p.display}>{p.display}</option>
             ))}
           </select>
         </label>
