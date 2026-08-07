@@ -131,42 +131,42 @@ describe("confianzaAProbabilidad / brierDeVentana", () => {
 });
 
 describe("calcularScorecardView — integración con rolleo", () => {
+  // View escrito una semana antes del vto de JUL26 (vence 2026-07-31): la ventana de 14
+  // días cae después del vencimiento y debe degradar, nunca saltar a AGO26.
   const rows = [
-    fila("JUL26", "2026-07-10", 300),
-    fila("JUL26", "2026-07-17", 310),
-    fila("JUL26", "2026-07-24", 320),
-    fila("JUL26", "2026-07-31", 325),
-    fila("AGO26", "2026-08-07", 500), // señuelo: no debe filtrarse a la ventana de 28d
+    fila("JUL26", "2026-07-24", 300),
+    fila("JUL26", "2026-07-31", 310),
+    fila("AGO26", "2026-08-07", 500), // señuelo: no debe filtrarse a la ventana de 14d
   ];
-  const view = { id: "v1", grano: "soja" as const, fecha: "2026-07-10", direccion: "alcista" as const, confianza: 4 };
+  const view = { id: "v1", grano: "soja" as const, fecha: "2026-07-24", direccion: "alcista" as const, confianza: 4 };
 
-  it("fija JUL26 en t0 y mide 7d/14d ok, 28d contrato_vencido (sin mezclar con AGO26)", () => {
+  it("fija JUL26 en t0 y mide 7d ok, 14d contrato_vencido (sin mezclar con AGO26)", () => {
     const sc = calcularScorecardView(view, rows);
     expect(sc.posicionT0).toBe("JUL26");
     expect(sc.settlementT0).toBe(300);
-    const [w7, w14, w28] = sc.ventanas;
+    expect(sc.ventanas).toHaveLength(2);
+    const [w7, w14] = sc.ventanas;
     expect(w7!.motivo).toBe("ok");
     expect(w7!.acierto).toBe(true); // 310 > 300
-    expect(w14!.motivo).toBe("ok");
-    expect(w28!.motivo).toBe("contrato_vencido");
-    expect(w28!.retorno).toBeNull();
-    expect(w28!.acierto).toBeNull();
+    expect(w14!.motivo).toBe("contrato_vencido");
+    expect(w14!.retorno).toBeNull();
+    expect(w14!.acierto).toBeNull();
   });
 });
 
 describe("calcularScorecard — resumen por grano (hit-rate, Brier, racha)", () => {
   const rowsSoja: FuturoCierreRow[] = [
     fila("JUL26", "2026-07-01", 300),
-    fila("JUL26", "2026-07-29", 330), // +10% → acierto alcista
+    fila("JUL26", "2026-07-15", 330), // +10% → acierto alcista
     fila("AGO26", "2026-08-01", 300),
-    fila("AGO26", "2026-08-29", 280), // -6.7% → falla alcista
+    fila("AGO26", "2026-08-15", 280), // -6.7% → falla alcista
   ];
   const views: Pick<ViewMercado, "id" | "grano" | "fecha" | "direccion" | "confianza">[] = [
     { id: "v-jul", grano: "soja", fecha: "2026-07-01", direccion: "alcista", confianza: 4 },
     { id: "v-ago", grano: "soja", fecha: "2026-08-01", direccion: "alcista", confianza: 3 },
   ];
 
-  it("computa hit-rate a 4 semanas, Brier promedio y racha desde el más reciente", () => {
+  it("computa hit-rate a 14 días, Brier promedio y racha desde el más reciente", () => {
     const sc = calcularScorecard(views, rowsSoja);
     const soja = sc.porGrano.soja;
     expect(soja.nMedidos).toBe(2);
@@ -174,8 +174,8 @@ describe("calcularScorecard — resumen por grano (hit-rate, Brier, racha)", () 
     expect(soja.brier).not.toBeNull();
     // El más reciente (v-ago, 08/01) falló → racha de error de largo 1 (v-jul antes acertó).
     expect(soja.racha).toEqual({ tipo: "error", largo: 1 });
-    expect(sc.porView["v-jul"]!.ventanas.find((w) => w.dias === 28)!.acierto).toBe(true);
-    expect(sc.porView["v-ago"]!.ventanas.find((w) => w.dias === 28)!.acierto).toBe(false);
+    expect(sc.porView["v-jul"]!.ventanas.find((w) => w.dias === 14)!.acierto).toBe(true);
+    expect(sc.porView["v-ago"]!.ventanas.find((w) => w.dias === 14)!.acierto).toBe(false);
   });
 
   it("granos sin views medidas devuelven resumen vacío, no error", () => {
@@ -187,7 +187,7 @@ describe("calcularScorecard — resumen por grano (hit-rate, Brier, racha)", () 
 describe("calcularScorecard — direcciones leves (V3, N2/§7.1) cuentan como su extremo", () => {
   const rowsMaiz: FuturoCierreRow[] = [
     fila("JUL26", "2026-07-01", 200, "MAI"),
-    fila("JUL26", "2026-07-29", 220, "MAI"), // +10% → acierto para levemente_alcista
+    fila("JUL26", "2026-07-15", 220, "MAI"), // +10% → acierto para levemente_alcista
   ];
   const views: Pick<ViewMercado, "id" | "grano" | "fecha" | "direccion" | "confianza">[] = [
     { id: "v-leve", grano: "maiz", fecha: "2026-07-01", direccion: "levemente_alcista", confianza: 5 },
@@ -195,8 +195,8 @@ describe("calcularScorecard — direcciones leves (V3, N2/§7.1) cuentan como su
 
   it("un view levemente_alcista que sube acierta igual que uno alcista pleno", () => {
     const sc = calcularScorecard(views, rowsMaiz);
-    const w28 = sc.porView["v-leve"]!.ventanas.find((w) => w.dias === 28)!;
-    expect(w28.acierto).toBe(true);
+    const w14 = sc.porView["v-leve"]!.ventanas.find((w) => w.dias === 14)!;
+    expect(w14.acierto).toBe(true);
     expect(sc.porGrano.maiz.nMedidos).toBe(1);
     expect(sc.porGrano.maiz.hitRate).toBe(1);
     // Brier con el techo 0.75 de las direcciones leves (confianza 5): (0.75-1)^2, no (0.95-1)^2.

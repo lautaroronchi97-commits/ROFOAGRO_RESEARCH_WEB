@@ -112,7 +112,7 @@ export async function datosSemanal(fecha: string) {
       "estimaciones_produccion?select=organismo,pais,grano,campania,variable,valor,unidad,fecha_publicacion,informe,url&order=fecha_publicacion.asc",
       3600,
     ),
-    // V3 (PLAN_INFORMES_V2.md §6.3): hit-rate/racha a 4 semanas por grano, se menciona 1 vez
+    // V3 (PLAN_INFORMES_V2.md §6.3): hit-rate/racha a 14 días por grano, se menciona 1 vez
     // por mes en el cierre — cero fórmula nueva, reusa la lib pura de /granos/view.
     getScorecardResumen(),
     // E1 de PLAN_INFORMES_V3.md §6.1: los DIARIOS de la semana ("lectura de los informes

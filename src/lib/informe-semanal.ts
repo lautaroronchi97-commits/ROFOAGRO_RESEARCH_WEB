@@ -294,7 +294,7 @@ export const getViewMercadoVigentePorGrano = cache(async (): Promise<ViewMercado
 });
 
 /**
- * Resumen del scorecard (hit-rate/racha a 4 semanas por grano) para el informe semanal (V3,
+ * Resumen del scorecard (hit-rate/racha a 14 días por grano) para el informe semanal (V3,
  * §6.3 de PLAN_INFORMES_V2.md: se menciona 1 vez por mes, transparencia estilo "what we got
  * wrong"). Reusa `calcularScorecard` — la misma lib pura que ya usa `/granos/view`, cero fórmula
  * nueva. `views_mercado` se lee con `sbSelectAll` (prefiere la service key, bypasa el RLS

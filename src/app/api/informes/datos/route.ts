@@ -20,7 +20,7 @@ import { tokenValido, esFechaValida } from "@/lib/informe-auth";
  * asumir "viernes calendario") de granos/Chicago/pizarra/dólar oficial, negociado SIO de
  * la semana, comercio exterior (embarques + empresas), view de mercado por grano (con
  * `relacion_previa` — V3 la usa para el bullet automático de SWITCH) y su scorecard
- * (hit-rate/racha a 4 semanas, mencionado 1 vez por mes), y agenda de la semana próxima.
+ * (hit-rate/racha a 14 días, mencionado 1 vez por mes), y agenda de la semana próxima.
  * Todo lo arma `datosSemanal()` (`informe-semanal-datos.ts`) — la MISMA función que consume
  * la plantilla `/informes/plantilla/semanal` (E4).
  */
