@@ -240,8 +240,9 @@ export function CalcFijar({
       <div className="panel-note">
         <span>
           <span className="k">A fijar</span> Delta = disponible − futuro (sin costo de oportunidad) · TNA impl. =
-          (futuro/disponible − 1) × 365/días · Resultado = compro a fijar → futuro − disponible; vendo a fijar →
-          disponible − futuro (verde = a favor). <b>Comparador</b>: la TNA impl. se pinta verde cuando supera tu
+          (futuro/disponible − 1) × 365/días · Resultado = compro a fijar → disponible − futuro; vendo a fijar →
+          futuro − disponible (verde = a favor; si compraste a fijar y el futuro sube, pagás más y perdés).{" "}
+          <b>Comparador</b>: la TNA impl. se pinta verde cuando supera tu
           tasa; «Precio a tu tasa» = futuro teórico si el carry rindiera exactamente esa tasa. Al elegir un grano
           se cargan sus posiciones canónicas con el precio en vivo de A3 (o el promedio comprador/vendedor,
           marcado «estimado», si todavía no operó); podés editar cualquier campo o agregar posiciones sueltas.

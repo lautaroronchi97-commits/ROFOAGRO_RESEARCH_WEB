@@ -1,8 +1,13 @@
-import { getDjveResumen, ORDEN_FAMILIAS, type DjveRow, type Familia } from "@/lib/djve";
+import { getDjveResumen, getDjveDelDia, ORDEN_FAMILIAS, type DjveRow, type Familia } from "@/lib/djve";
 import { nfmt, fechaHoraCordoba } from "@/lib/format";
 import { Panel, PanelHead } from "./panel";
 import { SourceStamp } from "./source-stamp";
 import { QueEsEsto } from "./que-es-esto";
+
+/** "2026-08-04" → "04/08". */
+function ddmm(iso: string): string {
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
 
 function IconExport() {
   return (
@@ -26,7 +31,7 @@ function agruparPorFamilia(productos: DjveRow[]): { familia: Familia; total: num
 }
 
 export async function DjvePanel() {
-  const data = await getDjveResumen();
+  const [data, delDia] = await Promise.all([getDjveResumen(), getDjveDelDia()]);
   // E3 H7: ocultar los productos sin actividad en el año (todo "—") — eran ~70 filas de ruido.
   // La nota "N ocultos" se sacó (punto 52): ya no aporta, solo generaba una pregunta sin acción.
   const productos = data.productos.filter((p) => (Number(p.tonAnio) || 0) > 0);
@@ -52,13 +57,43 @@ export async function DjvePanel() {
           </p>
         )}
       </div>
+      {delDia.fecha && delDia.productos.length > 0 && (
+        <div className="djve-familia">
+          <h3 className="djve-familia-h">
+            DJVE del día ({ddmm(delDia.fecha)}) <span className="djve-familia-tot">{nfmt(delDia.total, 0)} t</span>
+          </h3>
+          <div className="table-scroll">
+            <table className="tbl tbl-center" style={{ minWidth: 420 }}>
+              <thead>
+                <tr>
+                  <th className="l" scope="col">Producto</th>
+                  <th scope="col">Toneladas</th>
+                  <th scope="col">Registros</th>
+                </tr>
+              </thead>
+              <tbody>
+                {delDia.productos.map((p) => (
+                  <tr key={p.producto}>
+                    <td className="l sym">{p.producto}</td>
+                    <td>{nfmt(p.toneladas, 0)}</td>
+                    <td className="dim">{p.registros}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="lu-nota">
+            Último día con registros (puede tener rezago) — no necesariamente hoy.
+          </p>
+        </div>
+      )}
       {grupos.map((g) => (
         <div className="djve-familia" key={g.familia}>
           <h3 className="djve-familia-h">
             {g.familia} <span className="djve-familia-tot">{nfmt(g.total, 0)} t</span>
           </h3>
           <div className="table-scroll">
-            <table className="tbl" style={{ minWidth: 560 }}>
+            <table className="tbl tbl-center" style={{ minWidth: 560 }}>
               <thead>
                 <tr>
                   <th className="l" scope="col">Producto</th>
@@ -86,7 +121,7 @@ export async function DjvePanel() {
       {productos.length === 0 && <p className="dim">Sin datos de DJVE disponibles.</p>}
       <QueEsEsto
         paraQue="Muestra las declaraciones de venta al exterior (DJVE) de granos y subproductos: cuánto se anotó para exportar, un termómetro de la demanda externa."
-        comoSeCalcula="Suma las toneladas registradas en el año en curso, con ventanas de los últimos 7 y 30 días por fecha de registro, agrupadas por familia de producto."
+        comoSeCalcula="DJVE del día: las registradas en la última fecha con datos, por producto. Debajo, por familia: suma las toneladas registradas en el año en curso, con ventanas de los últimos 7 y 30 días por fecha de registro."
       />
     </Panel>
   );

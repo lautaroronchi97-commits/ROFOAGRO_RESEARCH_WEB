@@ -179,6 +179,31 @@ export function FotoOperativaClient({ data }: { data: FotoOperativa }) {
                 )}
               </Fragment>
             ))}
+            {/* Totales combinados (feedback 07/08/2026: "en ningún lado veo totales de up
+                river") — aritmética de UI sobre `zonas`, sin tocar foto.ts. */}
+            {(() => {
+              const upRiver = zonas.filter((z) => z.zona.startsWith("Up River"));
+              const buquesUpRiver = upRiver.reduce((s, z) => s + z.buques, 0);
+              const tonUpRiver = upRiver.reduce((s, z) => s + z.toneladas, 0);
+              const buquesTotal = zonas.reduce((s, z) => s + z.buques, 0);
+              const tonTotal = zonas.reduce((s, z) => s + z.toneladas, 0);
+              return (
+                <>
+                  {upRiver.length > 0 && (
+                    <tr className="tot">
+                      <td className="l">Up River (Norte + Sur)</td>
+                      <td>{nfmt(buquesUpRiver, 0)}</td>
+                      <td>{nfmt(tonUpRiver, 0)}</td>
+                    </tr>
+                  )}
+                  <tr className="tot">
+                    <td className="l">TOTAL</td>
+                    <td>{nfmt(buquesTotal, 0)}</td>
+                    <td>{nfmt(tonTotal, 0)}</td>
+                  </tr>
+                </>
+              );
+            })()}
           </tbody>
         </table>
       </div>

@@ -46,11 +46,17 @@ import type { Meta } from "./market";
  * pellets), muy poca se exporta como semilla entera, así que el FAS teórico "de grano" queda muy
  * por debajo de lo que de verdad paga el mercado (misma razón por la que existe "Soja
  * (industria)"). A diferencia de soja, girasol NO tiene una fila propia — sin necesidad de
- * separarlo en dos filas: la fila única "Girasol" ya muestra el valor de industria. El FOB
- * oficial de subproductos (aceite/harina) solo está homologado para soja
- * (`POSICIONES_FOB_INDUSTRIA` en fob-oficial.ts) → "Nuestro" para girasol sigue siendo el modelo
- * de grano sin procesar (`capacidad-modelo.ts`, fob-oficial de la semilla entera), único cálculo
- * independiente disponible.
+ * separarlo en dos filas: la fila única "Girasol" ya muestra el valor de industria.
+ *
+ * Feedback 07/08/2026 ("en nuestro el cálculo no se está haciendo con los datos de industria"):
+ * el FOB oficial de aceite/pellets de girasol YA está homologado (`POSICIONES_FOB_INDUSTRIA` en
+ * fob-oficial.ts, mismo método empírico que soja) — pero "Nuestro" para girasol sigue siendo el
+ * modelo de GRANO sin procesar (`capacidad-modelo.ts`). Para calcular "Nuestro Industria" de
+ * girasol con la misma metodología que BCR haría falta además el rinde de molienda
+ * (aceite/harina) y las alícuotas DEX propias de girasol — los de `CFG_INDUSTRIA_DEFAULT` son de
+ * soja, verificados contra un modelo de referencia que Lautaro compartió; no corresponde
+ * reusarlos para otro grano sin confirmar (mismo criterio de "no inventar un dato" del resto del
+ * proyecto). Nota visible en el panel (`capacidad-editable.tsx`) hasta que se confirmen.
  */
 
 const URL_BCR =

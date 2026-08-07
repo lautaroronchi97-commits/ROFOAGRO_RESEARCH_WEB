@@ -105,6 +105,7 @@ export function NegociadoChart({ serie, productos }: { serie: PuntoHisto[]; prod
           total: nfmt(bar.exp + bar.ind, 0),
         }))}
         nota="Mismos valores que dibuja el histograma (toneladas), por sector. «—» = sin volumen en ese período."
+        colapsable
       />
     </div>
   );

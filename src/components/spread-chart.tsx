@@ -339,6 +339,7 @@ export function SpreadChart({
         nota={notaTabla}
         exportCsv={exportName}
         destacada={hoyX != null ? (_, i) => i === 0 : undefined}
+        colapsable
       />
     </>
   );

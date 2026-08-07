@@ -23,11 +23,20 @@ function fmtFecha(fechaISO: string): string {
 
 /**
  * Compras netas de divisas del BCRA en el MULC (C4) — barras diarias en M USD: verde compra
- * neta, rojo venta neta (color por punto, no por serie — `itemStyle` a mano). Las barras de
- * carga manual (todavía sin confirmar por la oficial) van más tenues para distinguirlas de un
- * vistazo; se pisan solas cuando llega el dato de la API.
+ * neta, rojo venta neta (color por punto, no por serie — `itemStyle` a mano). Las barras se
+ * pisan solas cuando llega el dato oficial (`fuente` sigue distinguiendo carga manual internamente
+ * para esa lógica de pisado, pero no se muestra en la UI — feedback 07/08/2026: Lautaro no quiere
+ * ver si el dato es manual o por API, es un detalle interno de la ingesta).
  */
-export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[] }) {
+export function BcraMulcChart({
+  serie: serieCompleta,
+  colapsable = false,
+}: {
+  serie: PuntoBcraMulc[];
+  /** Feedback 07/08/2026: la página en vivo la pasa `true` (tabla arranca cerrada). La
+   *  plantilla del informe semanal (screenshot vía Playwright) NUNCA la pasa. */
+  colapsable?: boolean;
+}) {
   const [rango, setRango] = useState<Rango>("90");
   const { resolvedTheme } = useTheme();
   const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
@@ -41,12 +50,10 @@ export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[]
   const columnas: ChartTablaColumna[] = [
     { key: "fecha", label: "Fecha", align: "left" },
     { key: "monto", label: "Compras netas (M USD)" },
-    { key: "fuente", label: "Fuente", align: "left" },
   ];
   const filas: ChartTablaFila[] = serie.map((p) => ({
     fecha: fmtFecha(p.fecha),
     monto: nfmt(p.montoMusd, 1),
-    fuente: p.fuente === "manual" ? "carga manual" : "BCRA oficial",
   }));
 
   return (
@@ -66,10 +73,7 @@ export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[]
               type: "bar",
               data: serie.map((s) => ({
                 value: s.montoMusd,
-                itemStyle: {
-                  color: s.montoMusd >= 0 ? p.pos : p.neg,
-                  opacity: s.fuente === "manual" ? 0.5 : 0.92,
-                },
+                itemStyle: { color: s.montoMusd >= 0 ? p.pos : p.neg },
               })),
             },
           ],
@@ -80,6 +84,7 @@ export function BcraMulcChart({ serie: serieCompleta }: { serie: PuntoBcraMulc[]
         filas={filas}
         maxFilas={5}
         orden="desc"
+        colapsable={colapsable}
         nota="Banco Central (~3-4 días hábiles de rezago) + carga manual del día en /admin/datos, que se pisa sola cuando llega el dato oficial."
       />
     </>

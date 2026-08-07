@@ -138,6 +138,7 @@ export function EvolucionChart({
         columnas={tabla.columnas}
         filas={tabla.filas}
         nota="Una fila por fecha de publicación; «—» = ese organismo no publicó ese día."
+        colapsable
       />
     </>
   );

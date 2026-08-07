@@ -62,6 +62,36 @@ function posColor(i: number): string {
 
 type Target = { serieId: string; posicion: string; mon: string; yy: number; venc: string | null };
 
+/** Vencida = tiene vto real y ya pasó. Sin vto conocido, se asume viva (no se esconde nada
+ *  por falta de dato). */
+function estaVencida(t: Target, hoyISO: string): boolean {
+  return t.venc != null && t.venc < hoyISO;
+}
+
+/**
+ * Fecha límite para cortar una línea (fix 07/08/2026, "la posición julio26 ya estaba
+ * expirada" — el join con ffill seguía arrastrando el último precio conocido de la pata
+ * vencida contra una base que se seguía moviendo, "delirando" el spread). El límite es el
+ * MENOR de los dos vencimientos (base y target) que exista — después de eso, ninguna de
+ * las dos patas tiene un precio real, así que la línea no debe seguir.
+ */
+function limiteVenc(baseVenc: string | null, targetVenc: string | null): string | null {
+  if (baseVenc && targetVenc) return baseVenc < targetVenc ? baseVenc : targetVenc;
+  return baseVenc ?? targetVenc ?? null;
+}
+
+/**
+ * Default de posiciones visibles (fix 07/08/2026: antes arrancaban TODAS tildadas) — solo la
+ * posición viva más próxima al vencimiento. Si ninguna está viva (año pasado, todas vencidas),
+ * no oculta nada: mejor mostrar lo que hay que dejar el gráfico vacío.
+ */
+function ocultasPorDefecto(targets: Target[], hoyISO: string): Set<string> {
+  const vivas = targets.filter((t) => !estaVencida(t, hoyISO));
+  if (vivas.length === 0) return new Set();
+  const masCercana = [...vivas].sort((a, b) => (a.venc ?? "9999-99-99").localeCompare(b.venc ?? "9999-99-99"))[0]!;
+  return new Set(targets.filter((t) => t.serieId !== masCercana.serieId).map((t) => t.serieId));
+}
+
 /** Posiciones A3 .ROS del grano que cotizan en el año (su [desde,hasta] lo cruza). */
 function targetsDelAnio(cat: SerieCat[], grano: string, anio: number): Target[] {
   const from = `${anio}-01-01`;
@@ -103,7 +133,13 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
   const [grano, setGrano] = React.useState<string>(inicial.grano);
   const [baseMon, setBaseMon] = React.useState<string>(inicial.baseMon); // solo si base = a3
   const [anio, setAnio] = React.useState<number>(inicial.anio);
-  const [ocultas, setOcultas] = React.useState<Set<string>>(new Set(inicial.ocultas));
+  // Default (fix 07/08/2026): sin `?po=` en la URL, solo la posición viva más próxima —
+  // antes arrancaban TODAS tildadas. Con `?po=` explícito (link compartido), se respeta tal cual.
+  const [ocultas, setOcultas] = React.useState<Set<string>>(() =>
+    inicial.ocultas.length > 0
+      ? new Set(inicial.ocultas)
+      : ocultasPorDefecto(targetsDelAnio(catalogo, inicial.grano, inicial.anio), hoyCordobaISO()),
+  );
 
   const [series, setSeries] = React.useState<Record<string, SeriePuntos>>({});
   const [cargando, setCargando] = React.useState(false);
@@ -121,12 +157,12 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
     escribirURLPeriodo({ baseFuente, grano, baseMon, anio, ocultas: [...ocultas] });
   }, [baseFuente, grano, baseMon, anio, ocultas]);
 
-  // serieId de la base.
-  const baseId = React.useMemo(() => {
-    if (baseFuente === "pizarra") return `pizarra:${grano}`;
+  // serieId de la base + su vencimiento (null = pizarra, no vence).
+  const [baseId, baseVenc] = React.useMemo((): [string | null, string | null] => {
+    if (baseFuente === "pizarra") return [`pizarra:${grano}`, null];
     // a3: buscar la posición del grano+mes del año (o la del año siguiente si no está).
     const c = catalogo.find((x) => x.fuente === "a3" && x.grano === grano && x.posicion === `${baseMon}${String(anio % 100).padStart(2, "0")}`);
-    return c?.serieId ?? null;
+    return [c?.serieId ?? null, c?.vencimiento ?? null];
   }, [baseFuente, grano, baseMon, anio, catalogo]);
 
   // Traer base + targets sobre el período.
@@ -165,7 +201,12 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
       if (!st) return;
       const join = joinFfill(st, base); // va = target, vb = base → spread = base − target
       const met = metricaDiaria(join, "spread", pct);
-      const data = met.map((p) => ({ x: posCalendario(p.f), y: p.y, f: p.f }));
+      // Corte por vencimiento (fix 07/08/2026): sin esto, el ffill de `joinFfill` seguía
+      // arrastrando el último precio conocido de una pata ya vencida.
+      const limite = limiteVenc(baseVenc, t.venc);
+      const data = met
+        .filter((p) => !limite || p.f <= limite)
+        .map((p) => ({ x: posCalendario(p.f), y: p.y, f: p.f }));
       if (data.length === 0) return;
       out.push({
         key: t.serieId,
@@ -177,7 +218,7 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
       });
     });
     return out;
-  }, [series, baseId, targets, ocultas, pct, hoyISO]);
+  }, [series, baseId, baseVenc, targets, ocultas, pct, hoyISO]);
 
   // Media móvil (P6): overlay por cada posición visible, sobre el spread ya calculado.
   const maLines = React.useMemo<CampLine[]>(() => {
@@ -191,7 +232,10 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
       if (!st) return;
       const met = metricaDiaria(joinFfill(st, base), "spread", pct);
       const ma = mediaMovil(met, ventanaMA);
-      const data = ma.map((p) => ({ x: posCalendario(p.f), y: p.y, f: p.f }));
+      const limite = limiteVenc(baseVenc, t.venc);
+      const data = ma
+        .filter((p) => !limite || p.f <= limite)
+        .map((p) => ({ x: posCalendario(p.f), y: p.y, f: p.f }));
       if (data.length === 0) return;
       out.push({
         key: `${t.serieId}-ma`,
@@ -203,7 +247,7 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
       });
     });
     return out;
-  }, [verMA, series, baseId, targets, ocultas, pct, ventanaMA]);
+  }, [verMA, series, baseId, baseVenc, targets, ocultas, pct, ventanaMA]);
 
   const aplicarPreset = (p: { grano: string; meses: string[] }) => {
     setBaseFuente("pizarra");
@@ -248,7 +292,11 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
               <option value="pizarra">Pizarra</option>
               <option value="a3">Futuro A3</option>
             </select>
-            <select value={grano} onChange={(e) => { setGrano(e.target.value); setOcultas(new Set()); }} aria-label="Grano">
+            <select value={grano} onChange={(e) => {
+              const g = e.target.value;
+              setGrano(g);
+              setOcultas(ocultasPorDefecto(targetsDelAnio(catalogo, g, anio), hoyCordobaISO()));
+            }} aria-label="Grano">
               {(baseFuente === "pizarra" ? granosPizarra : granosA3).map((g) => (
                 <option key={g} value={g}>{GRANO_NOMBRE[g] ?? g}</option>
               ))}
@@ -263,7 +311,11 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
 
         <div className="gx-pata">
           <span className="gx-pata-lbl">Año</span>
-          <select value={anio} onChange={(e) => { setAnio(Number(e.target.value)); setOcultas(new Set()); }} aria-label="Año del período">
+          <select value={anio} onChange={(e) => {
+            const a = Number(e.target.value);
+            setAnio(a);
+            setOcultas(ocultasPorDefecto(targetsDelAnio(catalogo, grano, a), hoyCordobaISO()));
+          }} aria-label="Año del período">
             {anios.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
@@ -299,20 +351,27 @@ export function PeriodoPanel({ catalogo, anioActual }: { catalogo: SerieCat[]; a
         <span className="gx-chips-lbl">Posiciones</span>
         {targets.map((t, i) => {
           const on = !ocultas.has(t.serieId);
+          const vencida = estaVencida(t, hoyISO);
           return (
             <button key={t.serieId} type="button" className="gx-chip" aria-pressed={on}
               style={{ ["--c" as string]: posColor(i) }}
+              title={vencida ? `${t.posicion}: posición vencida — la línea corta en su vencimiento` : undefined}
               onClick={() => setOcultas((prev) => {
                 const n = new Set(prev);
                 if (n.has(t.serieId)) n.delete(t.serieId); else n.add(t.serieId);
                 return n;
               })}>
-              <span className="sw" />{t.posicion}
+              <span className="sw" />{t.posicion}{vencida && <span className="dim"> (vencida)</span>}
             </button>
           );
         })}
         {targets.length > 0 && (
-          <button type="button" className="gx-preset" onClick={() => setOcultas(new Set())}>Todas</button>
+          <>
+            <button type="button" className="gx-preset" onClick={() => setOcultas(new Set())}>Todas</button>
+            <button type="button" className="gx-preset" onClick={() => setOcultas(new Set(targets.map((t) => t.serieId)))}>
+              Ninguna
+            </button>
+          </>
         )}
       </div>
 

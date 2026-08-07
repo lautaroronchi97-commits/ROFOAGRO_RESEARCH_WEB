@@ -10,12 +10,17 @@ import type { Meta } from "./market";
  * reales de Supabase (`futuros_cierres`, fuente CEM · Matba ROFEX).
  *
  * Un "pase" es la diferencia de precio entre dos posiciones del mismo grano
- * (vender la corta / comprar la larga). Se arman DOS familias (decisión de
- * Lautaro, auditoría E2 21/07/2026): la posición cercana (la primera viva)
- * contra cada posición más lejana, y además los pases CONSECUTIVOS entre
- * posiciones intermedias (SEP/NOV, NOV/MAY…). Se calcula sobre el
- * ajuste (settlement), el precio de liquidación oficial del día: siempre existe
- * aunque la posición no opere, así que es el más robusto.
+ * (vender la corta / comprar la larga). Se calcula sobre el ajuste
+ * (settlement), el precio de liquidación oficial del día: siempre existe aunque
+ * la posición no opere, así que es el más robusto.
+ *
+ * QUÉ PARES SE MUESTRAN (fix 07/08/2026, feedback de Lautaro sobre soja/maíz —
+ * "hacer ajuste de posiciones"): soja y maíz pasan a una lista FIJA de pares
+ * canónicos por MES (nunca por año, para no congelarse al vencer — mismo
+ * criterio que `fijar-canon.ts`), resueltos contra la curva viva; trigo queda
+ * con el algoritmo anterior (marcado "ok" por Lautaro): la posición cercana (la
+ * primera viva) contra cada posición más lejana + los pases CONSECUTIVOS entre
+ * posiciones intermedias.
  *
  * Columnas y su fórmula (confirmadas en `pases.ts`, hoja PASES del Excel):
  *   - ajuste  = settlement(larga) − settlement(cercana)          [US$]
@@ -25,6 +30,25 @@ import type { Meta } from "./market";
  * Los días salen de los vencimientos reales de cada posición (tabla
  * `vencimientos`, fuente CEM). Si falta un vto, la TNA de ese pase queda null.
  */
+
+/**
+ * Pares fijos por grano (mes/mes, sin año) — feedback 07/08/2026: soja SEP/NOV,
+ * NOV/MAY (cruza a la campaña siguiente), MAY/JUL; maíz SEP/DIC, DIC/ABR (cruza
+ * campaña), ABR/JUL. Un grano ausente de este mapa (trigo) usa el algoritmo
+ * anterior, sin cambios.
+ */
+const PARES_CANONICOS: Record<string, [string, string][]> = {
+  SOJ: [
+    ["SEP", "NOV"],
+    ["NOV", "MAY"],
+    ["MAY", "JUL"],
+  ],
+  MAI: [
+    ["SEP", "DIC"],
+    ["DIC", "ABR"],
+    ["ABR", "JUL"],
+  ],
+};
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -87,24 +111,43 @@ export const getPases = cache(async (liquidaSymbol?: (symbol: string, openIntere
   const out: PaseGrano[] = [];
   for (const g of granos) {
     // Solo futuros con vencimiento (excluye disponible, venc = 0), ya en orden de vto.
-    // Sin `liquidaSymbol`, no se filtra por liquidez (comportamiento previo intacto).
-    const fut = g.posiciones
-      .filter((p) => p.venc > 0)
-      .filter((p) => !liquidaSymbol || liquidaSymbol(p.symbol, p.openInterest ?? null));
+    const vivo = g.posiciones.filter((p) => p.venc > 0);
     const spreads: PaseSpread[] = [];
-    // 1) Posición cercana (la primera viva) contra cada posición más lejana.
-    const cercana = fut[0];
-    if (cercana) {
-      for (let j = 1; j < fut.length; j++) {
-        const larga = fut[j];
-        if (larga) spreads.push(armarPase(cercana, larga));
+    const paresFijos = PARES_CANONICOS[g.underlying];
+    if (paresFijos) {
+      // Pares fijos por mes (soja/maíz): estas son las posiciones que Lautaro pidió ver
+      // siempre — SIN el filtro de liquidez (que existe para no ensuciar la generación
+      // combinatoria del algoritmo viejo, no para ocultar un par que se pidió explícito).
+      // Para cada par [mesCorta, mesLarga], toma la ocurrencia viva más próxima de
+      // mesCorta y, de mesLarga, la más próxima que venza DESPUÉS de esa (resuelve solo
+      // el cruce de campaña — NOV26/MAY27, no hace falta hardcodear el año). Si alguna
+      // pata no está viva, el par no sale (nunca se inventa).
+      for (const [mesCorta, mesLarga] of paresFijos) {
+        const corta = vivo.filter((p) => p.posicion.toUpperCase().startsWith(mesCorta))[0];
+        if (!corta) continue;
+        const larga = vivo
+          .filter((p) => p.posicion.toUpperCase().startsWith(mesLarga) && p.venc > corta.venc)
+          .sort((a, b) => a.venc - b.venc)[0];
+        if (!larga) continue;
+        spreads.push(armarPase(corta, larga));
       }
-    }
-    // 2) Pases consecutivos entre intermedias (el par 0/1 ya salió arriba).
-    for (let i = 1; i + 1 < fut.length; i++) {
-      const corta = fut[i];
-      const larga = fut[i + 1];
-      if (corta && larga) spreads.push(armarPase(corta, larga));
+    } else {
+      // Algoritmo anterior (trigo, sin cambios): posición cercana (la primera viva)
+      // contra cada posición más lejana + pases consecutivos entre intermedias. Acá
+      // SÍ se filtra por liquidez (comportamiento previo intacto).
+      const fut = vivo.filter((p) => !liquidaSymbol || liquidaSymbol(p.symbol, p.openInterest ?? null));
+      const cercana = fut[0];
+      if (cercana) {
+        for (let j = 1; j < fut.length; j++) {
+          const larga = fut[j];
+          if (larga) spreads.push(armarPase(cercana, larga));
+        }
+      }
+      for (let i = 1; i + 1 < fut.length; i++) {
+        const corta = fut[i];
+        const larga = fut[i + 1];
+        if (corta && larga) spreads.push(armarPase(corta, larga));
+      }
     }
     if (spreads.length > 0) {
       out.push({ underlying: g.underlying, nombre: g.nombre, fecha: g.fecha, spreads });

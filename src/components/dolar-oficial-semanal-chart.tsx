@@ -28,7 +28,14 @@ function fmtSemana(fechaISO: string): string {
   return `${d}/${m}`;
 }
 
-export function DolarOficialSemanalChart({ semanas: semanasCompletas }: { semanas: PuntoSemanalDolar[] }) {
+export function DolarOficialSemanalChart({
+  semanas: semanasCompletas,
+  colapsable = false,
+}: {
+  semanas: PuntoSemanalDolar[];
+  /** Feedback 07/08/2026: la página en vivo la pasa `true` (tabla arranca cerrada). */
+  colapsable?: boolean;
+}) {
   const [rango, setRango] = React.useState<Rango>("26");
   const { resolvedTheme } = useTheme();
   const p = paletteFor(resolvedTheme === "dark" ? "dark" : "light");
@@ -99,6 +106,7 @@ export function DolarOficialSemanalChart({ semanas: semanasCompletas }: { semana
         filas={filas}
         maxFilas={5}
         orden="desc"
+        colapsable={colapsable}
         nota="BCRA A3500 (Comunicación 3500) — cierre de cada semana (último dato hábil disponible) y su variación % vs la semana anterior."
         exportCsv={nombreArchivo("dolar-oficial-semanal")}
       />

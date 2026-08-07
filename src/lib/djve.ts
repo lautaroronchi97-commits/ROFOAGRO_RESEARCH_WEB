@@ -29,6 +29,9 @@ export type DjveData = {
   meta: Meta;
 };
 
+export type DjveDelDiaRow = { producto: string; familia: Familia; toneladas: number; registros: number };
+export type DjveDelDiaData = { fecha: string | null; productos: DjveDelDiaRow[]; total: number };
+
 type RawRow = {
   producto: string;
   ult_anio: number | null;
@@ -90,4 +93,41 @@ export const getDjveResumen = cache(async (): Promise<DjveData> => {
       problemas: productos.length > 0 ? [] : ["Sin registros DJVE"],
     },
   };
+});
+
+/**
+ * DJVE del día (feedback 07/08/2026: "agregame las djve del día") — sobre la tabla cruda
+ * `djve` (no la vista `djve_resumen`, que solo agrega ventanas de 7/30 días/año). Dos queries:
+ * el último `fecha_registro` con dato, y las filas de ese día agregadas por producto. El
+ * "día" es el ÚLTIMO día con registros (puede tener rezago) — se muestra la fecha real, nunca
+ * se etiqueta como "hoy" si no lo es.
+ */
+export const getDjveDelDia = cache(async (): Promise<DjveDelDiaData> => {
+  const ultima = await sbSelect("djve?select=fecha_registro&order=fecha_registro.desc.nullslast&limit=1", 900);
+  const fecha = ultima.ok && Array.isArray(ultima.data) && ultima.data[0]
+    ? ((ultima.data[0] as { fecha_registro: string | null }).fecha_registro ?? null)
+    : null;
+  if (!fecha) return { fecha: null, productos: [], total: 0 };
+
+  const res = await sbSelect(
+    `djve?select=producto,toneladas&fecha_registro=eq.${encodeURIComponent(fecha)}`,
+    900,
+  );
+  if (!res.ok || !Array.isArray(res.data)) return { fecha, productos: [], total: 0 };
+
+  const porProducto = new Map<string, { toneladas: number; registros: number }>();
+  for (const r of res.data as { producto: string | null; toneladas: number | null }[]) {
+    if (!r.producto) continue;
+    const acc = porProducto.get(r.producto) ?? { toneladas: 0, registros: 0 };
+    acc.toneladas += r.toneladas ?? 0;
+    acc.registros += 1;
+    porProducto.set(r.producto, acc);
+  }
+
+  const productos: DjveDelDiaRow[] = [...porProducto.entries()]
+    .map(([producto, v]) => ({ producto, familia: familiaDe(producto), toneladas: v.toneladas, registros: v.registros }))
+    .sort((a, b) => b.toneladas - a.toneladas);
+  const total = productos.reduce((s, p) => s + p.toneladas, 0);
+
+  return { fecha, productos, total };
 });

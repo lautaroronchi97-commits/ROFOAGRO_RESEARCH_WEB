@@ -104,7 +104,7 @@ function OverlayChart({
           }),
         }}
       />
-      <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={exportCsv} nota="% por semana de campaña; una columna por campaña." />
+      <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={exportCsv} nota="% por semana de campaña; una columna por campaña." colapsable />
     </>
   );
 }
@@ -146,7 +146,7 @@ function FenologiaChart({ grano, ciclo, campania, filas }: { grano: string; cicl
           })),
         }}
       />
-      <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={`pas-condicion-fenologia-${grano}-${ciclo}-${campania.replace("/", "-")}`} nota="% del área en cada etapa fenológica, por semana de campaña." />
+      <ChartTabla columnas={columnas} filas={filasTabla} exportCsv={`pas-condicion-fenologia-${grano}-${ciclo}-${campania.replace("/", "-")}`} nota="% del área en cada etapa fenológica, por semana de campaña." colapsable />
     </>
   );
 }

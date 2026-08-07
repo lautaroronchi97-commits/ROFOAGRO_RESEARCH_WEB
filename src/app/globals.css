@@ -1852,6 +1852,11 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
   color:var(--gold-text); margin:0 0 8px; }
 .djve-familia-tot { font-family:var(--font-mono); font-size:var(--fs-xs); font-weight:700;
   text-transform:none; letter-spacing:normal; color:var(--ink-3); }
+/* Columnas centradas (feedback 07/08/2026) — scoped a DJVE, `.tbl` en el resto del sitio
+   sigue alineando números a la derecha (convención tabular estándar). Especificidad igual o
+   mayor a `.tbl thead th.l`/`.tbl tbody td.l` (globals.css arriba) para poder pisarlas. */
+.tbl-center th, .tbl-center td { text-align:center; }
+.tbl-center thead th.l, .tbl-center tbody td.l { text-align:center; }
 
 .lu-cambios { margin:16px 0 4px; padding:12px 14px;
   background:color-mix(in srgb, var(--gold) 6%, var(--panel-2)); border:1px solid var(--gold-hair); border-radius:10px; }
@@ -1894,6 +1899,10 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .lu-field input:focus, .lu-field select:focus { outline:none; border-color:var(--gold-hair); }
 .lu-grow { flex:1; min-width:180px; }
 .lu-grow input { width:100%; min-width:0; }
+/* Toggle "solo campaña activa" (feedback 07/08/2026) — variante inline de .lu-field. */
+.lu-field.lu-check { flex-direction:row; align-items:center; gap:6px; padding-bottom:7px; }
+.lu-field.lu-check input[type="checkbox"] { min-width:0; padding:0; width:15px; height:15px; accent-color:var(--gold); cursor:pointer; }
+.lu-field.lu-check span { text-transform:none; letter-spacing:normal; cursor:pointer; }
 .lu-csv { font-family:var(--font-ui); font-size:var(--fs-sm); font-weight:700; color:var(--ink);
   background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:7px 14px; cursor:pointer; }
 .lu-csv:hover:not(:disabled) { border-color:var(--gold-hair); color:var(--gold-text); }

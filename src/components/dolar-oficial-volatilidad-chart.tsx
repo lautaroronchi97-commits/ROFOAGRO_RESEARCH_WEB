@@ -45,9 +45,14 @@ function fmtFecha(fechaISO: string): string {
 export function DolarOficialVolatilidadChart({
   semanal,
   diaria,
+  colapsable = false,
 }: {
   semanal: PuntoVolDolar[];
   diaria: PuntoVolDolar[];
+  /** Feedback 07/08/2026: la página en vivo la pasa `true` (tabla arranca cerrada). La
+   *  plantilla del informe semanal (screenshot vía Playwright) NUNCA la pasa: sin click
+   *  posible, la tabla tiene que seguir visible en el PDF/PNG. */
+  colapsable?: boolean;
 }) {
   const [modo, setModo] = React.useState<Modo>("semanal");
   const serie = modo === "semanal" ? semanal : diaria;
@@ -132,6 +137,7 @@ export function DolarOficialVolatilidadChart({
             exportCsv={nombreArchivo("dolar-oficial-volatilidad", modo)}
             maxFilas={5}
             orden="desc"
+            colapsable={colapsable}
           />
         </>
       )}

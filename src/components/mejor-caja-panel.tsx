@@ -1,5 +1,6 @@
 import { getArbitrajes } from "@/lib/arbitrajes-cierres";
-import { pfmt, sfmt } from "@/lib/format";
+import { getFuturosLive, mergeLiveMeta } from "@/lib/a3-live";
+import { pfmt, sfmt, nfmt } from "@/lib/format";
 import { Panel, PanelHead } from "./panel";
 import { GlyphSoja, GlyphMaiz, GlyphTrigo } from "./icons";
 import { InfoTip } from "./infotip";
@@ -33,6 +34,11 @@ type Fila = {
   tna: number | null;
   dias: number | null;
   spread: number | null;
+  /** Disponible (pizarra CAC en USD) — feedback 07/08/2026: mostrar cómo se compone el spread. */
+  disponible: number | null;
+  disponibleEstimativo: boolean;
+  /** Futuro (ajuste/settlement de A3). */
+  futuro: number | null;
 };
 
 /** Plazo comparable por grano (relevamiento 29/07, punto 27): mismo mes de entrega
@@ -40,7 +46,11 @@ type Fila = {
 const MES_COMPARABLE: Record<string, string> = { SOJ: "NOV", MAI: "DIC", TRI: "DIC" };
 
 export async function MejorCajaPanel() {
-  const data = await getArbitrajes();
+  // `mergeLiveMeta` con el feed en vivo de A3 (fix 07/08/2026 — antes el "Actualizado HH:MM"
+  // salía de la fecha del cierre a medianoche, quedaba "atrasado" todo el día pese a estar al
+  // día; mismo patrón que ya usan Arbitrajes/Pases).
+  const [data, live] = await Promise.all([getArbitrajes(), getFuturosLive()]);
+  const meta = mergeLiveMeta(data.meta, live);
 
   // Por grano, la posición del mes comparable — si hay más de una campaña viva
   // (ej. NOV26 y NOV27), la más cercana (menor días al vto). Cierres + último
@@ -59,6 +69,9 @@ export async function MejorCajaPanel() {
         tna: elegida.tna,
         dias: elegida.dias,
         spread: elegida.spread,
+        disponible: g.pizarraUsd,
+        disponibleEstimativo: g.pizarraEstimativa,
+        futuro: elegida.ajuste,
       });
     }
   }
@@ -72,14 +85,20 @@ export async function MejorCajaPanel() {
         glyph={<IconCaja />}
         title="Mejor para hacer caja"
         sub="Soja NOV · Maíz DIC · Trigo DIC — plazos comparables"
-        stamp={<SourceStamp meta={data.meta} revalidateSeg={30} />}
+        stamp={<SourceStamp meta={meta} revalidateSeg={30} />}
       />
       <div className="table-scroll">
-        <table className="tbl" style={{ minWidth: 480 }}>
+        <table className="tbl" style={{ minWidth: 620 }}>
           <thead>
             <tr>
               <th className="l" scope="col">Grano</th>
               <th scope="col">Posición</th>
+              <th scope="col">
+                <InfoTip term="Disponible">Pizarra CAC en USD (la referencia del spot).</InfoTip>
+              </th>
+              <th scope="col">
+                <InfoTip term="Futuro">Ajuste (settlement) de la posición elegida en A3.</InfoTip>
+              </th>
               <th scope="col">
                 <InfoTip term="Spread US$">
                   Diferencia entre el futuro (ajuste) y la pizarra del disponible.
@@ -107,6 +126,11 @@ export async function MejorCajaPanel() {
                   </span>
                 </td>
                 <td className="sym">{f.pos}</td>
+                <td className="dim">
+                  {f.disponible != null ? nfmt(f.disponible, 2) : "—"}
+                  {f.disponibleEstimativo ? " (estimativa)" : ""}
+                </td>
+                <td className="dim">{f.futuro != null ? nfmt(f.futuro, 2) : "—"}</td>
                 <td className={f.spread == null ? "neu2" : f.spread > 0 ? "pos" : f.spread < 0 ? "neg" : "neu2"}>
                   {sfmt(f.spread, 2)}
                 </td>
@@ -118,7 +142,7 @@ export async function MejorCajaPanel() {
             ))}
             {filas.length === 0 && (
               <tr>
-                <td className="l dim" colSpan={5}>
+                <td className="l dim" colSpan={7}>
                   Sin datos para el ranking todavía.
                 </td>
               </tr>
@@ -128,7 +152,7 @@ export async function MejorCajaPanel() {
       </div>
       <QueEsEsto
         paraQue="Te dice cuál de los 3 granos te conviene más vender hoy si lo que necesitás es hacer caja: compara la misma familia de plazos (soja noviembre, maíz y trigo diciembre) para que sea una comparación justa."
-        comoSeCalcula="Para cada grano toma la posición del mes comparable (la más cercana, si hay más de una campaña viva) y calcula la tasa anual en dólares entre el disponible y esa posición. El de menor tasa es el que menos rendimiento resigna al vender hoy — queda destacado."
+        comoSeCalcula="Para cada grano toma la posición del mes comparable (la más cercana, si hay más de una campaña viva) y calcula la tasa anual en dólares entre el disponible (pizarra CAC) y el futuro (ajuste de esa posición en A3) — el spread es esa diferencia en USD. El de menor tasa es el que menos rendimiento resigna al vender hoy — queda destacado."
       />
     </Panel>
   );

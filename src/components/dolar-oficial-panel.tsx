@@ -57,9 +57,9 @@ export async function DolarOficialPanel() {
           )}
         </span>
       </div>
-      <DolarOficialChart serie={v.serie} />
-      <DolarOficialSemanalChart semanas={historico.semanas} />
-      <DolarOficialVolatilidadChart semanal={historico.volatilidadSemanal} diaria={historico.volatilidadDiaria} />
+      <DolarOficialChart serie={v.serie} colapsable />
+      <DolarOficialSemanalChart semanas={historico.semanas} colapsable />
+      <DolarOficialVolatilidadChart semanal={historico.volatilidadSemanal} diaria={historico.volatilidadDiaria} colapsable />
       <QueEsEsto
         paraQue="Cuánto se movió el dólar oficial en la última semana (arriba, último dato real vs el de ~7 días antes) y cómo viene el ritmo de devaluación en los últimos 6 meses (serie semanal) — más abajo, qué tan agitada estuvo esa suba o baja (volatilidad)."
         comoSeCalcula={
