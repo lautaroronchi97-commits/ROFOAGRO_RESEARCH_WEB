@@ -5,6 +5,7 @@ import { getFuturosLive } from "@/lib/a3-live";
 import { ruedaAgroCorrioHoy } from "@/lib/rueda";
 import { hoyCordobaISO } from "@/lib/dates";
 import { esModoOperado, referenciaDeFila } from "@/lib/referencia-futuro";
+import { POSICIONES_AR_REF, resolverPosicionViva } from "@/lib/mercado-hoy-posiciones";
 import { nfmt, pfmt, sfmt } from "@/lib/format";
 import { Panel, PanelHead } from "./panel";
 import { GlyphSoja, GlyphMaiz, GlyphTrigo } from "./icons";
@@ -33,14 +34,6 @@ function deltaClass(d: number | null) {
   return d == null ? "neu2" : d > 0 ? "pos" : d < 0 ? "neg" : "neu2";
 }
 
-/** Posiciones fijas del bloque Argentina (relevamiento 29/07, punto 20). */
-const POSICIONES_AR: { underlying: string; pos: string; nombre: string; glyph: "soja" | "maiz" | "trigo" }[] = [
-  { underlying: "MAI", pos: "JUL26", nombre: "Maíz", glyph: "maiz" },
-  { underlying: "SOJ", pos: "NOV26", nombre: "Soja", glyph: "soja" },
-  { underlying: "SOJ", pos: "MAY27", nombre: "Soja", glyph: "soja" },
-  { underlying: "TRI", pos: "DIC26", nombre: "Trigo", glyph: "trigo" },
-];
-
 type FilaAr = {
   key: string;
   nombre: string;
@@ -68,9 +61,9 @@ export async function MercadoHoy() {
   const hoy = hoyCordobaISO();
   const liveOk = live.respondidos > 0;
 
-  const filasAr: FilaAr[] = POSICIONES_AR.map(({ underlying, pos, nombre, glyph }) => {
+  const filasAr: FilaAr[] = POSICIONES_AR_REF.map(({ underlying, mes, nombre, glyph }) => {
     const g = arb.granos.find((x) => x.underlying === underlying) ?? null;
-    const r = g?.rows.find((x) => x.pos === pos) ?? null;
+    const r = resolverPosicionViva(mes, g?.rows ?? []);
     const p = r ? live.puntas.get(r.symbol) : undefined;
     const modoOperado = esModoOperado({ ruedaCorrio, ajusteEsDeHoy: g?.fecha === hoy, liveOk });
     const rf = referenciaDeFila({
@@ -81,10 +74,10 @@ export async function MercadoHoy() {
       volLive: p?.vol ?? null,
     });
     return {
-      key: `${underlying}-${pos}`,
+      key: `${underlying}-${mes}`,
       nombre,
       glyph,
-      pos,
+      pos: r?.pos ?? mes,
       valor: rf.ref,
       variacion: rf.variacion,
       refMode: rf.refMode,
