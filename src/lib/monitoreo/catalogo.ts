@@ -103,6 +103,7 @@ export const MATVIEWS: MatviewCheck[] = [
   { nombre: "compras_avance_hist", mv: "compras_avance_hist", mvCol: "fecha", base: "compras", baseCol: "fecha" },
   { nombre: "lineup_gap_hist", mv: "lineup_gap_hist", mvCol: "fecha", base: "lineup", baseCol: "fecha_consulta" },
   { nombre: "lineup_densidad_hist", mv: "lineup_densidad_hist", mvCol: "fecha", base: "lineup", baseCol: "fecha_consulta" },
+  { nombre: "djve_resumen", mv: "djve_resumen", mvCol: "actualizado_en", base: "djve", baseCol: "actualizado_en" },
 ];
 
 /* -------------------------------------------------------------------------------------------- */
