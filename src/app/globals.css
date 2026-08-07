@@ -2189,6 +2189,15 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-form-err { color:var(--neg); font-size:var(--fs-sm); }
 .op-form-hint { grid-column:1 / -1; margin:-6px 0 0; font-size:var(--fs-xs); color:var(--ink-2); }
 
+/* Guard de magnitud precio↔moneda (pedido de Lautoro 07/08/2026): aviso +
+   checkbox "Confirmo el precio y la moneda" cuando el número no parece de esa
+   moneda (ej. USD 505.000 — probablemente son pesos). */
+.op-precio-alerta { display:flex; flex-direction:column; gap:6px; padding:8px 10px; margin-top:2px;
+  border:1px solid color-mix(in srgb, var(--warn, #b45309) 45%, transparent); border-radius:8px;
+  background:color-mix(in srgb, var(--warn, #b45309) 8%, transparent); }
+.op-precio-alerta p { margin:0; color:var(--warn, #b45309); font-weight:700; }
+.op-precio-alerta .op-check { color:var(--ink); }
+
 .op-listas-hd { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 4px; }
 .op-check { display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); color:var(--ink-2); cursor:pointer; }
 .op-listas { display:grid; grid-template-columns:1fr 1fr; gap:16px; }

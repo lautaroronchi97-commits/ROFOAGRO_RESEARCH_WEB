@@ -11,6 +11,7 @@ import {
   elegirPizarraSiguiente,
   aplicarDescuentos,
   resolverPrecio,
+  precioMonedaSospechoso,
   type OperacionInputRaw,
 } from "./registro";
 
@@ -27,6 +28,7 @@ const BASE: OperacionInputRaw = {
   descuentoPct: null,
   descuentoMonto: null,
   comisionPct: null,
+  forzarMoneda: false,
   entregaDesde: "",
   entregaHasta: "",
   fijacionDesde: "",
@@ -299,6 +301,41 @@ describe("validarOperacion — descuentos combinables (§7.4)", () => {
   it("rechaza comisión % fuera de rango", () => {
     const r = validarOperacion({ ...BASE, comisionPct: 150 });
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("precioMonedaSospechoso (§ guard de magnitud, pedido de Lautoro 07/08/2026)", () => {
+  it("USD con 6 cifras: sospechoso (probablemente pesos)", () => {
+    expect(precioMonedaSospechoso(505000, "usd")).toBe(true);
+  });
+  it("USD con un precio de grano típico: no sospechoso", () => {
+    expect(precioMonedaSospechoso(320, "usd")).toBe(false);
+  });
+  it("pesos con un número chico: sospechoso (probablemente USD)", () => {
+    expect(precioMonedaSospechoso(190, "ars")).toBe(true);
+  });
+  it("pesos con un precio de grano típico: no sospechoso", () => {
+    expect(precioMonedaSospechoso(315200, "ars")).toBe(false);
+  });
+});
+
+describe("validarOperacion — guard de magnitud precio↔moneda", () => {
+  it("rechaza USD con magnitud de pesos, salvo forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 505000, moneda: "usd" });
+    expect(r.ok).toBe(false);
+  });
+  it("acepta USD con magnitud de pesos si se confirma con forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 505000, moneda: "usd", forzarMoneda: true });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.precio).toBe(505000);
+  });
+  it("rechaza pesos con magnitud de USD, salvo forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 190, moneda: "ars" });
+    expect(r.ok).toBe(false);
+  });
+  it("acepta pesos con magnitud de USD si se confirma con forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 190, moneda: "ars", forzarMoneda: true });
+    expect(r.ok).toBe(true);
   });
 });
 

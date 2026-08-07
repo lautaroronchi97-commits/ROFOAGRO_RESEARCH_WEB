@@ -86,6 +86,8 @@ export type OperacionInputRaw = {
   descuentoMonto: number | null;
   /** Comisión % del negocio (independiente del descuento — ej. mesa vs. flete/pizarra). */
   comisionPct: number | null;
+  /** Confirma un precio de magnitud "rara" para la moneda elegida (ver `precioMonedaSospechoso`). */
+  forzarMoneda: boolean;
   entregaDesde: string; // "" = sin fecha
   entregaHasta: string; // "" = sin fecha
   /** Período de fijación (solo condición "a_fijar"). */
@@ -137,6 +139,23 @@ export function precioModoDeCondicion(condicion: OperacionCondicion): PrecioModo
   if (condicion === "a_fijar") return "sin_precio";
   if (condicion === "pizarra") return "pizarra";
   return "manual"; // a_precio | pago_anticipado
+}
+
+// ============================================================================
+// Guard de magnitud precio↔moneda (pedido de Lautoro 07/08/2026): "si el
+// precio es 505.000 por supuesto son pesos, si el precio es 190 por supuesto
+// son USD". Un precio de grano en USD/tn casi nunca llega a 5 cifras (soja/
+// maíz/trigo rondan 150-350; aceite/expeller son más caros pero igual muy por
+// debajo del umbral) — y un precio en pesos por tonelada nunca baja de varios
+// miles. Un solo umbral separa los dos casos con margen amplio de los dos
+// lados. Mismo patrón "bloquea salvo forzar" que el guard de unidades del
+// uploader de compras (`src/app/admin/datos/actions.ts`).
+// ============================================================================
+
+export const UMBRAL_PRECIO_MAGNITUD = 10000;
+
+export function precioMonedaSospechoso(precio: number, moneda: Moneda): boolean {
+  return moneda === "usd" ? precio > UMBRAL_PRECIO_MAGNITUD : precio < UMBRAL_PRECIO_MAGNITUD;
 }
 
 export function validarOperacion(input: OperacionInputRaw): ValidacionResultado {
@@ -192,6 +211,15 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
   if (precio_modo === "manual") {
     if (input.precio == null || !(input.precio > 0)) return { ok: false, error: "Ingresá el precio de la operación." };
     if (!moneda) return { ok: false, error: "Elegí la moneda del precio." };
+    if (precioMonedaSospechoso(input.precio, moneda) && !input.forzarMoneda) {
+      return {
+        ok: false,
+        error:
+          moneda === "usd"
+            ? `USD ${input.precio} parece un precio en pesos, no en dólares. Si es correcto, tildá "Confirmo el precio y la moneda".`
+            : `$ ${input.precio} parece un precio en dólares, no en pesos. Si es correcto, tildá "Confirmo el precio y la moneda".`,
+      };
+    }
     precio = input.precio;
   } else if (precio_modo === "pizarra") {
     if (!moneda) return { ok: false, error: "Elegí en qué moneda mostrar la pizarra." };

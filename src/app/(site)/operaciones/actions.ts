@@ -42,6 +42,7 @@ function leerInput(formData: FormData): OperacionInputRaw {
     descuentoPct: numOrNull(formData.get("descuento_pct")),
     descuentoMonto: numOrNull(formData.get("descuento_monto")),
     comisionPct: numOrNull(formData.get("comision_pct")),
+    forzarMoneda: formData.get("forzar_moneda") === "1",
     entregaDesde: String(formData.get("entrega_desde") ?? ""),
     entregaHasta: String(formData.get("entrega_hasta") ?? ""),
     fijacionDesde: String(formData.get("fijacion_desde") ?? ""),
