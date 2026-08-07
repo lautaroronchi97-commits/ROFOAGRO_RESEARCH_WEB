@@ -11,6 +11,7 @@ import {
   elegirPizarraSiguiente,
   aplicarDescuentos,
   resolverPrecio,
+  precioMonedaSospechoso,
   type OperacionInputRaw,
 } from "./registro";
 
@@ -26,6 +27,8 @@ const BASE: OperacionInputRaw = {
   moneda: "usd",
   descuentoPct: null,
   descuentoMonto: null,
+  comisionPct: null,
+  forzarMoneda: false,
   entregaDesde: "",
   entregaHasta: "",
   fijacionDesde: "",
@@ -290,6 +293,50 @@ describe("validarOperacion — descuentos combinables (§7.4)", () => {
     const r = validarOperacion({ ...BASE, descuentoPct: 150 });
     expect(r.ok).toBe(false);
   });
+  it("acepta comisión % junto con los descuentos", () => {
+    const r = validarOperacion({ ...BASE, descuentoPct: 10, descuentoMonto: 38000, comisionPct: 1.5 });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.comision_pct).toBe(1.5);
+  });
+  it("rechaza comisión % fuera de rango", () => {
+    const r = validarOperacion({ ...BASE, comisionPct: 150 });
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("precioMonedaSospechoso (§ guard de magnitud, pedido de Lautoro 07/08/2026)", () => {
+  it("USD con 6 cifras: sospechoso (probablemente pesos)", () => {
+    expect(precioMonedaSospechoso(505000, "usd")).toBe(true);
+  });
+  it("USD con un precio de grano típico: no sospechoso", () => {
+    expect(precioMonedaSospechoso(320, "usd")).toBe(false);
+  });
+  it("pesos con un número chico: sospechoso (probablemente USD)", () => {
+    expect(precioMonedaSospechoso(190, "ars")).toBe(true);
+  });
+  it("pesos con un precio de grano típico: no sospechoso", () => {
+    expect(precioMonedaSospechoso(315200, "ars")).toBe(false);
+  });
+});
+
+describe("validarOperacion — guard de magnitud precio↔moneda", () => {
+  it("rechaza USD con magnitud de pesos, salvo forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 505000, moneda: "usd" });
+    expect(r.ok).toBe(false);
+  });
+  it("acepta USD con magnitud de pesos si se confirma con forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 505000, moneda: "usd", forzarMoneda: true });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.precio).toBe(505000);
+  });
+  it("rechaza pesos con magnitud de USD, salvo forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 190, moneda: "ars" });
+    expect(r.ok).toBe(false);
+  });
+  it("acepta pesos con magnitud de USD si se confirma con forzarMoneda", () => {
+    const r = validarOperacion({ ...BASE, precio: 190, moneda: "ars", forzarMoneda: true });
+    expect(r.ok).toBe(true);
+  });
 });
 
 describe("sumarDiasISO", () => {
@@ -325,24 +372,51 @@ describe("aplicarDescuentos", () => {
   it("sin descuentos, devuelve la base", () => {
     expect(aplicarDescuentos(100, null, null)).toBe(100);
   });
+  it("comisión %: se aplica como reducción independiente, antes del monto fijo", () => {
+    // 100 −10% = 90; 90 −1,5% comisión = 88,65; 88,65 − 5 = 83,65
+    expect(aplicarDescuentos(100, 10, 5, 1.5)).toBeCloseTo(83.65, 5);
+  });
+  it("solo comisión, sin descuento ni monto", () => {
+    expect(aplicarDescuentos(100, null, null, 2)).toBe(98);
+  });
 });
 
 describe("resolverPrecio", () => {
-  it("manual: aplica descuentos sobre el precio cargado", () => {
-    const r = resolverPrecio({ precio_modo: "manual", precio: 320, moneda: "usd", descuento_pct: 10, descuento_monto: null }, null);
-    expect(r).toEqual({ estado: "manual", valor: 288 });
+  it("manual: aplica descuentos sobre el precio cargado y expone el base", () => {
+    const r = resolverPrecio(
+      { precio_modo: "manual", precio: 320, moneda: "usd", descuento_pct: 10, descuento_monto: null, comision_pct: null },
+      null,
+    );
+    expect(r).toEqual({ estado: "manual", base: 320, valor: 288 });
+  });
+  it("manual con comisión: se descuenta junto con el % y el monto", () => {
+    const r = resolverPrecio(
+      { precio_modo: "manual", precio: 320, moneda: "usd", descuento_pct: null, descuento_monto: null, comision_pct: 1.5 },
+      null,
+    );
+    expect(r).toEqual({ estado: "manual", base: 320, valor: 320 * (1 - 1.5 / 100) });
   });
   it("sin_precio: siempre 'sin_precio'", () => {
-    expect(resolverPrecio({ precio_modo: "sin_precio", precio: null, moneda: null, descuento_pct: null, descuento_monto: null }, null))
-      .toEqual({ estado: "sin_precio" });
+    expect(
+      resolverPrecio(
+        { precio_modo: "sin_precio", precio: null, moneda: null, descuento_pct: null, descuento_monto: null, comision_pct: null },
+        null,
+      ),
+    ).toEqual({ estado: "sin_precio" });
   });
   it("pizarra sin fila siguiente todavía: pendiente", () => {
-    const r = resolverPrecio({ precio_modo: "pizarra", precio: null, moneda: "usd", descuento_pct: null, descuento_monto: null }, null);
+    const r = resolverPrecio(
+      { precio_modo: "pizarra", precio: null, moneda: "usd", descuento_pct: null, descuento_monto: null, comision_pct: null },
+      null,
+    );
     expect(r).toEqual({ estado: "pizarra_pendiente" });
   });
-  it("pizarra resuelta: toma la moneda elegida y aplica descuentos", () => {
+  it("pizarra resuelta: toma la moneda elegida, aplica descuentos y expone el base", () => {
     const pizarra = { fecha: "2026-08-06", precio_ars: 300000, precio_usd: 320 };
-    const r = resolverPrecio({ precio_modo: "pizarra", precio: null, moneda: "usd", descuento_pct: 10, descuento_monto: null }, pizarra);
-    expect(r).toEqual({ estado: "pizarra_resuelta", valor: 288, fechaPizarra: "2026-08-06" });
+    const r = resolverPrecio(
+      { precio_modo: "pizarra", precio: null, moneda: "usd", descuento_pct: 10, descuento_monto: null, comision_pct: null },
+      pizarra,
+    );
+    expect(r).toEqual({ estado: "pizarra_resuelta", base: 320, valor: 288, fechaPizarra: "2026-08-06" });
   });
 });

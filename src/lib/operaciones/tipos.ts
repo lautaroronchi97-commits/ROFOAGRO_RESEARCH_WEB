@@ -113,6 +113,7 @@ export type Operacion = {
   moneda: Moneda | null;
   descuento_pct: number | null;
   descuento_monto: number | null;
+  comision_pct: number | null;
   entrega_desde: string | null;
   entrega_hasta: string | null;
   /** Período de fijación (solo condición "a_fijar") — desde/hasta de cuándo se puede fijar el precio. */

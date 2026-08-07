@@ -17,13 +17,34 @@ function fechaAR(iso: string): string {
   return `${d}/${m}`;
 }
 
-function fmtPrecio(moneda: string | null, precio: PrecioResuelto): string {
+function fmtMonto(simbolo: string, valor: number): string {
+  return `${simbolo} ${valor.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtPct(n: number): string {
+  return n.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+/**
+ * Precio de una operación, con el desglose completo cuando hay algo que
+ * desglosar (pedido de Lautaro 07/08/2026): precio base, cada ajuste cargado
+ * (descuento %, descuento monto, comisión %) y el precio final ya con todo
+ * aplicado. Sin ajustes cargados, muestra solo el valor (igual que antes —
+ * base y final son el mismo número, repetirlo sería ruido).
+ */
+function fmtPrecio(operacion: Operacion, precio: PrecioResuelto): string {
   if (precio.estado === "sin_precio") return "Sin precio (a fijar)";
   if (precio.estado === "pizarra_pendiente") return "Pizarra (pendiente)";
-  const simbolo = moneda === "usd" ? "USD" : "$";
-  const valor = precio.valor.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const sufijo = precio.estado === "pizarra_resuelta" ? ` (pizarra ${fechaAR(precio.fechaPizarra)})` : "";
-  return `${simbolo} ${valor}${sufijo}`;
+  const simbolo = operacion.moneda === "usd" ? "USD" : "$";
+  const sufijoPizarra = precio.estado === "pizarra_resuelta" ? ` (pizarra ${fechaAR(precio.fechaPizarra)})` : "";
+
+  const ajustes: string[] = [];
+  if (operacion.descuento_pct) ajustes.push(`desc. ${fmtPct(operacion.descuento_pct)}%`);
+  if (operacion.descuento_monto) ajustes.push(`−${fmtMonto(simbolo, operacion.descuento_monto)}`);
+  if (operacion.comision_pct) ajustes.push(`com. ${fmtPct(operacion.comision_pct)}%`);
+
+  if (ajustes.length === 0) return `${fmtMonto(simbolo, precio.valor)}${sufijoPizarra}`;
+  return `Base ${fmtMonto(simbolo, precio.base)}${sufijoPizarra} · ${ajustes.join(" · ")} · Final ${fmtMonto(simbolo, precio.valor)}`;
 }
 
 /** Una fila de compra/venta del día: datos + editar/duplicar/anular/restaurar + historial desplegable. */
@@ -59,7 +80,7 @@ export function RegistroFila({
             {operacion.fijacion_hasta ? ` – ${fechaAR(operacion.fijacion_hasta)}` : " (libre)"}
           </span>
         )}
-        <span>{fmtPrecio(operacion.moneda, precio)}</span>
+        <span>{fmtPrecio(operacion, precio)}</span>
         <span className="dim">Campaña {operacion.campania}</span>
         {operacion.es_canje && <span className="dim">Canje</span>}
         {operacion.contraparte && <span className="dim">{operacion.contraparte}</span>}

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { crearOperacion, editarOperacion, type OperacionFormState } from "../actions";
 import { CurvaPicker } from "@/components/curva-picker";
-import { precioModoDeCondicion } from "@/lib/operaciones/registro";
+import { precioModoDeCondicion, precioMonedaSospechoso } from "@/lib/operaciones/registro";
 import type { GranoCurva } from "@/lib/curva-types";
 import {
   PRODUCTOS,
@@ -13,6 +13,7 @@ import {
   TIPO_LABEL,
   CONDICION_LABEL,
   CONDICIONES_POR_TIPO,
+  type Moneda,
   type Operacion,
   type OperacionCondicion,
   type OperacionProducto,
@@ -63,6 +64,15 @@ export function RegistroForm({
   const [futuro, setFuturo] = useState<{ posicion: string; precio: number } | null>(
     base?.tipo === "futuro_a3" && base.posicion_a3 ? { posicion: base.posicion_a3, precio: base.precio ?? 0 } : null,
   );
+
+  // Guard de magnitud precio↔moneda (pedido de Lautoro 07/08/2026): "si el precio
+  // es 505.000 son pesos, si es 190 son USD" — mismo criterio que `validarOperacion`
+  // (`precioMonedaSospechoso`), reflejado acá para avisar ANTES de mandar el form.
+  const [precioTexto, setPrecioTexto] = useState(String(base?.precio ?? futuro?.precio ?? ""));
+  const [monedaSel, setMonedaSel] = useState<Moneda>(base?.moneda ?? "ars");
+  const precioNum = Number(precioTexto.replace(",", "."));
+  const monedaSospechosa =
+    Number.isFinite(precioNum) && precioNum > 0 ? precioMonedaSospechoso(precioNum, monedaSel) : false;
 
   // Carga en serie (mejora 06/08/2026): tras guardar una creación, limpiar SOLO
   // los campos propios de esa operación puntual (volumen y libres) y volver el
@@ -259,7 +269,7 @@ export function RegistroForm({
 
         {precioModoEfectivo === "manual" && (
           <label className="admin-field">
-            <span>{tipo === "futuro_a3" ? "Precio de ejecución" : "Precio"}</span>
+            <span>{tipo === "futuro_a3" ? "Precio de ejecución" : "Precio base"}</span>
             <input
               type="number"
               inputMode="decimal"
@@ -268,6 +278,7 @@ export function RegistroForm({
               step="0.01"
               min="0.01"
               defaultValue={base?.precio ?? futuro?.precio ?? ""}
+              onChange={(e) => setPrecioTexto(e.target.value)}
               required
               className="admin-input"
             />
@@ -276,10 +287,44 @@ export function RegistroForm({
         {precioModoEfectivo && precioModoEfectivo !== "sin_precio" && (
           <label className="admin-field">
             <span>Moneda</span>
-            <select name="moneda" defaultValue={base?.moneda ?? "usd"} className="admin-input">
-              <option value="usd">USD</option>
+            <select
+              name="moneda"
+              defaultValue={base?.moneda ?? "ars"}
+              onChange={(e) => setMonedaSel(e.target.value as Moneda)}
+              className="admin-input"
+            >
               <option value="ars">$</option>
+              <option value="usd">USD</option>
             </select>
+          </label>
+        )}
+        {precioModoEfectivo === "manual" && monedaSospechosa && (
+          <div className="op-form-hint op-precio-alerta">
+            <p>
+              {monedaSel === "usd"
+                ? `USD ${precioTexto} parece un precio en pesos, no en dólares.`
+                : `$ ${precioTexto} parece un precio en dólares, no en pesos.`}{" "}
+              Revisá la moneda o, si es correcto, confirmalo:
+            </p>
+            <label className="op-check">
+              <input type="checkbox" name="forzar_moneda" value="1" /> Confirmo el precio y la moneda
+            </label>
+          </div>
+        )}
+        {precioModoEfectivo && precioModoEfectivo !== "sin_precio" && (
+          <label className="admin-field">
+            <span>Comisión %</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              name="comision_pct"
+              step="0.01"
+              min="0"
+              max="100"
+              defaultValue={base?.comision_pct ?? ""}
+              className="admin-input"
+              placeholder="ej. comisión 1,5%"
+            />
           </label>
         )}
         {precioModoEfectivo === "pizarra" && (
@@ -303,7 +348,7 @@ export function RegistroForm({
             max="100"
             defaultValue={base?.descuento_pct ?? ""}
             className="admin-input"
-            placeholder="ej. 10"
+            placeholder="ej. pizarra -10%"
           />
         </label>
         <label className="admin-field">
@@ -364,7 +409,10 @@ export function RegistroForm({
           <div className="op-futuro">
             <CurvaPicker
               granos={curva.filter((g) => g.underlying === PRODUCTO_GRANO[producto])}
-              onPick={(p) => setFuturo({ posicion: p.posicion, precio: p.precio })}
+              onPick={(p) => {
+                setFuturo({ posicion: p.posicion, precio: p.precio });
+                setPrecioTexto(String(p.precio));
+              }}
               label="Traer ajuste de A3"
             />
             <label className="admin-field">

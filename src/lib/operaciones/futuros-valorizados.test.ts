@@ -20,6 +20,7 @@ function op(over: Partial<Operacion>): Operacion {
     moneda: "usd",
     descuento_pct: null,
     descuento_monto: null,
+    comision_pct: null,
     entrega_desde: null,
     entrega_hasta: null,
     fijacion_desde: null,

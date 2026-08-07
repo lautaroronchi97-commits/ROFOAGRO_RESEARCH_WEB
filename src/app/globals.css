@@ -2159,6 +2159,16 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-panel-bd { padding:2px 20px 20px; }
 .op-panel-bd > .ct { padding-left:0; padding-right:0; }
 
+/* Tablas de posición (Pricing del día · Futuros A3 · acumulada): muchas columnas
+   de período (Disponible + 6 meses + Más adelante) — padding/tipografía más
+   compactos que el resto del sitio para que entren más columnas antes de
+   necesitar scroll horizontal, y el header puede partir en 2 líneas en vez de
+   forzar el ancho de la columna (pedido de Lautoro 07/08/2026). */
+.op-panel-bd .tbl thead th,
+.op-panel-bd .tbl tbody td { padding-left:7px; padding-right:7px; }
+.op-panel-bd .tbl thead th { font-size:9.5px; letter-spacing:.03em; white-space:normal; line-height:1.25; vertical-align:bottom; }
+.op-panel-bd .tbl tbody td { font-size:11.5px; }
+
 .op-matriz-tit { font-size:var(--fs-sm); font-weight:800; color:var(--ink); margin:22px 0 8px; }
 .op-matriz-tit:first-of-type { margin-top:6px; }
 
@@ -2178,6 +2188,15 @@ a.admin-card:hover { border-color:var(--gold-hair); box-shadow:var(--shadow), 0 
 .op-form-modo { margin:0 0 10px; font-size:var(--fs-sm); font-weight:700; color:var(--gold-text); }
 .op-form-err { color:var(--neg); font-size:var(--fs-sm); }
 .op-form-hint { grid-column:1 / -1; margin:-6px 0 0; font-size:var(--fs-xs); color:var(--ink-2); }
+
+/* Guard de magnitud precio↔moneda (pedido de Lautoro 07/08/2026): aviso +
+   checkbox "Confirmo el precio y la moneda" cuando el número no parece de esa
+   moneda (ej. USD 505.000 — probablemente son pesos). */
+.op-precio-alerta { display:flex; flex-direction:column; gap:6px; padding:8px 10px; margin-top:2px;
+  border:1px solid color-mix(in srgb, var(--warn, #b45309) 45%, transparent); border-radius:8px;
+  background:color-mix(in srgb, var(--warn, #b45309) 8%, transparent); }
+.op-precio-alerta p { margin:0; color:var(--warn, #b45309); font-weight:700; }
+.op-precio-alerta .op-check { color:var(--ink); }
 
 .op-listas-hd { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:18px 0 4px; }
 .op-check { display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); color:var(--ink-2); cursor:pointer; }

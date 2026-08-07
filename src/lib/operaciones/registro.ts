@@ -84,6 +84,10 @@ export type OperacionInputRaw = {
   moneda: string; // "" = sin moneda
   descuentoPct: number | null;
   descuentoMonto: number | null;
+  /** Comisión % del negocio (independiente del descuento — ej. mesa vs. flete/pizarra). */
+  comisionPct: number | null;
+  /** Confirma un precio de magnitud "rara" para la moneda elegida (ver `precioMonedaSospechoso`). */
+  forzarMoneda: boolean;
   entregaDesde: string; // "" = sin fecha
   entregaHasta: string; // "" = sin fecha
   /** Período de fijación (solo condición "a_fijar"). */
@@ -109,6 +113,7 @@ export type OperacionValidada = {
   moneda: Moneda | null;
   descuento_pct: number | null;
   descuento_monto: number | null;
+  comision_pct: number | null;
   entrega_desde: string | null;
   entrega_hasta: string | null;
   fijacion_desde: string | null;
@@ -134,6 +139,23 @@ export function precioModoDeCondicion(condicion: OperacionCondicion): PrecioModo
   if (condicion === "a_fijar") return "sin_precio";
   if (condicion === "pizarra") return "pizarra";
   return "manual"; // a_precio | pago_anticipado
+}
+
+// ============================================================================
+// Guard de magnitud precio↔moneda (pedido de Lautoro 07/08/2026): "si el
+// precio es 505.000 por supuesto son pesos, si el precio es 190 por supuesto
+// son USD". Un precio de grano en USD/tn casi nunca llega a 5 cifras (soja/
+// maíz/trigo rondan 150-350; aceite/expeller son más caros pero igual muy por
+// debajo del umbral) — y un precio en pesos por tonelada nunca baja de varios
+// miles. Un solo umbral separa los dos casos con margen amplio de los dos
+// lados. Mismo patrón "bloquea salvo forzar" que el guard de unidades del
+// uploader de compras (`src/app/admin/datos/actions.ts`).
+// ============================================================================
+
+export const UMBRAL_PRECIO_MAGNITUD = 10000;
+
+export function precioMonedaSospechoso(precio: number, moneda: Moneda): boolean {
+  return moneda === "usd" ? precio > UMBRAL_PRECIO_MAGNITUD : precio < UMBRAL_PRECIO_MAGNITUD;
 }
 
 export function validarOperacion(input: OperacionInputRaw): ValidacionResultado {
@@ -189,6 +211,15 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
   if (precio_modo === "manual") {
     if (input.precio == null || !(input.precio > 0)) return { ok: false, error: "Ingresá el precio de la operación." };
     if (!moneda) return { ok: false, error: "Elegí la moneda del precio." };
+    if (precioMonedaSospechoso(input.precio, moneda) && !input.forzarMoneda) {
+      return {
+        ok: false,
+        error:
+          moneda === "usd"
+            ? `USD ${input.precio} parece un precio en pesos, no en dólares. Si es correcto, tildá "Confirmo el precio y la moneda".`
+            : `$ ${input.precio} parece un precio en dólares, no en pesos. Si es correcto, tildá "Confirmo el precio y la moneda".`,
+      };
+    }
     precio = input.precio;
   } else if (precio_modo === "pizarra") {
     if (!moneda) return { ok: false, error: "Elegí en qué moneda mostrar la pizarra." };
@@ -202,6 +233,11 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
   const descuento_monto = input.descuentoMonto != null && input.descuentoMonto > 0 ? input.descuentoMonto : null;
   if (descuento_monto != null && descuento_monto < 0) {
     return { ok: false, error: "El descuento en monto no puede ser negativo." };
+  }
+
+  const comision_pct = input.comisionPct != null && input.comisionPct > 0 ? input.comisionPct : null;
+  if (comision_pct != null && (comision_pct < 0 || comision_pct > 100)) {
+    return { ok: false, error: "La comisión en % debe estar entre 0 y 100." };
   }
 
   const entrega_desde: string | null = input.entregaDesde || null;
@@ -265,6 +301,7 @@ export function validarOperacion(input: OperacionInputRaw): ValidacionResultado 
       moneda,
       descuento_pct,
       descuento_monto,
+      comision_pct,
       entrega_desde,
       entrega_hasta,
       fijacion_desde,
@@ -310,19 +347,31 @@ export function elegirPizarraSiguiente(fechaOperacion: string, candidatas: Pizar
   return validas[0] ?? null;
 }
 
-/** `base × (1 − pct/100) − monto` — primero el %, después el monto fijo (§7.4). */
-export function aplicarDescuentos(base: number, pct: number | null, monto: number | null): number {
+/** `base × (1 − pct/100) × (1 − comisiónPct/100) − monto` — descuento % y comisión %
+ *  se aplican como 2 reducciones independientes (§7.4), el monto fijo al final. */
+export function aplicarDescuentos(
+  base: number,
+  pct: number | null,
+  monto: number | null,
+  comisionPct: number | null = null,
+): number {
   const conPct = pct ? base * (1 - pct / 100) : base;
-  return monto ? conPct - monto : conPct;
+  const conComision = comisionPct ? conPct * (1 - comisionPct / 100) : conPct;
+  return monto ? conComision - monto : conComision;
 }
 
 export type PrecioResuelto =
-  | { estado: "manual"; valor: number }
-  | { estado: "pizarra_resuelta"; valor: number; fechaPizarra: string }
+  | { estado: "manual"; valor: number; base: number }
+  | { estado: "pizarra_resuelta"; valor: number; base: number; fechaPizarra: string }
   | { estado: "pizarra_pendiente" }
   | { estado: "sin_precio" };
 
-/** Precio final a mostrar de una operación, dado su modo y (si aplica) la pizarra siguiente ya elegida. */
+/**
+ * Precio final a mostrar de una operación, dado su modo y (si aplica) la pizarra
+ * siguiente ya elegida. Además del `valor` final (con descuento/comisión/monto ya
+ * aplicados), expone el `base` (precio sin tocar — manual o pizarra) para que la
+ * UI pueda mostrar el desglose completo (pedido de Lautoro 07/08/2026).
+ */
 export function resolverPrecio(
   op: {
     precio_modo: PrecioModo;
@@ -330,13 +379,18 @@ export function resolverPrecio(
     moneda: Moneda | null;
     descuento_pct: number | null;
     descuento_monto: number | null;
+    comision_pct: number | null;
   },
   pizarraSiguiente: PizarraFila | null,
 ): PrecioResuelto {
   if (op.precio_modo === "sin_precio") return { estado: "sin_precio" };
   if (op.precio_modo === "manual") {
     if (op.precio == null) return { estado: "sin_precio" };
-    return { estado: "manual", valor: aplicarDescuentos(op.precio, op.descuento_pct, op.descuento_monto) };
+    return {
+      estado: "manual",
+      base: op.precio,
+      valor: aplicarDescuentos(op.precio, op.descuento_pct, op.descuento_monto, op.comision_pct),
+    };
   }
   // pizarra
   if (!pizarraSiguiente) return { estado: "pizarra_pendiente" };
@@ -344,7 +398,8 @@ export function resolverPrecio(
   if (base == null) return { estado: "pizarra_pendiente" };
   return {
     estado: "pizarra_resuelta",
-    valor: aplicarDescuentos(base, op.descuento_pct, op.descuento_monto),
+    base,
+    valor: aplicarDescuentos(base, op.descuento_pct, op.descuento_monto, op.comision_pct),
     fechaPizarra: pizarraSiguiente.fecha,
   };
 }
