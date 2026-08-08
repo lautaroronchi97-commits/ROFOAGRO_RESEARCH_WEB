@@ -1,0 +1,20 @@
+-- Fix real encontrado por la Routine de chequeo de datos (08/08/2026): `refresh_lineup_visitas()`
+-- volvió a hacer timeout (HTTP 500, la matview queda vieja) — exactamente el mismo síntoma que
+-- 20260722013000_e5_fix_refresh_timeout_y_drop_rpc_muerta.sql ya había arreglado el 22/07 con
+-- `alter function ... set statement_timeout = '300s'`.
+--
+-- Causa raíz: un `ALTER FUNCTION ... SET` es efímero frente a un `CREATE OR REPLACE FUNCTION`
+-- posterior — cada `create or replace` de esta función (se re-declaró completa varias veces desde
+-- el 22/07 para sumar matviews nuevas al refresh: camiones_puerto 23/07, djve_resumen_matview
+-- 07/08) resetea silenciosamente cualquier `set` que no esté DENTRO de esa misma sentencia. El
+-- timeout quedó perdido desde hace rato sin que nadie lo notara — confirmado por SQL: el
+-- `proconfig` de la función en producción solo traía `search_path=public`, sin
+-- `statement_timeout`, y el refresh (5 matviews, línea de base ~29s medida el 21/07, más lenta
+-- hoy con más datos) supera el default de la sesión (120s) bajo ciertas condiciones.
+--
+-- Fix: mismo `alter function` de siempre, para no reescribir el cuerpo (que ya está al día con
+-- djve_resumen). ⚠️ PARA LA PRÓXIMA SESIÓN QUE EXTIENDA ESTA FUNCIÓN: si volvés a hacer
+-- `create or replace function public.refresh_lineup_visitas()`, tenés que repetir el
+-- `set statement_timeout to '300s'` DENTRO de esa misma sentencia (junto al `set search_path`) —
+-- si no, este bug vuelve a aparecer solo, sin ningún cambio "de más" que lo explique.
+alter function public.refresh_lineup_visitas() set statement_timeout = '300s';
