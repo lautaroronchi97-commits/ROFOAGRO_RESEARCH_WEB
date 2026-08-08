@@ -1,8 +1,10 @@
 import "server-only";
 import { cache } from "react";
 import { hoyCordobaISO } from "./dates";
-import { filaSpot, type PostFob } from "./fob-oficial-parse";
+import { filaSpot, POSICIONES_FOB, POSICIONES_FOB_INDUSTRIA, type PostFob } from "./fob-oficial-parse";
 import type { Meta } from "./market";
+
+export { POSICIONES_FOB, POSICIONES_FOB_INDUSTRIA };
 
 /**
  * FOB Oficial de granos (SAGyP/MAGyP) — la base imponible legal de los derechos de
@@ -31,35 +33,15 @@ import type { Meta } from "./market";
 const URL_FOB = "https://www.magyp.gob.ar/sitio/areas/ss_mercados_agropecuarios/ws/ssma/precios_fob.php";
 const SOURCE = "Secretaría de Agricultura, Ganadería y Pesca (SAGyP/MAGyP)";
 
-/** Posición NCM homologada por grano — solo la variedad "estándar"/comercial de cada uno. */
-export const POSICIONES_FOB: Record<string, string> = {
-  SOJ: "12019000190C", // habas de soja, "los demás", a granel ≤15% embolsado
-  MAI: "10059010190Y", // maíz, "los demás" (estándar), a granel ≤15% embolsado
-  TRI: "10019900110W", // trigo pan, "los demás", a granel ≤15% embolsado
-  SOR: "10079000100W", // sorgo granífero, "los demás", a granel ≤15% embolsado
-  GIR: "12060090910Y", // semilla de girasol, uso industrial "los demás" (oleaginoso estándar, excluye confitería)
-};
-
-/**
- * Posiciones de los subproductos de la industria aceitera (soja y girasol) — para el FAS
- * Teórico INDUSTRIA (`capacidad-industria-modelo.ts`). Aparte de `POSICIONES_FOB` (no cuentan
- * para su status "real"/"parcial": son un cálculo adicional, no de los 5 granos principales).
- * Homologadas con el mismo cruce empírico (fecha 21/01/2025 vs datos.gob.ar):
- *   aceite_soja_granel = 1042 el 21/01/2025 → 15071000100Q
- *   tortas_..._soja_pellets_harina_extr = 335 el 21/01/2025 → 23040010100B (23040010200G da idéntico precio)
- *   aceite_girasol_granel = 1080 el 21/01/2025 → 15121110310E (fix 07/08/2026: se sumó girasol)
- *   tortas_..._girasol_pellets_extr = 223 el 21/01/2025 → 23063010310V
- * Girasol suma FOB oficial de aceite/pellets, pero "Nuestro Industria" para girasol sigue SIN
- * calcularse: falta confirmar con Lautaro los rindes de molienda, alícuotas DEX, fobbing y
- * gastos comerciales propios de girasol (los de `CFG_INDUSTRIA_DEFAULT` son de soja, verificados
- * contra un modelo de referencia — no corresponde reusarlos para otro grano sin confirmar).
- */
-export const POSICIONES_FOB_INDUSTRIA: Record<string, string> = {
-  SOJ_ACEITE: "15071000100Q", // aceite de soja crudo, a granel
-  SOJ_HARINA: "23040010100B", // harina/pellets de soja (extracción)
-  GIR_ACEITE: "15121110310E", // aceite de girasol crudo, a granel
-  GIR_HARINA: "23063010310V", // harina/pellets de girasol (extracción)
-};
+// POSICIONES_FOB / POSICIONES_FOB_INDUSTRIA se movieron a `fob-oficial-parse.ts` (C32/F1,
+// 08/08/2026) para que `scripts/ingest-fas.mjs` las importe sin arrastrar "server-only" a un
+// script de Node — re-exportadas arriba para no romper a nadie que ya las importaba de acá.
+// Homologación (con la evidencia numérica del cruce empírico contra datos.gob.ar): ver el
+// docstring de esas constantes en `fob-oficial-parse.ts`.
+// Girasol suma FOB oficial de aceite/pellets, pero "Nuestro Industria" para girasol sigue SIN
+// calcularse: falta confirmar con Lautaro los rindes de molienda, alícuotas DEX, fobbing y
+// gastos comerciales propios de girasol (los de `CFG_INDUSTRIA_DEFAULT` son de soja, verificados
+// contra un modelo de referencia — no corresponde reusarlos para otro grano sin confirmar).
 
 export type FobOficialData = {
   granos: Record<string, number | null>; // USD/tn, posición "spot" (ventana de embarque más cercana)

@@ -1,4 +1,8 @@
-import { arNum } from "./env-utils";
+// Extensión ".ts" explícita (C32/F1, 08/08/2026, tsconfig.json suma "allowImportingTsExtensions"):
+// `scripts/ingest-fas.mjs` importa este módulo con Node plano, sin bundler — la resolución nativa
+// de Node exige extensión explícita en imports relativos (verificado: sin ella, `node` tira
+// ERR_MODULE_NOT_FOUND al resolver "./env-utils"). Next/webpack siguen resolviendo ".ts" igual.
+import { arNum } from "./env-utils.ts";
 
 /**
  * Parser puro (testeable) de la planilla de FAS Teórico de BCR — separado de `capacidad.ts`

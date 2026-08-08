@@ -19,7 +19,43 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 08/08/2026 — 🌡️ PLAN C32: fusión señal física + calor de mercadería, CERRADO)
+## Ahora (última actualización: 08/08/2026 — 🌡️ C32/F1: base histórica del FAS, HECHO — migración sin aplicar, falta el CSV)
+
+**🌡️ C32/F1 — BASE HISTÓRICA DEL FAS TEÓRICO — HECHO salvo el backfill (Lautaro no adjuntó el
+CSV en esta sesión) — rama `claude/plan-calor-mercaderia-f1-yy7buy`, PR #_.** Ejecuta el PROMPT
+F1 de `PLAN_CALOR_MERCADERIA.md` §5 ("hace todo lo que puedas sin el CSV") sobre el plan cerrado
+más abajo (misma fecha). **`fasSagyp` expuesto** en `CapGrano` (`capacidad.ts`) — hallazgo real:
+el prompt describía mal el código de hoy ("2º valor=Up River, 1º=SAGyP"); verificado contra el
+HTML real de BCR en vivo que `fasBcr` YA ES la columna SAGyP para 4 de los 5 granos (documentado
+así desde antes en el propio módulo) — la única distinción real es **girasol** (su `fasBcr` usa
+la sección Industria); `fasSagyp` expone siempre el valor de GRANO, incluido girasol, para cruzar
+1:1 contra la serie de Agrochat. **Migración** `20260808120000_c32_f1_fas_historico.sql` (tabla
+`fas_historico`, RLS solo-mesa patrón `views_mercado`, revoke reforzado desde el día 1) —
+**escrita, SIN aplicar**, pide OK. **Cron** `scripts/ingest-fas.mjs` (sagyp/bcr_upriver/nuestro
+por los 5 granos + bcr_industria de soja) + workflow 20:26 ART L-V + alta en healthcheck/catálogo
+— **corrido en vivo con `--dry-run` contra BCR y FOB oficial reales**, 16 filas plausibles.
+**Backfill** `scripts/cargar-fas.mjs` + `src/lib/parse-fas.ts` (parser+checklist §4.3, 10 tests
+con fixture SINTÉTICA — no son datos reales) listos, probados con `--check`, **esperando que
+Lautaro suba el CSV real**. `src/lib/fas-catalogo.ts` mapea productos CSV→catálogo interno.
+
+**Trampa real encontrada, afecta código YA en `main`**: los scripts `.mjs` corren con Node
+plano (sin bundler) — `capacidad-bcr-parse.ts` importaba `./env-utils` SIN extensión, que Node
+no resuelve. **El mismo patrón ya rompía `cargar-compras.mjs`** (su `parse-agrochat.ts` importa
+`@/lib/xlsx-lite`, un alias de TS que Node no entiende) — **si alguien lo corre hoy, falla**;
+quedó señalado, no arreglado (fuera del alcance de F1, blast radius amplio). Fix acotado a lo
+tocado acá: `tsconfig.json` suma `allowImportingTsExtensions` + imports `.ts` explícitos donde
+hacía falta + `POSICIONES_FOB`/`POSICIONES_FOB_INDUSTRIA` mudadas de `fob-oficial.ts`
+(server-only) a `fob-oficial-parse.ts` (puro), re-exportadas para no romper a nadie.
+
+**Verificado**: lint/tsc/**660 tests** (10 nuevos)/build ✅ · cron probado en vivo (dry-run real
+contra BCR+FOB oficial) · backfill probado con fixture sintética. **Pendiente**: CSV real de
+Agrochat (Lautaro) → correr el checklist completo → OK → aplicar migración → cargar → F2 (fusión
+de la página, puede arrancar apenas esta rama mergee — la capa de precio degrada a "—" sin la
+migración aplicada) → F3 (backtest). 'nuestro' de industria de soja queda sin cron (necesita
+`pizarra.ts` partida en un módulo puro, no se hizo — fuera de alcance). Detalle:
+[`sesiones/2026-08-08-c32-f1-fas-historico.md`](sesiones/2026-08-08-c32-f1-fas-historico.md).
+
+## Anterior (08/08/2026 — 🌡️ PLAN C32: fusión señal física + calor de mercadería, CERRADO)
 
 **🌡️ C32 — FUSIÓN DE LAS DOS CAPAS DE SÍNTESIS (señal física + calor de mercadería) — PLAN
 CERRADO, SOLO DOCS — rama `claude/signal-temperature-synthesis-isja3g`, PR #_.** Cierra los

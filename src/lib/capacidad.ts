@@ -48,6 +48,13 @@ import type { Meta } from "./market";
  * (industria)"). A diferencia de soja, girasol NO tiene una fila propia — sin necesidad de
  * separarlo en dos filas: la fila única "Girasol" ya muestra el valor de industria.
  *
+ * C32/F1 (08/08/2026, `fasSagyp` en `CapGrano`): la columna "SAGyP" ya es lo que expone
+ * `fasBcr` de arriba para SOJ/MAI/TRI/SOR — la única diferencia real es GIRASOL, cuyo `fasBcr`
+ * toma la sección Industria (ver la excepción de abajo). `fasSagyp` expone SIEMPRE la columna
+ * SAGyP del bloque de GRANO (incluido girasol), para poder cruzar 1:1 contra la serie histórica
+ * del FAS oficial de Agrochat (`fas_historico`, docs/PLAN_CALOR_MERCADERIA.md), que modela grano
+ * sin procesar en los 5, nunca industria.
+ *
  * Feedback 07/08/2026 ("en nuestro el cálculo no se está haciendo con los datos de industria"):
  * el FOB oficial de aceite/pellets de girasol YA está homologado (`POSICIONES_FOB_INDUSTRIA` en
  * fob-oficial.ts, mismo método empírico que soja) — pero "Nuestro" para girasol sigue siendo el
@@ -72,6 +79,20 @@ export type CapGrano = {
   underlying: string;
   nombre: string;
   fasBcr: number | null; // FAS teórico BCR (SAGyP), USD/tn
+  /**
+   * FAS teórico BCR de GRANO (bloque "Commodity", columna "SAGyP" de la planilla) — C32/F1
+   * (docs/PLAN_CALOR_MERCADERIA.md §5, prompt F1 punto 1). Para SOJ/MAI/TRI/SOR es EL MISMO
+   * valor que `fasBcr` (ambos leen `filaBcr.fas`, verificado contra el HTML real en vivo el
+   * 08/08/2026: la columna "SAGyP" es la única fuente que hoy expone `parseBcr` — el resto de
+   * las columnas del bloque son forwards "Up River 25/26"/"Up River 26/27" a varios meses, sin
+   * un único valor "spot" que resumirlas, y ya se descartan por diseño). La distinción real
+   * está en **GIRASOL**: `fasBcr` de girasol toma la sección Industria (`bcrIndustria.GIR`,
+   * ver el docstring del módulo — casi toda la producción se cruza), mientras que `fasSagyp`
+   * acá SIEMPRE es la columna SAGyP del bloque de GRANO sin procesar — es el valor que hace
+   * falta para cruzar 1:1 contra la fila "Girasol" de la serie histórica de Agrochat (que
+   * modela grano, no industria). Alimenta `fas_historico.fuente='sagyp'` (cron `ingest-fas.mjs`).
+   */
+  fasSagyp: number | null;
   fasNuestro: number | null; // FAS teórico ROFO AGRO, USD/tn
   pizarra: number | null; // disponible USD (CAC) — lo que paga hoy el mercado
   fobOficial: number | null; // FOB oficial (SAGyP/MAGyP) usado en "Nuestro"
@@ -158,6 +179,7 @@ export const getCapacidad = cache(async (): Promise<CapData> => {
       underlying: u,
       nombre: NOMBRES[u],
       fasBcr,
+      fasSagyp: filaBcr?.fas ?? null,
       fasNuestro,
       pizarra: pz,
       fobOficial: fob,

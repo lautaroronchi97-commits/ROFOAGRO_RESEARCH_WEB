@@ -65,6 +65,10 @@ export const CHECKS: Check[] = [
   // perdidos, como compras/Agrochat) porque la condición semanal SÍ envejece rápido — a
   // diferencia del zonal, esta serie se mueve todas las semanas de la campaña en curso.
   { nombre: "pas_condicion (BCBA condición)", tabla: "pas_condicion", col: "actualizado_en", maxDias: 14, cadencia: "manual (PAS semanal; 2 jueves de gracia)" },
+  // fas_historico (C32/F1): misma RLS solo-admin que views_mercado/pas_zonas → SERVICE key.
+  // Umbral corto (5d, como djve): tiene cron diario hábil real, un atraso de más de un finde
+  // largo ya es señal de que BCR/FOB oficial se cayeron, no del rezago normal de una fuente.
+  { nombre: "fas_historico (BCR/SAGyP/Nuestro)", tabla: "fas_historico", col: "creado_en", maxDias: 5, cadencia: "diario hábil (cron ingest-fas + backfill Agrochat)" },
 ];
 
 // E5 #9: "seeds de futuro" — datos que no se atrasan hacia el pasado sino que se AGOTAN hacia
@@ -146,9 +150,11 @@ export const WORKFLOWS: Workflow[] = [
   { archivo: "healthcheck", nombre: "Healthcheck de frescura", horarioArt: "20:45, todos los días", checkNombres: [], tieneSchedule: true },
   { archivo: "chequeo-anomalias", nombre: "Chequeo de anomalías", horarioArt: "20:50, todos los días", checkNombres: [], tieneSchedule: true },
   { archivo: "refresh-calendario", nombre: "Refresh calendario (centinela)", horarioArt: "día 1 de cada mes, 09:00", checkNombres: [], tieneSchedule: true },
+  { archivo: "ingest-fas", nombre: "Ingesta FAS histórico (BCR + FOB oficial)", horarioArt: "20:26 (L-V)", checkNombres: ["fas_historico (BCR/SAGyP/Nuestro)"], tieneSchedule: true },
   // Dispatch-only: sin schedule, Lautaro (o una sesión) los corre a mano cuando hace falta.
   { archivo: "cargar-camiones-williams", nombre: "Cargar histórico camiones (Williams)", horarioArt: "manual (workflow_dispatch)", checkNombres: [], tieneSchedule: false },
   { archivo: "cargar-compras", nombre: "Cargar histórico compras (Agrochat)", horarioArt: "manual (workflow_dispatch)", checkNombres: [], tieneSchedule: false },
+  { archivo: "cargar-fas", nombre: "Cargar histórico FAS (Agrochat)", horarioArt: "manual (workflow_dispatch)", checkNombres: [], tieneSchedule: false },
 ];
 
 /* -------------------------------------------------------------------------------------------- */
