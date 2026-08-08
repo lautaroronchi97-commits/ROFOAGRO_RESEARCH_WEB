@@ -1,0 +1,33 @@
+name: Cargar histórico FAS (Agrochat → Supabase)
+
+# Carga (o re-carga) la serie histórica "FAS Teórico Oficial SAGyP por Producto" de Agrochat a
+# fas_historico (C32/F1, docs/PLAN_CALOR_MERCADERIA.md §4/§5 prompt F1 punto 4), desde el CSV
+# versionado en data/fas/. Sólo se dispara a mano — el dato VIVO lo mantiene ingest-fas.yml.
+# Secrets: SUPABASE_URL / SUPABASE_SERVICE_KEY. Upsert idempotente por (fecha, producto, fuente).
+
+# El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv:
+        description: "Ruta del CSV en el repo."
+        type: string
+        default: "data/fas/fas_teorico_oficial_sagyp_2007_2026.csv"
+
+jobs:
+  cargar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - name: Cargar serie (Agrochat)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/cargar-fas.mjs --in "${{ github.event.inputs.csv }}"

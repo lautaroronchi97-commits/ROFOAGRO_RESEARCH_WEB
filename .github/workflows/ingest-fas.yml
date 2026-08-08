@@ -1,0 +1,39 @@
+name: Ingesta FAS histórico (BCR + FOB oficial → Supabase)
+
+# Mantiene fresca la tabla fas_historico con las 3 fuentes en vivo (sagyp/bcr_upriver/nuestro +
+# bcr_industria para soja) — C32/F1, docs/PLAN_CALOR_MERCADERIA.md §3.3. Complementa (no
+# reemplaza) la carga histórica del CSV de Agrochat (scripts/cargar-fas.mjs, 2007→hoy).
+# Los `schedule` de GitHub Actions corren desde la rama default del repo.
+
+# El GITHUB_TOKEN no se usa (todo va por secrets de Supabase) → mínimo privilegio (E5 #12d).
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "26 23 * * 1-5" # 20:26 ART, L-V — post-cierre (ingest-cierres 20:00/ingest-cbot 19:00), fuera del minuto ":00"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ingest-fas
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - name: Ingesta
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/ingest-fas.mjs
+      - name: Avisar por mail si falló (E5 #7)
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/alerta-mail.mjs --workflow "${{ github.workflow }}" --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
