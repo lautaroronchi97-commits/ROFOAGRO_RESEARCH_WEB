@@ -19,7 +19,37 @@
 5. **Prohibido**: pushear a `main` directo · abrir PRs contra ramas `claude/*` · duplicar apuntes de
    sesión en `CONTEXTO.md` (van en `sesiones/`).
 
-## Ahora (última actualización: 07/08/2026 — 📝 feedback del Word de 32 puntos sobre toda la web, HECHO)
+## Ahora (última actualización: 08/08/2026 — 🌡️ PLAN C32: fusión señal física + calor de mercadería, CERRADO)
+
+**🌡️ C32 — FUSIÓN DE LAS DOS CAPAS DE SÍNTESIS (señal física + calor de mercadería) — PLAN
+CERRADO, SOLO DOCS — rama `claude/signal-temperature-synthesis-isja3g`, PR #_.** Cierra los
+puntos **16 y 18** del Word del 07/08 (agendados "candidatas a fusionarse"). Sesión de análisis
+con dos vueltas de auto-auditoría adversarial pedidas por Lautaro; research a mano (los 4
+subagentes murieron por límite de API), anclado archivo:línea y con **números vivos de
+producción**: las dos páginas se **contradicen hoy** (trigo "Equilibrado" en `/comercio/senal`
+vs "FIRME 79,9 → DIFERIR" en `/comercio/temperatura`; datos al 05/08 vía `/api/views/insumos`)
++ mismatch metodológico latente (la señal juzga ratio 60d contra percentiles de la distribución
+30d). **Entregable: [`PLAN_CALOR_MERCADERIA.md`](PLAN_CALOR_MERCADERIA.md)** — diagnóstico ·
+12 decisiones (fusión en una página "Calor de mercadería" con `/comercio/senal` redirigiendo ·
+motor físico único = percentil estacional a 30d · veredicto en capas SIN recetas nuevas ·
+**eje precio anclado al FAS TEÓRICO OFICIAL SAGyP** — ajusta C16 — · **SOJA = VARA INDUSTRIA**,
+cita de Lautaro: "Rara vez el poroto valió más" · + sorgo y girasol) · diseño de la tabla
+**`fas_historico`** (4 fuentes, cron diario, healthcheck) · **3 prompts autocontenidos**:
+**F1** base FAS → **F2** fusión → **F3** backtest contra el PREMIO local (no el precio pleno;
+3 motores en duelo; walk-forward; salda la DUDA ABIERTA del view sobre el índice).
+
+**Verificado en la sesión**: la API de FOB oficial **responde fechas históricas** (2021/2024/
+2026 probadas con requests reales) → "Nuestro" reconstruible por fecha · **CSV de Agrochat
+"FAS Teórico Oficial SAGyP" analizado y aprobado** (32.076 filas, 2007→hoy, 9 productos incl.
+aceites y cebadas, 0 duplicados/ceros, TC = A3500 correcto hasta en dólar-soja 2022, cotejo
+triple mismo-día vs FAS BCR vivo y Nuestro — perfil y checklist de recarga en el plan §4;
+**Lautaro lo re-sube en F1**, no se versionó acá) · lint/tsc/**650 tests**/build ✅ (diff solo
+docs). **Pendiente**: ejecutar F1→F2→F3 (prompts en §5) · OKs de migraciones en las builds ·
+ojo: el 08/08 el line-up venía al 05/08 (jue/vie sin snapshot — si el lunes sigue, mirar la
+ingesta). Detalle:
+[`sesiones/2026-08-08-plan-calor-mercaderia.md`](sesiones/2026-08-08-plan-calor-mercaderia.md).
+
+## Anterior (07/08/2026 — 📝 feedback del Word de 32 puntos sobre toda la web, HECHO)
 
 **📝 FEEDBACK DEL WORD DE 32 PUNTOS SOBRE TODA LA WEB — HECHO — rama
 `claude/cambios-implementar-qc29k3`, PR #_.** Lautaro relevó la web entera (Word con 32
