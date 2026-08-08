@@ -605,6 +605,23 @@ abiertas ya las contestó Lautaro antes de mergear (§10 del plan).
   [`sesiones/2026-08-05-c31-fase2-operaciones.md`](../sesiones/2026-08-05-c31-fase2-operaciones.md)
   (Fase 2, migración y RLS).
 
+- [ ] **C32. Fusión de las capas de síntesis del comercio exterior + base histórica del FAS
+  (08/08/2026 — PLAN CERRADO, builds pendientes).** Cierra los puntos 16 y 18 del Word del 07/08
+  (señal física · calor de mercadería, agendados "candidatas a fusionarse"). Diagnóstico con
+  datos vivos: las dos páginas se contradicen en producción y comparten la misma base
+  (DJVE × line-up) con dos calibraciones que ya divergieron una vez (L4) y arrastran un mismatch
+  de ventanas 30d/60d. Decisiones clave: una sola página "Calor de mercadería"
+  (`/comercio/senal` redirige) · motor físico único = percentil estacional a 30d · veredicto en
+  capas (matriz 3×3 vigente + precio como contexto, sin recetas nuevas) · eje precio anclado al
+  **FAS teórico oficial SAGyP** (serie Agrochat 2007→hoy verificada; ajusta C16) · **soja =
+  vara industria** (Lautaro: "rara vez el poroto valió más") · tabla nueva `fas_historico`
+  (4 fuentes + cron + backfill) · backtest contra el PREMIO local (3 motores, walk-forward) que
+  salda la duda abierta del view sobre el índice. **3 prompts autocontenidos (F1 base FAS → F2
+  fusión → F3 backtest) en [`PLAN_CALOR_MERCADERIA.md`](../PLAN_CALOR_MERCADERIA.md) §5.**
+  El punto 17 del Word (mesa de embarque) queda explícitamente fuera; el 13 (camiones) empalma
+  solo como opcional F4b. Detalle:
+  [`sesiones/2026-08-08-plan-calor-mercaderia.md`](../sesiones/2026-08-08-plan-calor-mercaderia.md).
+
 - [x] **D1 = L5. DEA: destrabar la fuente** — ✅ hecho 23/07, PR #63. Bloqueo confirmado a nivel
   TLS desde 3 proveedores cloud (GitHub Actions, Edge Function São Paulo, este sandbox); CKAN
   descartado (le falta la campaña 2025/26 completa). Decisión: carga semi-manual (Lautaro sube el
