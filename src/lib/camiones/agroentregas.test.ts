@@ -105,6 +105,15 @@ describe("parseAgroentregas — guards", () => {
     if (!r.ok) expect(r.error).toMatch(/Camiones6/);
   });
 
+  it("trata un valor null/ausente de grano como 0 (sin actividad), no como error", () => {
+    // Caso real del 08/08/2026: la fuente devolvió "GIRASOL":null para una planta puntual del
+    // bloque comparativo y tumbaba la ingesta entera. null/ausente = sin actividad, no un hueco.
+    const conNull = FIXTURE.replace('"GIRASOL":0', '"GIRASOL":null');
+    expect(conNull).not.toBe(FIXTURE);
+    const r = parseAgroentregas(conNull);
+    expect(r.ok).toBe(true);
+  });
+
   it("rechaza el día entero si el detalle por planta no cierra contra los totales de la fuente", () => {
     // Se altera UN valor del detalle (ACA - SAN LORENZO: maíz 96 → 95) dejando los totales intactos:
     // es exactamente la clase de corrupción silenciosa que un upsert ciego guardaría como un día flojo.

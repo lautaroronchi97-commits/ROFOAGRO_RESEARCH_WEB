@@ -82,9 +82,21 @@ function texto(v: unknown): string {
   return typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
 }
 
+/**
+ * `null`/`undefined`/string vacío = SIN ACTIVIDAD ese grano en esa planta, no un hueco de la
+ * fuente (mismo criterio que `numCamion` de `williams.ts`) — encontrado en vivo el 08/08/2026:
+ * el bloque comparativo (`Camiones3`) trajo `GIRASOL: null` para una planta nueva ("U6 -
+ * SERVICIOS PORTUARIOS S.A.") y tumbaba la ingesta entera. Cualquier OTRO valor no numérico
+ * (string basura, boolean, objeto) sigue siendo error duro: eso sí delata un cambio de formato.
+ */
 function entero(v: unknown): number | null {
+  if (v == null) return 0;
   if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v);
+  if (typeof v === "string") {
+    const t = v.trim();
+    if (t === "") return 0;
+    if (Number.isFinite(Number(t))) return Number(t);
+  }
   return null;
 }
 
